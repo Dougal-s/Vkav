@@ -122,7 +122,7 @@ private:
 			audioSettings.sinkName = cmdLineArgs['s'];
 			std::cout << "audioSettings.sinkName = " << audioSettings.sinkName << std::endl;
 		} else {
-			if (configSettings.find("sinkName") != configSettings.end() && configSettings["sinkName"].find('\"') != std::string::npos) {
+			if (configSettings.find("sinkName") != configSettings.end() && configSettings["sinkName"].find("DEFAULT") == std::string::npos) {
 				audioSettings.sinkName = configSettings["sinkName"];
 				audioSettings.sinkName.erase(0, 1);
 				audioSettings.sinkName.pop_back();
