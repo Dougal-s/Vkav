@@ -5,7 +5,7 @@
 /**
  *
  */
-shader = "bars/frag.spv"
+shader = "shaders/bars/frag.spv"
 
 /**
  *
