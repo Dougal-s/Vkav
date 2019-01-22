@@ -1,0 +1,83 @@
+/**
+ * Configuration file for Vkav.
+ */
+
+/**
+ *
+ */
+shader = "bars/frag.spv"
+
+/**
+ *
+ */
+sink = DEFAULT
+
+/**
+ *
+ */
+sampleSize = 64
+
+/**
+ * Must be a power of 2 and divisible by sample size.
+ */
+bufferSize = 2048
+
+/**
+ * Rate at which the program samples the output audio
+ */
+sampleRate = 5625
+
+/**
+ * Number of audio channels
+ */
+channels = 2
+
+/**
+ * Amount of smoothing applied to the audio data. Higher values mean more smoothing.
+ */
+smoothingLevel = 16.0
+
+/**
+ * size of the left and right audio buffers after smoothing.
+ */
+smoothedSize = 320
+
+/**
+ *
+ */
+trebleCut = 0.09;
+
+/**
+ * Transparency type
+ *  Native uses platform specific transparency.
+ *  Vulkan uses vulkans built in transparency.
+ *  Opaque makes the window fully opaque.
+ */
+transparency = Opaque
+
+/**
+ * Dimensions of the window
+ */
+width  = 800
+height = 800
+
+/**
+ * Position of the top left corner of the window.
+ */
+windowPosition = {0,0}
+
+/**
+ * Window title
+ */
+windowTitle = EXECUTABLE;
+
+/**
+ * Window hints
+ */
+resizable = true
+decorated = true
+
+/**
+ * Which GPU to use.
+ */
+DeviceNo = DEFAULT
