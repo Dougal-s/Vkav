@@ -60,39 +60,6 @@ void magnitudes(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
     rBuffer.resize(rBuffer.size()/2);
 }
 
-// Smoothing
-
-static void kernelSmoothing(std::vector<float>& lBuffer, std::vector<float>& rBuffer, int newSize, float param) {
-
-    const float oldSize = lBuffer.size();
-	const float smoothingFactor = 1.f/(param*newSize/oldSize * param*newSize/oldSize * 2.f);
-	std::vector<float> lSmoothedData(lBuffer.capacity(), 0.f);
-	std::vector<float> rSmoothedData(rBuffer.capacity(), 0.f);
-
-	for (int i = 0; i < newSize; ++i) {
-		float sum = 0;
-		for (int j = 0; j < oldSize; ++j) {
-            float distance = (i-j*newSize/oldSize);
-			float weight = std::exp( -distance*distance*smoothingFactor );
-			lSmoothedData[i] += lBuffer[j]*weight;
-            rSmoothedData[i] += rBuffer[j]*weight;
-			sum += weight;
-		}
-		lSmoothedData[i] /= sum;
-		rSmoothedData[i] /= sum;
-	}
-
-    lBuffer.swap(lSmoothedData);
-    rBuffer.swap(rSmoothedData);
-    lBuffer.resize(newSize);
-    rBuffer.resize(newSize);
-}
-
-
-void smooth(std::vector<float>& lBuffer, std::vector<float>& rBuffer, int outputSize, float smoothingLevel) {
-    kernelSmoothing(lBuffer, rBuffer, outputSize, smoothingLevel);
-}
-
 void windowFunction(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
     const float coeff = M_PI/(lBuffer.size()-1);
     for (uint32_t n = 0; n < lBuffer.size(); ++n) {

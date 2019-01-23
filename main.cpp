@@ -20,14 +20,14 @@ static const char* versionStr = "Vkav v1.0\n"
 
 static const char* helpStr = "An audio visualiser using Vulkan for rendering.\n"
                              "\n"
-							 "Available Arguments:\n"
-							 "\t-v, --verbose                 Prints detailed information about the programs execution.\n"
-							 "\t-s, --sink-name=SINK          Uses SINK instead of the default audio sink.(Overrides sink specified in the config file)\n"
-							 "\t-d, --device=DEVICE_NUMBER    Uses Device number DEVICE_NUMBER.(Overrides device number specified in the config file.)\n"
-							 "\t-S, --shader=SHADER_PATH      Uses fragment shader contained in SHADER_PATH.(Overrides the shader path specified in the config file)\n"
-							 "\t-c, --config-file=CONFIG_PATH Specifies the path to the configuration file to use\n"
-							 "\t-h, --help                    Display this help and exit.\n"
-							 "\t-V, --version                 Output version information and exit.\n";
+                             "Available Arguments:\n"
+                             "\t-v, --verbose                 Prints detailed information about the programs execution.\n"
+                             "\t-s, --sink-name=SINK          Uses SINK instead of the default audio sink.(Overrides sink specified in the config file)\n"
+                             "\t-d, --device=DEVICE_NUMBER    Uses Device number DEVICE_NUMBER.(Overrides device number specified in the config file.)\n"
+                             "\t-S, --shader=SHADER_PATH      Uses fragment shader contained in SHADER_PATH.(Overrides the shader path specified in the config file)\n"
+                             "\t-c, --config-file=CONFIG_PATH Specifies the path to the configuration file to use\n"
+                             "\t-h, --help                    Display this help and exit.\n"
+                             "\t-V, --version                 Output version information and exit.\n";
 
 class AV {
 public:
@@ -39,10 +39,6 @@ public:
 
 private:
 
-	float  smoothingLevel = 16.0f;
-	float  trebleCut      = 0.09f;
-	size_t smoothedSize   = 512;
-
 	std::vector<float> lBuffer;
 	std::vector<float> rBuffer;
 
@@ -50,6 +46,9 @@ private:
 	Renderer renderer;
 
 	void init(int argc, char* argv[]) {
+		// Temporary variables
+		float  trebleCut = 0.09f;
+
 		std::chrono::high_resolution_clock::time_point initStart = std::chrono::high_resolution_clock::now();
 
 		std::unordered_map<char, const char*> cmdLineArgs = readCmdLineArgs(argc, argv);
@@ -65,28 +64,12 @@ private:
 
 		std::unordered_map<std::string, std::string> configSettings = readConfigFile("config");
 
-		if (configSettings.find("smoothingLevel") != configSettings.end()) {
-			smoothingLevel = std::stof(configSettings["smoothingLevel"]);
-			std::cout << "smoothingLevel = " << smoothingLevel << std::endl;
-		} else {
-			std::cerr << "Smoothing level count not defined!\n";
-		}
-
-		if (configSettings.find("smoothedSize") != configSettings.end()) {
-			smoothedSize = std::stoi(configSettings["smoothedSize"]);
-			std::cout << "smoothedSize = " << smoothedSize << std::endl;
-		} else {
-			std::cerr << "Smoothed size not defined!\n";
-		}
-
 		if (configSettings.find("trebleCut") != configSettings.end()) {
 			trebleCut = std::stof(configSettings["trebleCut"]);
 			std::cout << "trebleCut = " << trebleCut << std::endl;
 		} else {
 			std::cerr << "Treble cut not defined!\n";
 		}
-
-		std::chrono::high_resolution_clock::time_point audioInitStart = std::chrono::high_resolution_clock::now();
 
 		AudioSettings audioSettings = {};
 
@@ -132,10 +115,7 @@ private:
 
 		audioData.begin(audioSettings);
 
-		std::chrono::high_resolution_clock::time_point rendererInitStart = std::chrono::high_resolution_clock::now();
-
 		RendererSettings rendererSettings = {};
-		rendererSettings.audioSize = smoothedSize*(1.f-trebleCut);
 
 		if (cmdLineArgs.find('S') != cmdLineArgs.end()) {
 			rendererSettings.shaderPath = cmdLineArgs['S'];
@@ -212,6 +192,15 @@ private:
 			std::cerr << "Window hint: \"resizable\" not defined!\n";
 		}
 
+		rendererSettings.audioSize = audioSettings.bufferSize/2*(1.f-trebleCut);
+
+		if (configSettings.find("smoothingLevel") != configSettings.end()) {
+			rendererSettings.smoothingLevel = std::stof(configSettings["smoothingLevel"]);
+			std::cout << "rendererSettings.smoothingLevel = " << rendererSettings.smoothingLevel << std::endl;
+		} else {
+			std::cerr << "Smoothing level count not defined!\n";
+		}
+
 		if (cmdLineArgs.find('d') != cmdLineArgs.end()) {
 			rendererSettings.physicalDevice.value() = atoi(cmdLineArgs['d']);
 			std::cout << "rendererSettings.physicalDevice = " << rendererSettings.physicalDevice.value() << std::endl;
@@ -225,8 +214,6 @@ private:
 		renderer.init(rendererSettings);
 
 		std::chrono::high_resolution_clock::time_point initEnd = std::chrono::high_resolution_clock::now();
-		std::cout << "Audio initialisation took: " << std::chrono::duration_cast<std::chrono::milliseconds>(rendererInitStart-audioInitStart).count() << " milliseconds\n";
-		std::cout << "Renderer initialisation took: " << std::chrono::duration_cast<std::chrono::milliseconds>(initEnd-rendererInitStart).count() << " milliseconds\n";
 		std::cout << "Initialisation took: " << std::chrono::duration_cast<std::chrono::milliseconds>(initEnd-initStart).count() << " milliseconds\n";
 	}
 
@@ -240,7 +227,6 @@ private:
 				windowFunction(lBuffer, rBuffer);
 				magnitudes(lBuffer, rBuffer);
 				equalise(lBuffer, rBuffer);
-				smooth(lBuffer, rBuffer, smoothedSize, smoothingLevel);
 				if (!renderer.drawFrame(lBuffer, rBuffer)) {
 					break;
 				}

@@ -676,8 +676,13 @@ void Renderer::createGraphicsPipeline() {
 
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
-	std::array<uint32_t, 3> specializationConstants = {settings.audioSize, static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-	std::array<VkSpecializationMapEntry, 3> mapEntries;
+	std::array<uint32_t, 4> specializationConstants = {
+		settings.audioSize,
+		*reinterpret_cast<uint32_t*>(&settings.smoothingLevel),
+		static_cast<uint32_t>(width),
+		static_cast<uint32_t>(height)
+	};
+	std::array<VkSpecializationMapEntry, 4> mapEntries;
 
 	mapEntries[0].constantID = 0;
 	mapEntries[0].offset     = 0;
@@ -690,6 +695,10 @@ void Renderer::createGraphicsPipeline() {
 	mapEntries[2].constantID = 2;
 	mapEntries[2].offset     = 2*sizeof(uint32_t);
 	mapEntries[2].size       = sizeof(uint32_t);
+
+	mapEntries[3].constantID = 3;
+	mapEntries[3].offset     = 3*sizeof(uint32_t);
+	mapEntries[3].size       = sizeof(uint32_t);
 
 	VkSpecializationInfo specializationInfo = {};
 	specializationInfo.mapEntryCount = mapEntries.size();
@@ -1258,13 +1267,12 @@ VkImageView Renderer::createImageView(VkImage image, VkFormat format, VkImageVie
 void Renderer::createAudioImageSampler() {
 	VkSamplerCreateInfo samplerInfo = {};
 	samplerInfo.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter               = VK_FILTER_LINEAR;
-	samplerInfo.minFilter               = VK_FILTER_LINEAR;
+	samplerInfo.magFilter               = VK_FILTER_NEAREST;
+	samplerInfo.minFilter               = VK_FILTER_NEAREST;
 	samplerInfo.addressModeU            = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 	samplerInfo.addressModeV            = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 	samplerInfo.addressModeW            = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-	samplerInfo.anisotropyEnable        = VK_TRUE;
-	samplerInfo.maxAnisotropy           = 16;
+	samplerInfo.anisotropyEnable        = VK_FALSE;
 	samplerInfo.borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 	samplerInfo.unnormalizedCoordinates = VK_FALSE;
 	samplerInfo.compareEnable           = VK_FALSE;

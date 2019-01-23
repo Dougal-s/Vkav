@@ -38,11 +38,6 @@ channels = 2
 smoothingLevel = 16.0
 
 /**
- * size of the left and right audio buffers after smoothing.
- */
-smoothedSize = 320
-
-/**
  *
  */
 trebleCut = 0.09;

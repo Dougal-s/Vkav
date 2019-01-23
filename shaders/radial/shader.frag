@@ -1,13 +1,29 @@
 #version 450
 
-layout(constant_id = 0) const int audioSize = 0;
-layout(constant_id = 1) const int width     = 0;
-layout(constant_id = 2) const int height    = 0;
+layout(constant_id = 0) const uint audioSize       = 0;
+layout(constant_id = 1) const float smoothingLevel = 0;
+layout(constant_id = 2) const int width            = 0;
+layout(constant_id = 3) const int height           = 0;
 
 layout(binding = 0) uniform sampler1D lAudioSampler;
 layout(binding = 1) uniform sampler1D rAudioSampler;
 
 layout(location = 0) out vec4 outColor;
+
+float smoothTexture(in sampler1D s, in float index) {
+	const float smoothingFactor = 1.f/(smoothingLevel*smoothingLevel*2.f);
+	const float radius = sqrt(-log(0.1f)/smoothingFactor)/audioSize;
+	float val = 0.f;
+	float sum = 0.f;
+	for (float i = index-radius; i < index+radius; i += 1.f/audioSize) {
+		float distance = audioSize*(index - i);
+		float weight = exp(-distance*distance*smoothingFactor);
+		val += texture(s, i).r*weight;
+		sum += weight;
+	}
+	val /= sum;
+	return val;
+}
 
 const int radius = 128;
 const int centerLineWidth = 2;
@@ -47,9 +63,9 @@ void main() {
 
 			float v = 0;
 			if (idx > 0) {
-				v = texture(lAudioSampler, texCoord).r;
+				v = smoothTexture(lAudioSampler, texCoord).r;
 			} else {
-				v = texture(rAudioSampler, texCoord).r;
+				v = smoothTexture(rAudioSampler, texCoord).r;
 			}
 
 			v *= amplify;
