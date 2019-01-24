@@ -10,26 +10,26 @@
 #include <vector>   // std::vector<>
 
 enum TransparencyType {
-    VULKAN,
-    NATIVE,
-    OPAQUE
+	VULKAN,
+	NATIVE,
+	OPAQUE
 };
 
 struct RendererSettings {
-    uint32_t width  = 800;
-    uint32_t height = 800;
-    std::optional<std::pair<int, int>> windowPosition;
+	uint32_t width  = 800;
+	uint32_t height = 800;
+	std::optional<std::pair<int, int>> windowPosition;
 
-    TransparencyType transparency = OPAQUE;
+	TransparencyType transparency = OPAQUE;
 
-    std::string windowTitle;
+	std::string windowTitle;
 
 	struct WindowHints {
-    	bool decorated = true;
-    	bool resizable = true;
+		bool decorated = true;
+		bool resizable = true;
 	} windowHints;
 
-    uint32_t audioSize;
+	uint32_t audioSize;
 	float smoothingLevel = 16.0f;
 	std::string shaderPath = "shaders/frag.spv";
 
@@ -48,9 +48,9 @@ struct QueueFamilyIndices {
 };
 
 struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
 class Renderer {
