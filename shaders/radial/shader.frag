@@ -12,7 +12,7 @@ layout(location = 0) out vec4 outColor;
 
 float smoothTexture(in sampler1D s, in float index) {
 	const float smoothingFactor = 1.f/(smoothingLevel*smoothingLevel*2.f);
-	const float radius = sqrt(-log(0.1f)/smoothingFactor)/audioSize;
+	const float radius = sqrt(-log(0.05f)/smoothingFactor)/audioSize;
 	float val = 0.f;
 	float sum = 0.f;
 	for (float i = index-radius; i < index+radius; i += 1.f/audioSize) {
