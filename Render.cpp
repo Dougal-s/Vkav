@@ -406,8 +406,6 @@ int Renderer::rateDeviceSuitability(VkPhysicalDevice device) {
 		return 0;
 	if (!swapChainAdequate)
 		return 0;
-	if (!deviceFeatures.samplerAnisotropy)
-		return 0;
 
 	// Check for optional features
 	int score = 1;
@@ -477,7 +475,6 @@ void Renderer::createLogicalDevice() {
 	}
 
 	VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
