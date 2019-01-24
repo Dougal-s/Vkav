@@ -64,8 +64,8 @@ void magnitudes(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
 static void kernelSmoothing(std::vector<float>& lBuffer, std::vector<float>& rBuffer, int newSize, float param) {
 
 	const float oldSize = lBuffer.size();
-	const float smoothingFactor = 1.f/(param*newSize/oldSize * param*newSize/oldSize * 2.f);
-	const float radius = sqrt(-log(0.05)/smoothingFactor)*oldSize/newSize;
+	const float smoothingFactor = 0.5f/(param*newSize/oldSize * param*newSize/oldSize);
+	const float radius = sqrt(-log(0.05f)/smoothingFactor)*oldSize/newSize;
 	std::vector<float> lSmoothedData(lBuffer.capacity(), 0.f);
 	std::vector<float> rSmoothedData(rBuffer.capacity(), 0.f);
 	lSmoothedData.resize(newSize);
@@ -73,7 +73,9 @@ static void kernelSmoothing(std::vector<float>& lBuffer, std::vector<float>& rBu
 
  	for (int i = 0; i < newSize; ++i) {
 		float sum = 0;
-		for (int j = 0; j < oldSize; ++j) {
+		int min = std::max(0, (int)(i*oldSize/newSize-radius));
+		int max = std::min((int)oldSize, (int)(i*oldSize/newSize+radius));
+		for (int j = min; j < max; ++j) {
 			float distance = (i-j*newSize/oldSize);
 			float weight = std::exp( -distance*distance*smoothingFactor );
 			lSmoothedData[i] += lBuffer[j]*weight;
