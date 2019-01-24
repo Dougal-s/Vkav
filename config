@@ -33,6 +33,16 @@ sampleRate = 5625
 channels = 2
 
 /**
+* Whether to perform smoothing on the CPU or GPU.
+*/
+smoothingDevice = GPU
+
+/**
+ * Size of the left and right audio buffers after smoothing if smoothingDevice is set to CPU.
+ */
+smoothedSize = 320
+
+/**
  * Amount of smoothing applied to the audio data. Higher values mean more smoothing.
  */
 smoothingLevel = 16.0

@@ -15,6 +15,11 @@
 #include "Render.hpp"
 #include "SignalFunctions.hpp"
 
+enum Device {
+	CPU,
+	GPU
+};
+
 static const char* versionStr = "Vkav v1.0\n"
                                 "Written by Dougal Stewart\n";
 
@@ -41,6 +46,10 @@ private:
 
 	std::vector<float> lBuffer;
 	std::vector<float> rBuffer;
+
+	float smoothingLevel = 16.0f;
+	size_t smoothedSize  = 320;
+	Device smoothingDevice = GPU;
 
 	AudioData audioData;
 	Renderer renderer;
@@ -69,6 +78,30 @@ private:
 			std::cout << "trebleCut = " << trebleCut << std::endl;
 		} else {
 			std::cerr << "Treble cut not defined!\n";
+		}
+
+		if (configSettings.find("smoothingDevice") != configSettings.end()) {
+			std::string deviceStr = configSettings["smoothingDevice"];
+			if (deviceStr == "CPU") {
+				smoothingDevice = CPU;
+				std::cout << "smoothingDevice = CPU\n";
+			} else if (deviceStr == "GPU") {
+				smoothingDevice = GPU;
+				std::cout << "smoothingDevice = GPU\n";
+			} else {
+				std::cerr << "Smoothing device set to an invalid value!\n";
+			}
+		} else {
+			std::cerr << "Smoothing device not defined!\n";
+		}
+
+		if (smoothingDevice == CPU) {
+			if (configSettings.find("smoothedSize") != configSettings.end()) {
+				smoothedSize = std::stoi(configSettings["smoothedSize"]);
+				std::cout << "smoothedSize = " << smoothedSize << std::endl;
+			} else {
+				std::cerr << "Smoothed size not defined!\n";
+			}
 		}
 
 		AudioSettings audioSettings = {};
@@ -192,13 +225,23 @@ private:
 			std::cerr << "Window hint: \"resizable\" not defined!\n";
 		}
 
-		rendererSettings.audioSize = audioSettings.bufferSize/2*(1.f-trebleCut);
+		if (smoothingDevice == GPU) {
+			rendererSettings.audioSize = (audioSettings.bufferSize/2)*(1.f-trebleCut);
+		} else if (smoothingDevice == CPU) {
+			rendererSettings.audioSize = smoothedSize*(1.f-trebleCut);
+		}
 
 		if (configSettings.find("smoothingLevel") != configSettings.end()) {
-			rendererSettings.smoothingLevel = std::stof(configSettings["smoothingLevel"]);
-			std::cout << "rendererSettings.smoothingLevel = " << rendererSettings.smoothingLevel << std::endl;
+			if (smoothingDevice == CPU) {
+				rendererSettings.smoothingLevel = 0.f;
+				smoothingLevel = std::stof(configSettings["smoothingLevel"]);
+				std::cout << "smoothingLevel = " << smoothingLevel << std::endl;
+			} else if (smoothingDevice == GPU) {
+				rendererSettings.smoothingLevel = std::stof(configSettings["smoothingLevel"]);
+				std::cout << "rendererSettings.smoothingLevel = " << rendererSettings.smoothingLevel << std::endl;
+			}
 		} else {
-			std::cerr << "Smoothing level count not defined!\n";
+			std::cerr << "Smoothing level not defined!\n";
 		}
 
 		if (cmdLineArgs.find('d') != cmdLineArgs.end()) {
@@ -227,6 +270,9 @@ private:
 				windowFunction(lBuffer, rBuffer);
 				magnitudes(lBuffer, rBuffer);
 				equalise(lBuffer, rBuffer);
+				if (smoothingDevice == CPU) {
+					smooth(lBuffer, rBuffer, smoothedSize, smoothingLevel);
+				}
 				if (!renderer.drawFrame(lBuffer, rBuffer)) {
 					break;
 				}

@@ -60,6 +60,41 @@ void magnitudes(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
     rBuffer.resize(rBuffer.size()/2);
 }
 
+// Smoothing
+static void kernelSmoothing(std::vector<float>& lBuffer, std::vector<float>& rBuffer, int newSize, float param) {
+
+	const float oldSize = lBuffer.size();
+	const float smoothingFactor = 1.f/(param*newSize/oldSize * param*newSize/oldSize * 2.f);
+	const float radius = sqrt(-log(0.05)/smoothingFactor)*oldSize/newSize;
+	std::vector<float> lSmoothedData(lBuffer.capacity(), 0.f);
+	std::vector<float> rSmoothedData(rBuffer.capacity(), 0.f);
+	lSmoothedData.resize(newSize);
+	rSmoothedData.resize(newSize);
+
+ 	for (int i = 0; i < newSize; ++i) {
+		float sum = 0;
+		for (int j = 0; j < oldSize; ++j) {
+			float distance = (i-j*newSize/oldSize);
+			float weight = std::exp( -distance*distance*smoothingFactor );
+			lSmoothedData[i] += lBuffer[j]*weight;
+			rSmoothedData[i] += rBuffer[j]*weight;
+			sum += weight;
+		}
+		lSmoothedData[i] /= sum;
+		rSmoothedData[i] /= sum;
+	}
+
+	lBuffer.swap(lSmoothedData);
+	rBuffer.swap(rSmoothedData);
+}
+
+
+void smooth(std::vector<float>& lBuffer, std::vector<float>& rBuffer, int outputSize, float smoothingLevel) {
+	kernelSmoothing(lBuffer, rBuffer, outputSize, smoothingLevel);
+}
+
+// Window function applied before the fft
+
 void windowFunction(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
     const float coeff = M_PI/(lBuffer.size()-1);
     for (uint32_t n = 0; n < lBuffer.size(); ++n) {
@@ -69,6 +104,8 @@ void windowFunction(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
         rBuffer[n] *= weight;
     }
 }
+
+// Applied after the fft to flatten out the output
 
 void equalise(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
     for (uint32_t n = 0; n < lBuffer.size(); ++n) {
