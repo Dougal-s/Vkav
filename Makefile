@@ -16,10 +16,10 @@ endif
 all: compile run clean
 
 %.o: %.cpp
-	c++ $(CFLAGS) -c -o $@ $^
+	$(CXX) $(CFLAGS) -c -o $@ $^
 
 compile: $(obj)
-	c++ $(CFLAGS) -o Vkav $(obj) $(LDFLAGS)
+	$(CXX) $(CFLAGS) -o Vkav $(obj) $(LDFLAGS)
 	$(STRIP)
 
 run:
