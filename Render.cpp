@@ -59,17 +59,17 @@ void DestroyDebugUtilsMessengerEXT(
 // Renderer Class
 void Renderer::init(const RendererSettings& rendererSettings) {
 	settings = rendererSettings;
-
+	std::clog << "Creating window.\n";
 	initWindow();
+	std::clog << "Initialising Vulkan.\n";
 	initVulkan();
 }
 
 bool Renderer::drawFrame(const std::vector<float>& lBuffer, const std::vector<float>& rBuffer) {
-	if (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-	} else {
+	if (glfwWindowShouldClose(window)) {
 		return false;
 	}
+	glfwPollEvents();
 
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);
@@ -1377,6 +1377,8 @@ void Renderer::windowIconifyCallback(GLFWwindow* window, int iconified) {
 	auto app = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window));
 	if (iconified)
 		app->windowIconified = true;
+	else
+		app->windowIconified = false;
 }
 
 std::vector<char> Renderer::readFile(const std::string& filename) {

@@ -22,7 +22,7 @@ struct RendererSettings {
 
 	TransparencyType transparency = OPAQUE;
 
-	std::string windowTitle;
+	std::string windowTitle = "Vkav";
 
 	struct WindowHints {
 		bool decorated = true;

@@ -8,9 +8,9 @@
 //shader = "shaders/bars/frag.spv"
 
 /**
- * Name of the audio sink to record audio from.
+ * Name of the PulseAudio sink to record audio from.
  */
-//sink = DEFAULT
+//sinkName = auto
 
 /**
  * Size of the array that reads audio from the sink.
@@ -18,18 +18,18 @@
 //sampleSize = 64
 
 /**
- * Size of the buffer that contains all the audio.
+ * Size of the buffer that will be used for proccessing and shaders.
  * Must be a power of 2 and divisible by sample size.
  */
 //bufferSize = 2048
 
 /**
- * Rate at which the program samples the output audio
+ * Rate at which the program samples audio.
  */
 //sampleRate = 5625
 
 /**
- * Number of audio channels
+ * Number of audio channels.
  */
 //channels = 2
 
@@ -39,7 +39,7 @@
 //smoothingDevice = GPU
 
 /**
- * Size of the left and right audio buffers after smoothing if smoothingDevice is set to CPU.
+ * Size of the left and right audio buffers after smoothing. Only applies if smoothingDevice is set to CPU.
  */
 //smoothedSize = 320
 
@@ -55,9 +55,9 @@
 
 /**
  * Transparency type
- *  Native uses platform specific transparency.
- *  Vulkan uses vulkans built in transparency.
- *  Opaque makes the window fully opaque.
+ * 	Native uses platform specific transparency.
+ * 	Vulkan uses vulkans built in transparency.
+ * 	Opaque makes the window fully opaque.
  */
 //transparency = Opaque
 
@@ -74,7 +74,7 @@
 
 /**
  * Window title
- * Setting this to EXECUTABLE sets the window title to the path to the executable.
+ * Setting this to executable sets the window title to the path to the executable.
  */
 //windowTitle = "Vkav";
 
@@ -87,4 +87,4 @@
 /**
  * Which GPU to use.
  */
-//DeviceNo = DEFAULT
+//physicalDevice = auto

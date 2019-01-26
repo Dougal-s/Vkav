@@ -45,6 +45,7 @@ void AudioData::init(AudioSettings audioSettings) {
 
 	if (settings.sinkName.empty()) {
 		getDefaultSink();
+		std::clog << "Using PulseAudio sink: \"" << settings.sinkName << "\"\n";
 	}
 	setupPulse();
 }
@@ -52,18 +53,16 @@ void AudioData::init(AudioSettings audioSettings) {
 void AudioData::run() {
 	while(!this->stop) {
 		if (pa_simple_read(s, reinterpret_cast<char*>(sampleBuffer), sizeof(float)*settings.sampleSize, &error) < 0) {
-			std::cerr << __FILE__ ":" << __LINE__ << ": pa_simple_read() failed: " << pa_strerror(error) << std::endl;
+			std::cerr << "pa_simple_read() failed: " << pa_strerror(error) << std::endl;
 			this->stop = true;
 			break;
 		}
 
 		audioMutexLock.lock();
-
-		for (uint32_t i = 0; i < settings.bufferSize/settings.sampleSize-1; ++i) {
-			std::swap(audioBuffer[i], audioBuffer[i+1]);
-		}
-		std::swap(audioBuffer[settings.bufferSize/settings.sampleSize-1], sampleBuffer);
-
+			for (uint32_t i = 0; i < settings.bufferSize/settings.sampleSize-1; ++i) {
+				std::swap(audioBuffer[i], audioBuffer[i+1]);
+			}
+			std::swap(audioBuffer[settings.bufferSize/settings.sampleSize-1], sampleBuffer);
 		audioMutexLock.unlock();
 		this->modified = true;
 	}
@@ -104,9 +103,7 @@ void AudioData::getDefaultSink() {
 	pa_context* context;
 
 	mainloop = pa_mainloop_new();
-
 	mainloopAPI = pa_mainloop_get_api(mainloop);
-
 	context = pa_context_new(mainloopAPI, "Vkav");
 
 	pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL);
@@ -129,16 +126,16 @@ void AudioData::setupPulse() {
 	};
 
 	s = pa_simple_new(
-			NULL,
-			"Vkav",
-			PA_STREAM_RECORD,
-			settings.sinkName.c_str(),
-			"recorder for Vkav",
-			&ss,
-			NULL,
-			NULL,
-			&error
-		);
+	    	NULL,
+	    	"Vkav",
+	    	PA_STREAM_RECORD,
+	    	settings.sinkName.c_str(),
+	    	"recorder for Vkav",
+	    	&ss,
+	    	NULL,
+	    	NULL,
+	    	&error
+	    );
 
 	if (!s) {
 		throw std::runtime_error("pa_simple_new() failed!");
@@ -150,13 +147,16 @@ void AudioData::contextStateCallback(pa_context* c, void* userdata) {
 
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_READY:
-		pa_operation_unref(pa_context_get_server_info(c, callback, userdata));
+			pa_operation_unref(pa_context_get_server_info(c, callback, userdata));
 			break;
 		case PA_CONTEXT_FAILED:
 			pa_mainloop_quit(audioData->mainloop, 0);
 			break;
 		case PA_CONTEXT_TERMINATED:
 			pa_mainloop_quit(audioData->mainloop, 0);
+			break;
+		default:
+			// Do nothing
 			break;
 	}
 }

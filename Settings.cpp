@@ -7,8 +7,9 @@
 
 #include "Settings.hpp"
 
-std::unordered_map<std::string, std::string> readConfigFile(const char* filePath) {
+std::unordered_map<std::string, std::string> readConfigFile(const std::string& filePath) {
 	std::unordered_map<std::string, std::string> variables;
+
 	std::ifstream configFile(filePath);
 	if (!configFile.is_open()) {
 		throw std::runtime_error("Failed to open configuration file!");
@@ -27,13 +28,8 @@ std::unordered_map<std::string, std::string> readConfigFile(const char* filePath
 
 		std::istringstream isLine(line);
 
-		if (!std::getline(isLine, varName, '=')) {
-			continue;
-		}
-
-		if (!std::getline(isLine, varVal)) {
-			continue;
-		}
+		if (!std::getline(isLine, varName, '=')) {continue;}
+		if (!std::getline(isLine, varVal)) {continue;}
 
 		// Remove whitespaces
 		varName.resize(std::remove_if(varName.begin(), varName.end(), isspace) - varName.begin());
@@ -41,9 +37,8 @@ std::unordered_map<std::string, std::string> readConfigFile(const char* filePath
 		if ( (position = varVal.find('{')) != std::string::npos) { // Check if the input is a list
 			varVal = varVal.substr(position, varVal.find('}', position+1)-position+1);
 		} else if ( (position = varVal.find('\"')) != std::string::npos) { // Check if the input is a string
-			varVal = varVal.substr(position, varVal.find('\"', position+1)-position+1);
-		} else {
-			// remove whitespaces
+			varVal = varVal.substr(position+1, varVal.find('\"', position+1)-position-1);
+		} else { // remove whitespaces
 			varVal.resize(std::remove_if(varVal.begin(), varVal.end(), isspace) - varVal.begin());
 		}
 
