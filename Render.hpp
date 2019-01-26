@@ -31,7 +31,7 @@ struct RendererSettings {
 
 	uint32_t audioSize;
 	float smoothingLevel = 16.0f;
-	std::string shaderPath = "shaders/frag.spv";
+	std::string shaderPath = "shaders/bars/frag.spv";
 
 	std::optional<uint32_t> physicalDevice;
 };
