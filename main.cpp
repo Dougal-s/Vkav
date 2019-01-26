@@ -247,9 +247,11 @@ private:
 			rendererSettings.audioSize = smoothedSize*(1.f-trebleCut);
 		}
 
+		if (smoothingDevice == CPU)
+			rendererSettings.smoothingLevel = 0.f;
+
 		if (configSettings.find("smoothingLevel") != configSettings.end()) {
 			if (smoothingDevice == CPU) {
-				rendererSettings.smoothingLevel = 0.f;
 				smoothingLevel = std::stof(configSettings["smoothingLevel"]);
 				std::clog << "smoothingLevel = " << smoothingLevel << std::endl;
 			} else if (smoothingDevice == GPU) {
