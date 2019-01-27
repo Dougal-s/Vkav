@@ -1,7 +1,6 @@
 src = $(wildcard *.cpp)
 obj = $(src:.cpp=.o)
 
-VULKAN_SDK_PATH = /home/user/Programming/Vulkan/VulkanSDK/x.x.x.x/x86_64
 
 CFLAGS = -std=c++17
 LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread
