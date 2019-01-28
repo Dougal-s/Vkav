@@ -11,11 +11,11 @@ layout(binding = 1) uniform sampler1D rAudioSampler;
 
 layout(location = 0) out vec4 outColor;
 
-#define kernel
+#define monstercat
 #include "../smoothing/smoothing.glsl"
-#undef kernel
+#undef monstercat
 
-const int barWidth = 4;
+const int barWidth = 8;
 const int barGap = 2;
 
 const vec4 color = vec4(50/255.0f, 50/255.0f, 52/255.0f, 1.0);
