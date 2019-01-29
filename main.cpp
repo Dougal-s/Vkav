@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <chrono>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_map>
@@ -288,7 +289,7 @@ private:
 	void mainLoop() {
 		std::clog << "Entering main loop.\n";
 		int numFrames = 0;
-		std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+		std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
 
 		while (!audioData.stop) {
 			if (audioData.modified) {
@@ -306,10 +307,15 @@ private:
 			}
 			std::this_thread::sleep_for(std::chrono::microseconds(1));
 
+			std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+			if (std::chrono::duration_cast<std::chrono::seconds>(currentTime-lastFrame).count() >= 1) {
+				std::clog << "FPS: " << std::setw(3) << std::right << numFrames << " | UPS: " << std::setw(3) << std::right << audioData.ups << std::endl;
+				numFrames = 0;
+				lastFrame = currentTime;
+			}
+
 		}
 		std::clog << "Exiting main loop.\n";
-		std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-		std::cout << "Avg FPS: " << numFrames*1000.f/std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count() << std::endl;
 	}
 
 	void cleanup() {

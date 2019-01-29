@@ -1,5 +1,6 @@
 // C++ standard libraries
 #include <atomic>
+#include <chrono>
 #include <string>
 #include <iostream>
 #include <mutex>
@@ -51,6 +52,9 @@ void AudioData::init(AudioSettings audioSettings) {
 }
 
 void AudioData::run() {
+	std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
+	int numUpdates = 0;
+
 	while(!this->stop) {
 		if (pa_simple_read(s, reinterpret_cast<char*>(sampleBuffer), sizeof(float)*settings.sampleSize, &error) < 0) {
 			std::cerr << "pa_simple_read() failed: " << pa_strerror(error) << std::endl;
@@ -65,6 +69,13 @@ void AudioData::run() {
 			std::swap(audioBuffer[settings.bufferSize/settings.sampleSize-1], sampleBuffer);
 		audioMutexLock.unlock();
 		this->modified = true;
+		++numUpdates;
+		std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+		if (std::chrono::duration_cast<std::chrono::seconds>(currentTime-lastFrame).count() >= 1) {
+			ups = numUpdates;
+			numUpdates = 0;
+			lastFrame = currentTime;
+		}
 	}
 }
 

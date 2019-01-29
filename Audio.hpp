@@ -25,6 +25,7 @@ class AudioData {
 public:
 	std::atomic<bool> stop;
 	std::atomic<bool> modified;
+	std::atomic<int> ups;
 
 	void begin(AudioSettings audioSettings);
 
