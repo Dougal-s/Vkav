@@ -23,7 +23,7 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::string& f
 		size_t position;
 		// Check for comments
 		if ( (position = line.find("//")) != std::string::npos) {
-			varVal.erase(position);
+			line.erase(position);
 		}
 
 		std::istringstream isLine(line);
@@ -53,16 +53,13 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::string& f
 std::unordered_map<char, const char*> readCmdLineArgs(int argc, char* argv[]) {
 	std::unordered_map<char, const char*> arguments(argc-1);
 	for (int i = 1; i < argc; ++i) {
-		int size = 0;
+		size_t size = 0;
 		const char* argValue = nullptr;
 		std::string argName;
 		for (;argv[i][size] != 0; ++size) {
 			if (argv[i][size] == '=') {
 				argValue = argv[i] + size + 1;
-			}
-
-			if (argValue == nullptr) {
-				argName.push_back(argv[i][size]);
+				argName = std::string(argv[i], size);
 			}
 		}
 
@@ -70,7 +67,7 @@ std::unordered_map<char, const char*> readCmdLineArgs(int argc, char* argv[]) {
 			if (argv[i][1] == '-') {
 				char charKey = 0;
 
-				if (argName == "--verbose") {charKey = 'v';}
+				if      (argName == "--verbose") {charKey = 'v';}
 				else if (argName == "--sink-name") {charKey = 's';}
 				else if (argName == "--device") {charKey = 'd';}
 				else if (argName == "--shader") {charKey = 'S';}
