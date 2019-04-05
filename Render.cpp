@@ -1,17 +1,20 @@
+// TODO: send volume as a push constant
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <algorithm>
-#include <stdexcept>
-#include <iostream>
+#include <array>
 #include <fstream>
-#include <vector>
-#include <map>
+#include <iostream>
 #include <limits>
+#include <map>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "Render.hpp"
 
@@ -276,7 +279,7 @@ void Renderer::createInstance() {
 
 	VkApplicationInfo appInfo = {};
 	appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName   = "AV";
+	appInfo.pApplicationName   = "Vkav";
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	appInfo.pEngineName        = "No Engine";
 	appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);

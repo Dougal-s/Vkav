@@ -1,11 +1,8 @@
 // C++ standard libraries
-#include <algorithm>
-#include <stdlib.h>
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <iomanip>
-#include <sstream>
-#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 #include <string>
