@@ -130,11 +130,14 @@ void AudioData::getDefaultSink() {
 }
 
 void AudioData::setupPulse() {
-	const pa_sample_spec ss = {
-		.format   = PA_SAMPLE_FLOAT32LE,
-		.rate     = settings.sampleRate,
-		.channels = settings.channels
-	};
+	pa_sample_spec ss = {};
+	ss.format   = PA_SAMPLE_FLOAT32LE;
+	ss.rate     = settings.sampleRate;
+	ss.channels = settings.channels;
+
+	pa_buffer_attr attr = {};
+	attr.maxlength = (uint32_t)-1;
+	attr.fragsize = settings.sampleSize;
 
 	s = pa_simple_new(
 	    	NULL,
