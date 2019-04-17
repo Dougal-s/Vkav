@@ -1,3 +1,4 @@
+#pragma once
 #ifndef SIGNAL_FUNCTIONS_HPP
 #define SIGNAL_FUNCTIONS_HPP
 #include <vector>
