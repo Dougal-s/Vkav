@@ -1,21 +1,41 @@
+#include <algorithm>
+#include <csetjmp>
 #include <cstdio>
 #include <stdexcept>
 #include <utility>
 
 #include <iostream>
 
+// For png files
 #include <png.h>
+
+// for jpeg files
+#include <jpeglib.h>
 
 #include "Image.hpp"
 
-static unsigned char** emptyBuffer() {
+
+class Image {
+public:
+	virtual int init(const std::filesystem::path& filepath) = 0;
+	virtual void readImage() = 0;
+	virtual unsigned char** getBuffer() = 0;
+	virtual size_t getWidth() = 0;
+	virtual size_t getHeight() = 0;
+	virtual ~Image() = default;
+
+	static unsigned char** emptyBuffer() {
 	unsigned char** buffer = new unsigned char*[1];
 	buffer[0] = new unsigned char[4]{0, 0, 0, 0};
 	return buffer;
 }
+	static Image* create(const std::filesystem::path& filePath);
+	static void destroy(Image* image);
+};
 
-class PNG {
+class PNG : public Image {
 public:
+
 	int init(const std::filesystem::path& filePath) {
 		file = fopen(filePath.c_str(), "rb");
 		if (!file) {
@@ -26,6 +46,7 @@ public:
 		unsigned char sig[8];
 		if (fread(reinterpret_cast<void*>(sig), 1, 8, file) != 8) {
 			std::cerr << "failed to read png signature!" << std::endl;
+			fclose(file);
 			return 1;
 		}
 
@@ -125,6 +146,8 @@ public:
 		return imgWidth;
 	}
 
+	~PNG() = default;
+
 private:
 	FILE* file;
 
@@ -137,30 +160,134 @@ private:
 	png_bytep* image;
 };
 
-unsigned char** readPNG(const std::filesystem::path& filePath, size_t& width, size_t& height) {
-	PNG png;
-	int error;
-	if ((error = png.init(filePath))) {
-		if (error == 2) {
-			std::cerr << "failed to read png image!" << std::endl;
+class JPEG : public Image {
+public:
+
+	int init(const std::filesystem::path& filePath) {
+		file = fopen(filePath.c_str(), "rb");
+		if (!file) {
+			std::cerr << "failed to open image!" << std::endl;
+			return 1;
 		}
-		width = 1;
-		height = 1;
-		return emptyBuffer();
+
+		cInfo.err = jpeg_std_error(&error.pub);
+		error.pub.error_exit = errorExit;
+
+		if (setjmp(error.setjmpBuffer)) {
+			jpeg_destroy_decompress(&cInfo);
+			fclose(file);
+			return 1;
+		}
+
+		jpeg_create_decompress(&cInfo);
+
+		jpeg_stdio_src(&cInfo, file);
+
+		return 0;
 	}
-	png.readImage();
-	width = png.getWidth();
-	height = png.getHeight();
-	return png.getBuffer();
+
+	void readImage() {
+		jpeg_read_header(&cInfo, TRUE);
+
+		cInfo.out_color_space = JCS_EXT_RGBA;
+
+		jpeg_start_decompress(&cInfo);
+
+		imgWidth = cInfo.output_width;
+		rowSize = cInfo.output_width*cInfo.output_components;
+		imgHeight = cInfo.output_height;
+
+		image = new unsigned char*[imgHeight];
+
+		while (cInfo.output_scanline < cInfo.output_height) {
+			image[cInfo.output_scanline] = new unsigned char[rowSize];
+			jpeg_read_scanlines(&cInfo, image+cInfo.output_scanline, 1);
+		}
+
+		jpeg_finish_decompress(&cInfo);
+
+		jpeg_destroy_decompress(&cInfo);
+		fclose(file);
+	}
+
+	unsigned char** getBuffer() {
+		return image;
+	}
+
+	size_t getWidth() {
+		return imgWidth;
+	}
+
+	size_t getHeight() {
+		return imgHeight;
+	}
+
+	~JPEG() = default;
+
+private:
+	FILE* file;
+
+	jpeg_decompress_struct cInfo;
+
+	struct errorManager {
+		jpeg_error_mgr pub;
+		jmp_buf setjmpBuffer;
+	} error;
+
+	int rowSize;
+	int imgWidth, imgHeight;
+
+	JSAMPARRAY buffer;
+	unsigned char** image;
+
+	[[ noreturn ]] static void errorExit(j_common_ptr cInfo) {
+		errorManager* err = reinterpret_cast<errorManager*>(cInfo->err);
+		(*cInfo->err->output_message) (cInfo);
+		longjmp(err->setjmpBuffer, 1);
+	}
+};
+
+Image* Image::create(const std::filesystem::path& filePath) {
+	if (filePath.extension() == ".png") {
+		return new PNG();
+	} else if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg") {
+		return new JPEG();
+	}
+
+	return nullptr;
+}
+
+void Image::destroy(Image* image) {
+	if (image)
+		delete image;
 }
 
 unsigned char** readImg(const std::filesystem::path& filePath, size_t& width, size_t& height) {
-	if (filePath.extension() == ".png") {
-		return readPNG(filePath, width, height);
+	Image* img = Image::create(filePath);
+	unsigned char** buffer;
+	int error;
+
+	if (!img) {
+		std::cerr << "unrecognized image type!" << std::endl;
+		width = 1;
+		height = 1;
+		return Image::emptyBuffer();
 	}
 
-	std::cerr << "unrecognized image type!" << std::endl;
-	width = 1;
-	height = 1;
-	return emptyBuffer();
+	if ((error = img->init(filePath))) {
+		if (error == 2) {
+			std::cerr << "failed to read image!" << std::endl;
+		}
+		width = 1;
+		height = 1;
+		Image::destroy(img);
+		return Image::emptyBuffer();
+	}
+
+	img->readImage();
+	width = img->getWidth();
+	height = img->getHeight();
+	buffer = img->getBuffer();
+	Image::destroy(img);
+	return buffer;
 }

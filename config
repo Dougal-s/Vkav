@@ -8,7 +8,10 @@
 shaderDirectories = {"shaders/background", "shaders/radial", "shaders/bars"}
 
 /**
- * Path to an image, which is sent to the fragment shaders. Set to none to disable background images. PNG support only as of now.
+ * Path to an image, which is sent to the fragment shaders. Set to none to disable background images.
+ * Supported image types:
+ * 	PNG
+ * 	JPEG
  */
 backgroundImage = none
 
