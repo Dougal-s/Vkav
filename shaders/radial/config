@@ -1,0 +1,12 @@
+
+module = "main"
+
+(id=4) int originalRadius = 128
+
+(id=5) int centerLineWidth = 2
+
+(id=6) float barWidth = 3.5
+
+(id=7) int numBars = 180
+
+(id=8) float amplify = 3000.f

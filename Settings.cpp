@@ -1,27 +1,28 @@
 #include <algorithm>
 #include <ctype.h>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
+#include <unordered_map>
 #include <sstream>
 #include <string>
-#include <unordered_map>
-#include <utility>
 
 #include "Settings.hpp"
 
-std::unordered_map<std::string, std::string> readConfigFile(const std::string& filePath) {
+std::unordered_map<std::string, std::string> readConfigFile(const std::filesystem::path& filePath) {
 	std::unordered_map<std::string, std::string> variables;
 
 	std::ifstream configFile(filePath);
 	if (!configFile.is_open()) {
-		throw std::runtime_error("Failed to open configuration file!");
+		throw std::runtime_error(__FILE__": Failed to open configuration file!");
 	}
 
 	std::string line;
 	std::string varName;
 	std::string varVal;
 
-	while (std::getline(configFile, line)) {
-		size_t position;
+	while (std::getline(configFile, line).good()) {
+		std::string::size_type position;
 		// Check for comments
 		if ( (position = line.find("//")) != std::string::npos) {
 			line.erase(position);
@@ -51,33 +52,31 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::string& f
 	return variables;
 }
 
-std::unordered_map<char, const char*> readCmdLineArgs(int argc, char* argv[]) {
-	std::unordered_map<char, const char*> arguments(argc-1);
+std::unordered_map<char, std::string> readCmdLineArgs(int argc, char* argv[]) {
+	std::unordered_map<char, std::string> arguments(argc-1);
 	for (int i = 1; i < argc; ++i) {
-		size_t size = 0;
-		const char* argValue = nullptr;
+		std::string argValue;
 		std::string argName;
-		for (;argv[i][size] != 0; ++size) {
-			if (argv[i][size] == '=') {
+		for (size_t size = 0; argv[i][size] != 0; ++size) {
+			if (argv[i][size] == '=')
 				argValue = argv[i] + size + 1;
-				argName = std::string(argv[i], size);
-			}
+			if (argValue.empty())
+				argName.push_back(argv[i][size]);
 		}
 
-		if (argv[i][0] != 0 && argv[i][1] != 0 && argv[i][0] == '-') {
+		if (argv[i][0] == '-') {
 			if (argv[i][1] == '-') {
 				char charKey = 0;
 
 				if      (argName == "--verbose") {charKey = 'v';}
 				else if (argName == "--sink-name") {charKey = 's';}
 				else if (argName == "--device") {charKey = 'd';}
-				else if (argName == "--shader") {charKey = 'S';}
 				else if (argName == "--config-file") {charKey = 'c';}
 				else if (argName == "--help") {charKey = 'h';}
 				else if (argName == "--version") {charKey = 'V';}
 
 				if (charKey == 0) {
-					throw std::invalid_argument("Invalid command line argument!");
+					throw std::invalid_argument(__FILE__": Invalid command line argument!");
 				}
 
 				arguments.insert(std::make_pair(charKey, argValue));
@@ -87,17 +86,27 @@ std::unordered_map<char, const char*> readCmdLineArgs(int argc, char* argv[]) {
 					argv[i][1] != 'v' &&
 					argv[i][1] != 's' &&
 					argv[i][1] != 'd' &&
-					argv[i][1] != 'S' &&
 					argv[i][1] != 'c' &&
 					argv[i][1] != 'h' &&
 					argv[i][1] != 'V'
 				) {
-					throw std::invalid_argument("Invalid command line argument!");
+					throw std::invalid_argument(__FILE__": Invalid command line argument!");
 				}
-				arguments.insert(std::make_pair(argv[i][1], argv[i]+2));
+
+				char key = argv[i][1];
+				const char* value;
+				if (argv[i][2] == '\0' && i+1 < argc && argv[i+1][0] != '-') {
+					value = argv[i+1];
+					++i;
+				} else {
+					value = argv[i]+2;
+				}
+
+				arguments.insert(std::make_pair(key, value));
+
 			}
 		} else {
-			throw std::invalid_argument("Invalid command line argument!");
+			throw std::invalid_argument(__FILE__": Invalid command line argument!");
 		}
 	}
 	return arguments;

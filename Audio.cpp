@@ -1,31 +1,34 @@
 // C++ standard libraries
 #include <atomic>
 #include <chrono>
-#include <string>
 #include <iostream>
 #include <mutex>
-#include <vector>
+#include <stdlib.h>
+#include <string>
+#include <thread>
+#include <utility>
 
-// PulseAudio libraries
+// PulseAudio
 #include <pulse/simple.h>
 #include <pulse/error.h>
 #include <pulse/pulseaudio.h>
 
 #include "Audio.hpp"
+#include "Data.hpp"
 
-void AudioData::begin(AudioSettings audioSettings) {
+void AudioSampler::start(const AudioSettings& audioSettings) {
 	init(audioSettings);
 
-	audioThread = std::thread(&AudioData::run, std::ref(*this));
+	audioThread = std::thread(&AudioSampler::run, std::ref(*this));
 }
 
-void AudioData::end() {
-	stop = true;
+void AudioSampler::stop() {
+	stopped = true;
 	audioThread.join();
 	cleanup();
 }
 
-void AudioData::init(AudioSettings audioSettings) {
+void AudioSampler::init(const AudioSettings& audioSettings) {
 
 	settings.channels   = audioSettings.channels;
 	settings.sampleSize = audioSettings.sampleSize*audioSettings.channels;
@@ -33,44 +36,46 @@ void AudioData::init(AudioSettings audioSettings) {
 	settings.sampleRate = audioSettings.sampleRate;
 	settings.sinkName   = audioSettings.sinkName;
 
-	stop = false;
+	stopped = false;
 	modified = false;
+	ups = 0;
 
-	sampleBuffer = new float[settings.sampleSize];
+	pSampleBuffer = new float[settings.sampleSize];
 
-	audioBuffer  = new float*[settings.bufferSize/settings.sampleSize];
+	ppAudioBuffer = new float*[settings.bufferSize/settings.sampleSize];
 
 	for (uint32_t i = 0; i < settings.bufferSize/settings.sampleSize; ++i) {
-		audioBuffer[i] = new float[settings.sampleSize];
+		ppAudioBuffer[i] = new float[settings.sampleSize];
 	}
 
 	if (settings.sinkName.empty()) {
 		getDefaultSink();
-		std::clog << "Using PulseAudio sink: \"" << settings.sinkName << "\"\n";
 	}
+	std::clog << "Using PulseAudio sink: \"" << settings.sinkName << "\"\n";
 	setupPulse();
 }
 
-void AudioData::run() {
-	std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
+void AudioSampler::run() {
+	std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
 	int numUpdates = 0;
 
-	while(!this->stop) {
-		if (pa_simple_read(s, reinterpret_cast<char*>(sampleBuffer), sizeof(float)*settings.sampleSize, &error) < 0) {
+	while(!this->stopped) {
+		if (pa_simple_read(s, reinterpret_cast<char*>(pSampleBuffer), sizeof(float)*settings.sampleSize, &error) < 0) {
 			std::cerr << "pa_simple_read() failed: " << pa_strerror(error) << std::endl;
-			this->stop = true;
+			this->stopped = true;
 			break;
 		}
 
 		audioMutexLock.lock();
-			for (uint32_t i = 0; i < settings.bufferSize/settings.sampleSize-1; ++i) {
-				std::swap(audioBuffer[i], audioBuffer[i+1]);
+			for (size_t i = 0; i < settings.bufferSize/settings.sampleSize-1; ++i) {
+				std::swap(ppAudioBuffer[i], ppAudioBuffer[i+1]);
 			}
-			std::swap(audioBuffer[settings.bufferSize/settings.sampleSize-1], sampleBuffer);
+			std::swap(ppAudioBuffer[settings.bufferSize/settings.sampleSize-1], pSampleBuffer);
 		audioMutexLock.unlock();
 		this->modified = true;
+
 		++numUpdates;
-		std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+		std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 		if (std::chrono::duration_cast<std::chrono::seconds>(currentTime-lastFrame).count() >= 1) {
 			ups = numUpdates;
 			numUpdates = 0;
@@ -79,28 +84,31 @@ void AudioData::run() {
 	}
 }
 
-void AudioData::cleanup() {
+void AudioSampler::cleanup() {
 	for (uint32_t i = 0; i < settings.bufferSize/settings.sampleSize; ++i) {
-		delete[] audioBuffer[i];
+		delete[] ppAudioBuffer[i];
 	}
-	delete[] audioBuffer;
-	delete[] sampleBuffer;
+	delete[] ppAudioBuffer;
+	delete[] pSampleBuffer;
 
 	pa_simple_free(s);
 }
 
-void AudioData::copyData(std::vector<float>& lBuffer, std::vector<float>& rBuffer) {
-	lBuffer.resize(settings.bufferSize/settings.channels);
-	rBuffer.resize(settings.bufferSize/settings.channels);
+void AudioSampler::copyData(AudioData& audioData) {
 
 	audioMutexLock.lock();
-		for (uint32_t i = 0; i < settings.bufferSize; i += settings.channels) {
-			if (settings.channels == 1) {
-				lBuffer[i] = audioBuffer[i/settings.sampleSize][i%settings.sampleSize];
-				rBuffer[i] = audioBuffer[i/settings.sampleSize][i%settings.sampleSize];
-			} else {
-				lBuffer[i/2] = audioBuffer[i    /settings.sampleSize][i    %settings.sampleSize];
-				rBuffer[i/2] = audioBuffer[(i+1)/settings.sampleSize][(i+1)%settings.sampleSize];
+		for (size_t i = 0; i < settings.bufferSize; ++i) {
+			switch (settings.channels) {
+				case 1:
+					audioData.buffer[2*i  ] = ppAudioBuffer[i/settings.sampleSize][i%settings.sampleSize];
+					audioData.buffer[2*i+1] = audioData.buffer[2*i];
+					break;
+				case 2:
+					audioData.buffer[i] = ppAudioBuffer[i/settings.sampleSize][i%settings.sampleSize];
+					break;
+				default:
+					this->stopped = true;
+					break;
 			}
 		}
 	audioMutexLock.unlock();
@@ -108,7 +116,7 @@ void AudioData::copyData(std::vector<float>& lBuffer, std::vector<float>& rBuffe
 	modified = false;
 }
 
-void AudioData::getDefaultSink() {
+void AudioSampler::getDefaultSink() {
 
 	pa_mainloop_api* mainloopAPI;
 	pa_context* context;
@@ -129,7 +137,7 @@ void AudioData::getDefaultSink() {
 	pa_mainloop_free(mainloop);
 }
 
-void AudioData::setupPulse() {
+void AudioSampler::setupPulse() {
 	pa_sample_spec ss = {};
 	ss.format   = PA_SAMPLE_FLOAT32LE;
 	ss.rate     = settings.sampleRate;
@@ -147,27 +155,28 @@ void AudioData::setupPulse() {
 	    	"recorder for Vkav",
 	    	&ss,
 	    	NULL,
-	    	NULL,
+	    	&attr,
 	    	&error
 	    );
 
 	if (!s) {
-		throw std::runtime_error("pa_simple_new() failed!");
+		std::cerr << "pa_simple_new() failed:" << pa_strerror(error) << std::endl;
+		stopped = true;
 	}
 }
 
-void AudioData::contextStateCallback(pa_context* c, void* userdata) {
-	auto audioData = reinterpret_cast<AudioData*>(userdata);
+void AudioSampler::contextStateCallback(pa_context* c, void* userdata) {
+	auto audio = reinterpret_cast<AudioSampler*>(userdata);
 
 	switch (pa_context_get_state(c)) {
 		case PA_CONTEXT_READY:
 			pa_operation_unref(pa_context_get_server_info(c, callback, userdata));
 			break;
 		case PA_CONTEXT_FAILED:
-			pa_mainloop_quit(audioData->mainloop, 0);
+			pa_mainloop_quit(audio->mainloop, 0);
 			break;
 		case PA_CONTEXT_TERMINATED:
-			pa_mainloop_quit(audioData->mainloop, 0);
+			pa_mainloop_quit(audio->mainloop, 0);
 			break;
 		default:
 			// Do nothing
@@ -175,10 +184,10 @@ void AudioData::contextStateCallback(pa_context* c, void* userdata) {
 	}
 }
 
-void AudioData::callback(pa_context* c, const pa_server_info* i, void* userdata) {
-	auto audioData = reinterpret_cast<AudioData*>(userdata);
-	audioData->settings.sinkName = i->default_sink_name;
-	audioData->settings.sinkName += ".monitor";
+void AudioSampler::callback(pa_context* c, const pa_server_info* i, void* userdata) {
+	auto audio = reinterpret_cast<AudioSampler*>(userdata);
+	audio->settings.sinkName = i->default_sink_name;
+	audio->settings.sinkName += ".monitor";
 
-	pa_mainloop_quit(audioData->mainloop, 0);
+	pa_mainloop_quit(audio->mainloop, 0);
 }

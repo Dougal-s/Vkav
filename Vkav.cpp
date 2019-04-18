@@ -1,38 +1,46 @@
 // C++ standard libraries
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <iomanip>
-#include <unordered_map>
-#include <vector>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <utility>
 
 #include "Audio.hpp"
-#include "Settings.hpp"
+#include "Data.hpp"
+#include "Proccess.hpp"
 #include "Render.hpp"
-#include "SignalFunctions.hpp"
+#include "Settings.hpp"
 
 enum Device {
 	CPU,
 	GPU
 };
 
-static const char* versionStr = "Vkav v1.0\n"
-                                "Written by Dougal Stewart\n";
+static constexpr const char* versionStr = "Vkav v1.1\n"
+                             "Written by Dougal Stewart\n";
 
-static const char* helpStr = "An audio visualiser using Vulkan for rendering.\n"
+static constexpr const char* helpStr = "An audio visualiser using Vulkan for rendering.\n"
                              "\n"
                              "Available Arguments:\n"
                              "\t-v, --verbose                 Prints detailed information about the programs execution.\n"
                              "\t-s, --sink-name=SINK          Uses SINK instead of the default audio sink.(Overrides sink specified in the config file)\n"
                              "\t-d, --device=DEVICE_NUMBER    Uses Device number DEVICE_NUMBER.(Overrides device number specified in the config file.)\n"
-                             "\t-S, --shader=SHADER_PATH      Uses fragment shader contained in SHADER_PATH.(Overrides the shader path specified in the config file)\n"
                              "\t-c, --config-file=CONFIG_PATH Specifies the path to the configuration file to use\n"
                              "\t-h, --help                    Display this help and exit.\n"
                              "\t-V, --version                 Output version information and exit.\n";
 
-class AV {
+#define PRINT_VAL(p) std::clog << #p << " = " << p << std::endl;
+#define PRINT_UNDEFINED(p) std::clog << #p << " not defined!" << std::endl;
+
+class Vkav {
 public:
 	void run(int argc, char* argv[]) {
 		init(argc, argv);
@@ -42,54 +50,63 @@ public:
 
 private:
 
-	std::vector<float> lBuffer;
-	std::vector<float> rBuffer;
-
-	float smoothingLevel = 16.0f;
-	size_t smoothedSize  = 320;
-	Device smoothingDevice = GPU;
-
 	AudioData audioData;
+
+	AudioSampler audioSampler;
 	Renderer renderer;
+	Proccess proccess;
 
 	void init(int argc, char* argv[]) {
 		// Temporary variables
 		float  trebleCut = 0.09f;
+		float smoothingLevel = 16.0f;
+		size_t smoothedSize  = 320;
+		Device smoothingDevice = GPU;
 
 		std::chrono::high_resolution_clock::time_point initStart = std::chrono::high_resolution_clock::now();
 
-		std::unordered_map<char, const char*> cmdLineArgs = readCmdLineArgs(argc, argv);
-		if (cmdLineArgs.find('h') != cmdLineArgs.end()) {
-			std::cout << "Usage: " << argv[0] << "[OPTIONS]...\n" << helpStr << versionStr;
+		std::unordered_map<char, std::string>::iterator cmdLineArgsIt;
+		std::unordered_map<char, std::string> cmdLineArgs = readCmdLineArgs(argc, argv);
+
+		cmdLineArgsIt = cmdLineArgs.find('h');
+		if (cmdLineArgsIt != cmdLineArgs.end()) {
+			std::cout << "Usage: " << argv[0] << " [OPTIONS]...\n" << helpStr << versionStr;
 			std::exit(0);
 		}
 
-		if (cmdLineArgs.find('V') != cmdLineArgs.end()) {
+		cmdLineArgsIt = cmdLineArgs.find('V');
+		if (cmdLineArgsIt != cmdLineArgs.end()) {
 			std::cout << versionStr;
 			std::exit(0);
 		}
 
-		if (cmdLineArgs.find('v') == cmdLineArgs.end()) {
+		cmdLineArgsIt = cmdLineArgs.find('v');
+		if (cmdLineArgsIt == cmdLineArgs.end()) {
 			std::clog.setstate(std::ios::failbit);
 		}
 
-		std::string configFilePath = "config";
-		if (cmdLineArgs.find('c') != cmdLineArgs.end()) {
-			configFilePath = cmdLineArgs['c'];
+		std::filesystem::path configFilePath = argv[0];
+		configFilePath.replace_filename("config");
+		cmdLineArgsIt = cmdLineArgs.find('c');
+		if (cmdLineArgsIt != cmdLineArgs.end()) {
+			configFilePath = cmdLineArgsIt->second;
 		}
 
 		std::clog << "Parsing configuration file.\n";
+		std::unordered_map<std::string, std::string>::iterator configSettingsIt;
 		std::unordered_map<std::string, std::string> configSettings = readConfigFile(configFilePath);
 
-		if (configSettings.find("trebleCut") != configSettings.end()) {
-			trebleCut = std::stof(configSettings["trebleCut"]);
-			std::clog << "trebleCut = " << trebleCut << std::endl;
+		configSettingsIt = configSettings.find("trebleCut");
+		if (configSettingsIt != configSettings.end()) {
+			trebleCut = std::stof(configSettingsIt->second);
+			PRINT_VAL(trebleCut);
 		} else {
-			std::clog << "Treble cut not defined!\n";
+			PRINT_UNDEFINED(trebleCut);
 		}
 
-		if (configSettings.find("smoothingDevice") != configSettings.end()) {
-			std::string deviceStr = configSettings["smoothingDevice"];
+		configSettingsIt = configSettings.find("smoothingDevice");
+		if (configSettingsIt != configSettings.end()) {
+			std::string deviceStr = configSettingsIt->second;
 			if (deviceStr == "CPU") {
 				smoothingDevice = CPU;
 				std::clog << "smoothingDevice = CPU\n";
@@ -100,236 +117,293 @@ private:
 				std::cerr << "Smoothing device set to an invalid value!\n";
 			}
 		} else {
-			std::clog << "Smoothing device not defined!\n";
+			PRINT_UNDEFINED(smoothingDevice);
 		}
 
-		if (smoothingDevice == CPU) {
-			if (configSettings.find("smoothedSize") != configSettings.end()) {
-				smoothedSize = std::stoi(configSettings["smoothedSize"]);
-				std::clog << "smoothedSize = " << smoothedSize << std::endl;
-			} else {
-				std::clog << "Smoothed size not defined!\n";
-			}
+		configSettingsIt = configSettings.find("smoothedSize");
+		if (configSettingsIt != configSettings.end()) {
+			smoothedSize = std::stoi(configSettingsIt->second);
+			PRINT_VAL(smoothedSize);
+		} else {
+			PRINT_UNDEFINED(smoothedSize);
 		}
 
 		AudioSettings audioSettings = {};
 
-		if (configSettings.find("channels") != configSettings.end()) {
-			audioSettings.channels = std::stoi(configSettings["channels"]);
+		configSettingsIt = configSettings.find("channels");
+		if (configSettingsIt != configSettings.end()) {
+			audioSettings.channels = std::stoi(configSettingsIt->second);
 			std::clog << "audioSettings.channels = " << static_cast<int>(audioSettings.channels) << std::endl;
 		} else {
-			std::clog << "Channel count not defined!\n";
+			PRINT_UNDEFINED(audioSettings.channels);
 		}
 
-		if (configSettings.find("sampleSize") != configSettings.end()) {
-			audioSettings.sampleSize = std::stoi(configSettings["sampleSize"]);
-			std::clog << "audioSettings.sampleSize = " << audioSettings.sampleSize << std::endl;
+		configSettingsIt = configSettings.find("sampleSize");
+		if (configSettingsIt != configSettings.end()) {
+			audioSettings.sampleSize = std::stoi(configSettingsIt->second);
+			PRINT_VAL(audioSettings.sampleSize);
 		} else {
-			std::clog << "Sample size not defined!\n";
+			PRINT_UNDEFINED(audioSettings.sampleSize);
 		}
 
-		if (configSettings.find("bufferSize") != configSettings.end()) {
-			audioSettings.bufferSize = std::stoi(configSettings["bufferSize"]);
-			std::clog << "audioSettings.bufferSize = " << audioSettings.bufferSize << std::endl;
+		configSettingsIt = configSettings.find("bufferSize");
+		if (configSettingsIt != configSettings.end()) {
+			audioSettings.bufferSize = std::stoi(configSettingsIt->second);
+			PRINT_VAL(audioSettings.bufferSize);
 		} else {
-			std::clog << "Buffer size not defined!\n";
+			PRINT_UNDEFINED(audioSettings.bufferSize);
 		}
 
-		if (configSettings.find("sampleRate") != configSettings.end()) {
-			audioSettings.sampleRate = std::stoi(configSettings["sampleRate"]);
-			std::clog << "audioSettings.sampleRate = " << audioSettings.sampleRate << std::endl;
+		configSettingsIt = configSettings.find("sampleRate");
+		if (configSettingsIt != configSettings.end()) {
+			audioSettings.sampleRate = std::stoi(configSettingsIt->second);
+			PRINT_VAL(audioSettings.sampleRate);
 		} else {
-			std::clog << "Sample rate not defined!\n";
+			PRINT_UNDEFINED(audioSettings.sampleRate);
 		}
 
-		if (cmdLineArgs.find('s') != cmdLineArgs.end()) {
-			audioSettings.sinkName = cmdLineArgs['s'];
-			std::clog << "audioSettings.sinkName = " << audioSettings.sinkName << std::endl;
+		cmdLineArgsIt = cmdLineArgs.find('s');
+		if (cmdLineArgsIt != cmdLineArgs.end()) {
+			audioSettings.sinkName = cmdLineArgsIt->second;
+			PRINT_VAL(audioSettings.sinkName);
 		} else {
-			if (configSettings.find("sinkName") != configSettings.end()) {
-				if (configSettings["sinkName"].find("auto") != std::string::npos) {
-					std::clog << "audioSettings.sinkName = auto" << std::endl;
-				} else {
-					audioSettings.sinkName = configSettings["sinkName"];
-					std::clog << "audioSettings.sinkName = " << audioSettings.sinkName << std::endl;
+			configSettingsIt = configSettings.find("sinkName");
+			if (configSettingsIt != configSettings.end()) {
+				audioSettings.sinkName = configSettingsIt->second;
+				PRINT_VAL(audioSettings.sinkName);
+				if (audioSettings.sinkName == "auto") {
+					audioSettings.sinkName.clear();
 				}
 			} else {
-				std::clog << "PulseAudio sink name not defined!\n";
+				PRINT_UNDEFINED(audioSettings.sinkName);
 			}
 		}
 
 		std::clog << "Initialising audio.\n";
-		audioData.begin(audioSettings);
+		audioSampler.start(audioSettings);
 
-		RendererSettings rendererSettings = {};
+		RenderSettings renderSettings = {};
 
-		if (cmdLineArgs.find('S') != cmdLineArgs.end()) {
-			rendererSettings.shaderPath = cmdLineArgs['S'];
-			std::clog << "rendererSettings.shaderPath = " << rendererSettings.shaderPath << std::endl;
-		} else {
-			if (configSettings.find("shader") != configSettings.end()) {
-				rendererSettings.shaderPath = configSettings["shader"];
-				std::clog << "rendererSettings.shaderPath = " << rendererSettings.shaderPath << std::endl;
-			} else {
-				std::clog << "Shader path not defined!\n";
+		configSettingsIt = configSettings.find("shaderDirectories");
+		if (configSettingsIt != configSettings.end()) {
+			renderSettings.shaderDirectories.clear();
+			std::stringstream ss(configSettingsIt->second);
+			std::string directory;
+		 	while (std::getline(ss, directory, '\"').good()) {
+				if (!std::getline(ss, directory, '\"').good()) {
+					throw std::invalid_argument(__FILE__": Missing terminating \" character in configuration file");
+				}
+				renderSettings.shaderDirectories.push_back(directory);
+
 			}
-		}
-
-		if (configSettings.find("width") != configSettings.end()) {
-			rendererSettings.width = std::stoi(configSettings["width"]);
-			std::clog << "rendererSettings.width = " << rendererSettings.width << std::endl;
+			std::clog << "renderSettings.shaderDirectories = {";
+			for (const auto& i : renderSettings.shaderDirectories) {
+				std::clog << i << ", ";
+			}
+			std::clog << "\b\b}" << std::endl;
 		} else {
-			std::clog << "Window width not defined!\n";
+			PRINT_UNDEFINED(renderSettings.shaderDirectories);
 		}
 
-		if (configSettings.find("height") != configSettings.end()) {
-			rendererSettings.height = std::stoi(configSettings["height"]);
-			std::clog << "rendererSettings.height = " << rendererSettings.height << std::endl;
+		configSettingsIt = configSettings.find("backgroundImage");
+		if (configSettingsIt != configSettings.end()) {
+			renderSettings.backgroundImage = configSettingsIt->second;
+			if (renderSettings.backgroundImage == "none") {
+				renderSettings.backgroundImage.clear();
+				std::clog << "renderSettings.backgroundImage = none\n";
+			} else {
+				PRINT_VAL(renderSettings.backgroundImage);
+			}
 		} else {
-			std::clog << "Window height not defined!\n";
+			PRINT_UNDEFINED(renderSettings.backgroundImage)
 		}
 
-		if (configSettings.find("transparency") != configSettings.end()) {
-			std::string transparency = configSettings["transparency"];
-			if (transparency.find("Vulkan") != std::string::npos) {
-				rendererSettings.transparency = VULKAN;
-			} else if (transparency.find("Native") != std::string::npos) {
-				rendererSettings.transparency = NATIVE;
-			} else if (transparency.find("Opaque") != std::string::npos) {
-				rendererSettings.transparency = OPAQUE;
+		configSettingsIt = configSettings.find("width");
+		if (configSettingsIt != configSettings.end()) {
+			renderSettings.width = std::stoi(configSettingsIt->second);
+			PRINT_VAL(renderSettings.width);
+		} else {
+			PRINT_UNDEFINED(renderSettings.width);
+		}
+
+		configSettingsIt = configSettings.find("height");
+		if (configSettingsIt != configSettings.end()) {
+			renderSettings.height = std::stoi(configSettingsIt->second);
+			PRINT_VAL(renderSettings.height);
+		} else {
+			PRINT_UNDEFINED(renderSettings.height);
+		}
+
+		configSettingsIt = configSettings.find("transparency");
+		if (configSettingsIt != configSettings.end()) {
+			std::string transparency = configSettingsIt->second;
+			#define PRINT(p) std::clog << "renderSettings.transparency = " << #p << std::endl;
+			if (transparency == "Vulkan") {
+				renderSettings.transparency = VULKAN;
+				PRINT(VULKAN)
+			} else if (transparency == "Native") {
+				renderSettings.transparency = NATIVE;
+				PRINT(NATIVE);
+			} else if (transparency == "Opaque") {
+				renderSettings.transparency = OPAQUE;
+				PRINT(OPAQUE);
 			} else {
 				std::cerr << "Transparency set to an invalid value!\n";
 			}
-			std::clog << "rendererSettings.transparency = " << rendererSettings.transparency << std::endl;
+			#undef PRINT
 		} else {
-			std::clog << "Window transparency not defined!\n";
+			PRINT_UNDEFINED(renderSettings.transparency);
 		}
 
-		if (configSettings.find("windowTitle") != configSettings.end()) {
-			if (configSettings["windowTitle"].find("executable") != std::string::npos) {
-				rendererSettings.windowTitle = argv[0];
-			} else {
-				rendererSettings.windowTitle = configSettings["windowTitle"];
+		configSettingsIt = configSettings.find("windowTitle");
+		if (configSettingsIt != configSettings.end()) {
+			renderSettings.windowTitle = configSettingsIt->second;
+			if (renderSettings.windowTitle.find("executable") != std::string::npos) {
+				renderSettings.windowTitle = argv[0];
 			}
-			std::clog << "rendererSettings.windowTitle = " << rendererSettings.windowTitle << std::endl;
+			PRINT_VAL(renderSettings.windowTitle);
 		} else {
-			std::clog << "Window title not defined!\n";
+			PRINT_UNDEFINED(renderSettings.windowTitle);
 		}
 
-		if (configSettings.find("windowPosition") != configSettings.end()) {
-			std::string position = configSettings["windowPosition"];
+		configSettingsIt = configSettings.find("windowPosition");
+		if (configSettingsIt != configSettings.end()) {
+			std::string position = configSettingsIt->second;
 			size_t gapPosition = position.find(',');
-			rendererSettings.windowPosition = {std::stoi(position.substr(1, gapPosition-1)), std::stoi(position.substr(gapPosition+1, position.size()-gapPosition))};
-			std::clog << "rendererSettings.windowPosition = " << rendererSettings.windowPosition.value().first << "," << rendererSettings.windowPosition.value().first << std::endl;
+			renderSettings.windowPosition = {
+				std::stoi(position.substr(1, gapPosition-1)),
+				std::stoi(position.substr(gapPosition+1, position.size()-gapPosition))
+			};
+			std::clog << "renderSettings.windowPosition = {"
+			          << renderSettings.windowPosition.value().first
+					  << ","
+					  << renderSettings.windowPosition.value().first
+					  << "}"
+					  << std::endl;
 		} else {
-			std::clog << "Window postition not defined!\n";
+			PRINT_UNDEFINED(renderSettings.windowPosition);
 		}
 
-		if (configSettings.find("decorated") != configSettings.end()) {
-			rendererSettings.windowHints.decorated = (configSettings["decorated"] == "true");
-			std::clog << "rendererSettings.windowHints.decorated = " << rendererSettings.windowHints.decorated << std::endl;
+		configSettingsIt = configSettings.find("decorated");
+		if (configSettingsIt != configSettings.end()) {
+			renderSettings.windowHints.decorated = (configSettingsIt->second == "true");
+			PRINT_VAL(renderSettings.windowHints.decorated);
 		} else {
-			std::clog << "Window hint: \"decorated\" not defined!\n";
+			PRINT_UNDEFINED(renderSettings.windowHints.decorated);
 		}
 
-		if (configSettings.find("resizable") != configSettings.end()) {
-			rendererSettings.windowHints.resizable = (configSettings["resizable"] == "true");
-			std::clog << "rendererSettings.windowHints.resizable = " << rendererSettings.windowHints.resizable << std::endl;
+		configSettingsIt = configSettings.find("resizable");
+		if (configSettingsIt != configSettings.end()) {
+			renderSettings.windowHints.resizable = (configSettingsIt->second == "true");
+			PRINT_VAL(renderSettings.windowHints.resizable);
 		} else {
-			std::clog << "Window hint: \"resizable\" not defined!\n";
+			PRINT_UNDEFINED(renderSettings.windowHints.resizable);
 		}
 
-		if (smoothingDevice == GPU) {
-			rendererSettings.audioSize = (audioSettings.bufferSize/2)*(1.f-trebleCut);
-		} else if (smoothingDevice == CPU) {
-			rendererSettings.audioSize = smoothedSize*(1.f-trebleCut);
+		configSettingsIt = configSettings.find("smoothingLevel");
+		if (configSettingsIt != configSettings.end()) {
+			smoothingLevel = std::stof(configSettingsIt->second);
+			renderSettings.smoothingLevel = smoothingLevel;
+			PRINT_VAL(smoothingLevel);
+		} else {
+			PRINT_VAL(smoothingLevel);
 		}
 
-		if (smoothingDevice == CPU)
-			rendererSettings.smoothingLevel = 0.f;
-
-		if (configSettings.find("smoothingLevel") != configSettings.end()) {
-			if (smoothingDevice == CPU) {
-				smoothingLevel = std::stof(configSettings["smoothingLevel"]);
-				std::clog << "smoothingLevel = " << smoothingLevel << std::endl;
-			} else if (smoothingDevice == GPU) {
-				rendererSettings.smoothingLevel = std::stof(configSettings["smoothingLevel"]);
-				std::clog << "rendererSettings.smoothingLevel = " << rendererSettings.smoothingLevel << std::endl;
-			}
-		} else {
-			std::clog << "Smoothing level not defined!\n";
+		switch (smoothingDevice) {
+			case GPU:
+				renderSettings.audioSize = (audioSettings.bufferSize/2)*(1.f-trebleCut);
+				smoothingLevel = 0.f;
+				smoothedSize = 0;
+				break;
+			case CPU:
+				renderSettings.audioSize = smoothedSize*(1.f-trebleCut);
+				renderSettings.smoothingLevel = 0.f;
+				break;
 		}
 
-		if (cmdLineArgs.find('d') != cmdLineArgs.end()) {
-			rendererSettings.physicalDevice.value() = atoi(cmdLineArgs['d']);
-			std::clog << "rendererSettings.physicalDevice = " << rendererSettings.physicalDevice.value() << std::endl;
+		cmdLineArgsIt = cmdLineArgs.find('d');
+		if (cmdLineArgsIt != cmdLineArgs.end()) {
+			renderSettings.physicalDevice.value() = std::stoi(cmdLineArgsIt->second);
+			std::clog << "renderSettings.physicalDevice = " << renderSettings.physicalDevice.value() << std::endl;
 		} else {
-			if (configSettings.find("physicalDevice") != configSettings.end()) {
-				if (configSettings["physicalDevice"].find("auto") != std::string::npos) {
-					std::clog << "rendererSettings.physicalDevice = auto" << std::endl;
+			configSettingsIt = configSettings.find("physicalDevice");
+			if (configSettingsIt != configSettings.end()) {
+				if (configSettingsIt->second == "auto") {
+					std::clog << "renderSettings.physicalDevice = auto\n";
 				} else {
-					rendererSettings.physicalDevice.value() = stoi(configSettings["physicalDevice"]);
-					std::clog << "rendererSettings.physicalDevice = " << rendererSettings.physicalDevice.value() << std::endl;
+					renderSettings.physicalDevice.value() = std::stoi(configSettingsIt->second);
+					std::clog << "renderSettings.physicalDevice = " << renderSettings.physicalDevice.value() << std::endl;
 				}
 			} else {
-				std::clog << "Physical device number not defined!\n";
+				PRINT_UNDEFINED(renderSettings.physicalDevice);
 			}
 		}
 
 		std::clog << "Initialising renderer.\n";
-		renderer.init(rendererSettings);
+		renderer.init(renderSettings);
+
+		ProccessSettings proccessSettings = {};
+		proccessSettings.inputSize = audioSettings.bufferSize;
+		proccessSettings.outputSize = smoothedSize;
+		proccessSettings.smoothingLevel = smoothingLevel;
+
+		configSettingsIt = configSettings.find("amplitude");
+		if (configSettingsIt != configSettings.end()) {
+			proccessSettings.amplitude = std::stof(configSettingsIt->second);
+			PRINT_VAL(proccessSettings.amplitude);
+		} else {
+			PRINT_UNDEFINED(proccessSettings);
+		}
+
+		proccess.init(proccessSettings);
+
+		audioData.allocate(std::max(smoothedSize, audioSettings.bufferSize));
 
 		std::chrono::high_resolution_clock::time_point initEnd = std::chrono::high_resolution_clock::now();
 		std::clog << "Initialisation took: " << std::chrono::duration_cast<std::chrono::milliseconds>(initEnd-initStart).count() << " milliseconds\n";
 	}
 
 	void mainLoop() {
-		std::clog << "Entering main loop.\n";
 		int numFrames = 0;
-		std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
+		std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
 
-		while (!audioData.stop) {
-			if (audioData.modified) {
-				audioData.copyData(lBuffer, rBuffer);
-				windowFunction(lBuffer, rBuffer);
-				magnitudes(lBuffer, rBuffer);
-				equalise(lBuffer, rBuffer);
-				if (smoothingDevice == CPU) {
-					smooth(lBuffer, rBuffer, smoothedSize, smoothingLevel);
-				}
-				if (!renderer.drawFrame(lBuffer, rBuffer)) {
-					break;
-				}
+		while (!audioSampler.stopped) {
+			if (audioSampler.modified) {
+				audioSampler.copyData(audioData);
+				proccess.proccessSignal(audioData);
+				if (!renderer.drawFrame(audioData)) {break;}
 				++numFrames;
 			}
-			std::this_thread::sleep_for(std::chrono::microseconds(1));
+			std::this_thread::sleep_for(std::chrono::microseconds(100));
 
-			std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+			std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 			if (std::chrono::duration_cast<std::chrono::seconds>(currentTime-lastFrame).count() >= 1) {
-				std::clog << "FPS: " << std::setw(3) << std::right << numFrames << " | UPS: " << std::setw(3) << std::right << audioData.ups << std::endl;
+				std::clog << "FPS: " << std::setw(3) << std::right << numFrames << " | UPS: " << std::setw(3) << std::right << audioSampler.ups << std::endl;
 				numFrames = 0;
 				lastFrame = currentTime;
 			}
 
 		}
-		std::clog << "Exiting main loop.\n";
 	}
 
 	void cleanup() {
-		audioData.end();
+		audioSampler.stop();
 		renderer.cleanup();
+		proccess.cleanup();
+		audioData.deallocate();
 	}
 
 };
 
 int main(int argc, char* argv[]) {
-	AV app;
+	Vkav app;
 
 	try {
 		app.run(argc, argv);
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
+		return EXIT_FAILURE;
 	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }

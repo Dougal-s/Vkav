@@ -5,10 +5,13 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include <optional> // std::optional<>
-#include <string>   // std::string<>
-#include <utility>  // std::pair<>
-#include <vector>   // std::vector<>
+#include <filesystem>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "Data.hpp"
 
 enum TransparencyType {
 	VULKAN,
@@ -16,7 +19,7 @@ enum TransparencyType {
 	OPAQUE
 };
 
-struct RendererSettings {
+struct RenderSettings {
 	uint32_t width  = 800;
 	uint32_t height = 800;
 	std::optional<std::pair<int, int>> windowPosition;
@@ -30,14 +33,13 @@ struct RendererSettings {
 		bool resizable = true;
 	} windowHints;
 
-	uint32_t audioSize;
-	float smoothingLevel = 16.0f;
-	std::string shaderPath = "shaders/bars/frag.spv";
+	size_t audioSize;
+	float smoothingLevel = 16.f;
+	std::vector<std::filesystem::path> shaderDirectories = std::vector<std::filesystem::path>(1, "shaders/bars");
+	std::filesystem::path backgroundImage;
 
 	std::optional<uint32_t> physicalDevice;
 };
-
-// Data Structs
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -54,11 +56,30 @@ struct SwapChainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
+union SpecializationConstant {
+	int32_t intVal;
+	float floatVal;
+};
+
+struct SpecializationConstants {
+	std::vector<SpecializationConstant> data;
+	std::vector<VkSpecializationMapEntry> specializationInfo;
+};
+
+struct GraphicsPipeline {
+	VkPipeline graphicsPipeline;
+	SpecializationConstants specializationConstants;
+
+	VkShaderModule fragShaderModule;
+	// Name of the fragment shader function to call
+	std::string moduleName;
+};
+
 class Renderer {
 public:
-	void init(const RendererSettings& rendererSettings);
+	void init(const RenderSettings& renderSettings);
 
-	bool drawFrame(const std::vector<float>& lBuffer, const std::vector<float>& rBuffer);
+	bool drawFrame(const AudioData& audioData);
 
 	void cleanup();
 
@@ -66,10 +87,13 @@ private:
 
 	// Variables
 
+	RenderSettings settings;
+
 	GLFWwindow* window;
 
 	VkInstance instance;
-	VkDebugUtilsMessengerEXT callback;
+	VkDebugUtilsMessengerEXT debugMessenger;
+
 	VkSurfaceKHR surface;
 
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -82,50 +106,44 @@ private:
 	std::vector<VkImage> swapChainImages;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
+
 	std::vector<VkImageView> swapChainImageViews;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 
 	VkRenderPass renderPass;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
-	VkPipeline graphicsPipeline;
+	std::vector<GraphicsPipeline> graphicsPipelines;
 
 	VkCommandPool commandPool;
+	std::vector<VkCommandBuffer> commandBuffers;
 
-	VkBuffer lStagingBuffer;
-	VkBuffer rStagingBuffer;
-	void* lStagingBufferData;
-	void* rStagingBufferData;
-	VkDeviceMemory lStagingBufferMemory;
-	VkDeviceMemory rStagingBufferMemory;
+	std::vector<VkBuffer> volumeBuffers;
+	std::vector<VkDeviceMemory> volumeBufferMemory;
 
-	std::vector<VkImage> lAudioImages;
-	std::vector<VkImage> rAudioImages;
-	std::vector<VkDeviceMemory> lAudioImageMemory;
-	std::vector<VkDeviceMemory> rAudioImageMemory;
-	std::vector<VkImageView> lAudioImageViews;
-	std::vector<VkImageView> rAudioImageViews;
-	VkSampler audioImageSampler;
+	std::vector<VkBuffer> lAudioBuffers;
+	std::vector<VkDeviceMemory> lAudioBufferMemory;
+	std::vector<VkBufferView> lAudioBufferViews;
+	std::vector<VkBuffer> rAudioBuffers;
+	std::vector<VkDeviceMemory> rAudioBufferMemory;
+	std::vector<VkBufferView> rAudioBufferViews;
+
+	VkImage backgroundImage;
+	VkDeviceMemory backgroundImageMemory;
+	VkImageView backgroundImageView;
+	VkSampler backgroundImageSampler;
 
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
-	std::vector<VkCommandBuffer> commandBuffers;
-	std::vector<VkCommandBuffer> dataTransferCommandBuffers;
-
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
-
-	std::vector<VkSemaphore> bufferToImageCopyCompleteSemaphore;
-	VkFence audioBuffersAvailableFence;
 	size_t currentFrame = 0;
 
-	bool windowIconified = false;
+	bool framebufferResized = false;
 
-	RendererSettings settings;
-
-	// Functions
+	// Member functions
 
 	void initWindow();
 
@@ -133,17 +151,19 @@ private:
 
 	void createInstance();
 
-	bool checkRequiredExtensionsPresent(const std::vector<const char*>& requiredExt, const std::vector<VkExtensionProperties>& availableExt);
+	std::vector<const char*> getRequiredExtensions();
+
+	bool checkRequiredExtensionsPresent(const std::vector<const char*>& extensions);
 
 	bool checkValidationLayerSupport();
 
-	std::vector<const char*> getRequiredExtensions();
-
 	void setupDebugCallback();
+
+	void createSurface();
 
 	void pickPhysicalDevice();
 
-	int rateDeviceSuitability(VkPhysicalDevice device);
+	bool isDeviceSuitable(VkPhysicalDevice device);
 
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
@@ -151,7 +171,7 @@ private:
 
 	void createLogicalDevice();
 
-	void createSurface();
+	void createSwapchain();
 
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
@@ -161,13 +181,15 @@ private:
 
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
-	void createSwapChain();
+	void createImageViews();
 
-	void createSwapChainImageViews();
+	void destroyGraphicsPipelines();
 
-	void createGraphicsPipeline();
+	void prepareGraphicsPipelineCreation();
 
-	VkShaderModule createShaderModule(const std::vector<char>& code);
+	void createGraphicsPipelines();
+
+	VkShaderModule createShaderModule(const std::vector<char>& shaderCode);
 
 	void createRenderPass();
 
@@ -177,31 +199,59 @@ private:
 
 	void createCommandBuffers();
 
-	void transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
-
 	void createSyncObjects();
-
-	void recreateSwapChain();
 
 	void cleanupSwapChain();
 
-	void createAudioBuffer();
+	void recreateSwapChain();
 
-	void createAudioImages();
-
-	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-
-	void createImage(uint32_t width, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+	void createBackgroundImage();
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-	void createAudioImageViews();
+	void createBuffer(
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags properties,
+		VkBuffer& buffer,
+		VkDeviceMemory& bufferMemory
+	);
 
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageViewType viewType);
+	void createBufferView(VkDeviceSize size, VkFormat format, VkBuffer buffer, VkBufferView& bufferView);
 
-	void createAudioImageSampler();
+	void createImage(
+		uint32_t width,
+		uint32_t height,
+		VkImageType imageType,
+		VkFormat format,
+		VkImageTiling tiling,
+		VkImageUsageFlags usage,
+		VkMemoryPropertyFlags properties,
+		VkImage& image,
+		VkDeviceMemory& imageMemory
+	);
+
+	VkCommandBuffer beginSingleTimeCommands();
+
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+	void transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+	void createBackgroundImageView();
+
+	VkImageView createImageView(VkImage image, VkFormat format);
+
+	void createBackgroundImageSampler();
 
 	void createDescriptorSetLayout();
+
+	void createAudioBuffers();
+
+	void updateAudioBuffers(const AudioData& audioData, uint32_t currentFrame);
+
+	void updateAudioImages(const AudioData& audioData, uint32_t currentFrame);
 
 	void createDescriptorPool();
 
@@ -209,16 +259,19 @@ private:
 
 	// Static member functions
 
-	static void windowIconifyCallback(GLFWwindow* window, int iconified);
-
-	static std::vector<char> readFile(const std::string& filename);
-
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* userData
 	);
-};
 
+	static std::vector<char> readFile(const std::filesystem::path& filePath);
+
+	static SpecializationConstants readSpecializationConstants(const std::filesystem::path& configFilePath, std::string& moduleName);
+
+	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
+};
 
 #endif

@@ -1,13 +1,27 @@
 #version 450
-#extension GL_GOOGLE_include_directive : require
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
 
-layout(constant_id = 0) const uint audioSize       = 0;
+layout(constant_id = 0) const int audioSize        = 1;
 layout(constant_id = 1) const float smoothingLevel = 0.f;
-layout(constant_id = 2) const int width            = 0;
-layout(constant_id = 3) const int height           = 0;
+layout(constant_id = 2) const int width            = 1;
+layout(constant_id = 3) const int height           = 1;
 
-layout(binding = 0) uniform sampler1D lAudioSampler;
-layout(binding = 1) uniform sampler1D rAudioSampler;
+layout(constant_id = 4) const int originalRadius = 128;
+layout(constant_id = 5) const int centerLineWidth = 2;
+layout(constant_id = 6) const float barWidth = 3.5;
+layout(constant_id = 7) const int numBars = 180;
+layout(constant_id = 8) const float amplify = 6000.f;
+
+layout(binding = 0) uniform audioVolume {
+	float lVolume;
+	float rVolume;
+};
+
+layout(binding = 1) uniform samplerBuffer lBuffer;
+layout(binding = 2) uniform samplerBuffer rBuffer;
+
+layout(binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) out vec4 outColor;
 
@@ -15,18 +29,12 @@ layout(location = 0) out vec4 outColor;
 #include "../smoothing/smoothing.glsl"
 #undef kernel
 
-const int radius = 128;
-const int centerLineWidth = 2;
-const float barWidth = 3.5;
-const int numBars = 180;
-
 const vec4 color = vec4(50/255.0f, 50/255.0f, 52/255.0f, 1.0);
-
-const float amplify = 1000.0;
 
 const float PI = 3.14159265359;
 
 void main() {
+	int radius = originalRadius+int(amplify*(lVolume+rVolume)/12);
 	float x = gl_FragCoord.x - (width/2.f);
 	float y = (height/2.f) - gl_FragCoord.y;
 
@@ -53,9 +61,9 @@ void main() {
 
 			float v = 0;
 			if (idx > 0) {
-				v = smoothTexture(lAudioSampler, texCoord).r;
+				v = smoothTexture(lBuffer, texCoord);
 			} else {
-				v = smoothTexture(rAudioSampler, texCoord).r;
+				v = smoothTexture(rBuffer, texCoord);
 			}
 
 			v *= amplify;

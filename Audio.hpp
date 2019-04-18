@@ -7,36 +7,37 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include <vector>
 
 // PulseAudio libraries
 #include <pulse/simple.h>
 #include <pulse/error.h>
 #include <pulse/pulseaudio.h>
 
+#include "Data.hpp"
+
 struct AudioSettings {
 	unsigned char channels   = 2;
-	uint32_t      sampleSize = 64;
-	uint32_t      bufferSize = 2048;
+	size_t        sampleSize = 64;
+	size_t        bufferSize = 2048;
 	uint32_t      sampleRate = 5625;
 	std::string   sinkName;
 };
 
-class AudioData {
+class AudioSampler {
 public:
-	std::atomic<bool> stop;
+	std::atomic<bool> stopped;
 	std::atomic<bool> modified;
 	std::atomic<int> ups;
 
-	void begin(AudioSettings audioSettings);
+	void start(const AudioSettings& audioSettings);
 
-	void end();
+	void stop();
 
-	void copyData(std::vector<float>& lBuffer, std::vector<float>& rBuffer);
+	void copyData(AudioData& audioData);
 
 private:
-	float** audioBuffer;
-	float* sampleBuffer;
+	float** ppAudioBuffer;
+	float* pSampleBuffer;
 
 	std::mutex audioMutexLock;
 
@@ -50,7 +51,7 @@ private:
 
 	int error;
 
-	void init(AudioSettings audioSettings);
+	void init(const AudioSettings& audioSettings);
 
 	void run();
 

@@ -1,0 +1,8 @@
+
+module = "main"
+
+(id=4) int barWidth = 4
+
+(id=5) int barGap = 2
+
+(id=6) float amplitude = 3

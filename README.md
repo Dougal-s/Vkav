@@ -4,5 +4,6 @@ Vkav is an audio visualiser which uses Vulkan for rendering. Heavily inspired by
 
 **Requirements:**
 * GLFW
+* libpng
 * PulseAudio
 * Vulkan

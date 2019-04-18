@@ -3,88 +3,98 @@
  */
 
 /**
- * Path to the fragment shader to use.
+ * Paths to the folders containing the fragment shaders to use.
  */
-//shader = "shaders/bars/frag.spv"
+shaderDirectories = {"shaders/background", "shaders/radial", "shaders/bars"}
+
+/**
+ * Path to an image, which is sent to the fragment shaders. Set to none to disable background images. PNG support only as of now.
+ */
+backgroundImage = none
+
+/**
+ *
+ */
+amplitude = 1.f
 
 /**
  * Name of the PulseAudio sink to record audio from.
  */
-//sinkName = auto
+sinkName = auto
 
 /**
- * Size of the array that reads audio from the sink.
+ * Size of the array that reads audio from the Pulseaudio sink.
  */
-//sampleSize = 64
+sampleSize = 64
 
 /**
  * Size of the buffer that will be used for proccessing and shaders.
  * Must be a power of 2 and divisible by sample size.
  */
-//bufferSize = 2048
+bufferSize = 2048
 
 /**
  * Rate at which the program samples audio.
  */
-//sampleRate = 5625
+sampleRate = 5625
 
 /**
- * Number of audio channels.
+ * Number of audio channels. Supported values are 1 and 2.
  */
-//channels = 2
+channels = 2
 
 /**
 * Whether to perform smoothing on the CPU or GPU.
 */
-//smoothingDevice = GPU
+smoothingDevice = GPU
 
 /**
  * Size of the left and right audio buffers after smoothing. Only applies if smoothingDevice is set to CPU.
  */
-//smoothedSize = 320
+smoothedSize = 320
 
 /**
  * Amount of smoothing applied to the audio data. Higher values mean more smoothing.
  */
-//smoothingLevel = 16.0
+smoothingLevel = 16.0
 
 /**
  * Determines the amount of treble that gets cut from the fft output.
  */
-//trebleCut = 0.09;
+trebleCut = 0.09;
 
 /**
  * Transparency type
  * 	Native uses platform specific transparency.
- * 	Vulkan uses vulkans built in transparency.
+ * 	Vulkan uses Vulkan transparency.
  * 	Opaque makes the window fully opaque.
  */
-//transparency = Opaque
+transparency = Opaque
 
 /**
  * Dimensions of the window
  */
-//width  = 800
-//height = 800
+width  = 800
+height = 800
 
 /**
- * Position of the top left corner of the window.
+ * Position of the top left corner of the window. {0,0} is the top left corner of the screen.
  */
-//windowPosition = {0,0}
+windowPosition = {0,0}
 
 /**
  * Window title
- * Setting this to executable sets the window title to the path to the executable.
+ * Setting this to executable sets the window title to the executable path.
  */
-//windowTitle = "Vkav";
+windowTitle = "Vkav";
 
 /**
  * Window hints
  */
-//resizable = true
-//decorated = true
+resizable = true
+decorated = true
 
 /**
  * Which GPU to use.
  */
-//physicalDevice = auto
+ physicalDevice = auto

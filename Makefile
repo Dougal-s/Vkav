@@ -1,9 +1,10 @@
 src = $(wildcard *.cpp)
 obj = $(src:.cpp=.o)
 
+VULKAN_SDK_PATH = 
 
-CFLAGS = -std=c++17
-LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread
+CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
+LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs -lpng
 
 ifeq ($(BUILD),debug)
 CFLAGS += -O0 -Wall -ggdb
@@ -12,7 +13,7 @@ CFLAGS += -DNDEBUG -O3 -march=native
 STRIP = strip --strip-all Vkav
 endif
 
-all: compile run clean
+all: compile run
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c -o $@ $^
@@ -22,7 +23,7 @@ compile: $(obj)
 	$(STRIP)
 
 run:
-	./Vkav
+	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d ./Vkav -v
 
 clean:
 	rm -f Vkav $(obj)
