@@ -61,9 +61,9 @@ void main() {
 
 			float v = 0;
 			if (idx > 0) {
-				v = smoothTexture(lBuffer, texCoord);
-			} else {
 				v = smoothTexture(rBuffer, texCoord);
+			} else {
+				v = smoothTexture(lBuffer, texCoord);
 			}
 
 			v *= amplify;
