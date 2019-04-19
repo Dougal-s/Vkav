@@ -4,7 +4,7 @@ obj = $(src:.cpp=.o)
 VULKAN_SDK_PATH = 
 
 CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
-LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs -lpng
+LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs -lpng -ljpeg
 
 ifeq ($(BUILD),debug)
 CFLAGS += -O0 -Wall -ggdb
