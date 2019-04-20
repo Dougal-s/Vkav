@@ -37,7 +37,6 @@ static constexpr const char* helpStr = "An audio visualiser using Vulkan for ren
                              "\t-h, --help                    Display this help and exit.\n"
                              "\t-V, --version                 Output version information and exit.\n";
 
-#define PRINT_VAL(p) std::clog << #p << " = " << p << std::endl;
 #define PRINT_UNDEFINED(p) std::clog << #p << " not defined!" << std::endl;
 
 class Vkav {
@@ -99,7 +98,6 @@ private:
 		configSettingsIt = configSettings.find("trebleCut");
 		if (configSettingsIt != configSettings.end()) {
 			trebleCut = std::stof(configSettingsIt->second);
-			PRINT_VAL(trebleCut);
 		} else {
 			PRINT_UNDEFINED(trebleCut);
 		}
@@ -109,10 +107,8 @@ private:
 			std::string deviceStr = configSettingsIt->second;
 			if (deviceStr == "CPU") {
 				smoothingDevice = CPU;
-				std::clog << "smoothingDevice = CPU\n";
 			} else if (deviceStr == "GPU") {
 				smoothingDevice = GPU;
-				std::clog << "smoothingDevice = GPU\n";
 			} else {
 				std::cerr << "Smoothing device set to an invalid value!\n";
 			}
@@ -123,7 +119,6 @@ private:
 		configSettingsIt = configSettings.find("smoothedSize");
 		if (configSettingsIt != configSettings.end()) {
 			smoothedSize = std::stoi(configSettingsIt->second);
-			PRINT_VAL(smoothedSize);
 		} else {
 			PRINT_UNDEFINED(smoothedSize);
 		}
@@ -133,7 +128,6 @@ private:
 		configSettingsIt = configSettings.find("channels");
 		if (configSettingsIt != configSettings.end()) {
 			audioSettings.channels = std::stoi(configSettingsIt->second);
-			std::clog << "audioSettings.channels = " << static_cast<int>(audioSettings.channels) << std::endl;
 		} else {
 			PRINT_UNDEFINED(audioSettings.channels);
 		}
@@ -141,7 +135,6 @@ private:
 		configSettingsIt = configSettings.find("sampleSize");
 		if (configSettingsIt != configSettings.end()) {
 			audioSettings.sampleSize = std::stoi(configSettingsIt->second);
-			PRINT_VAL(audioSettings.sampleSize);
 		} else {
 			PRINT_UNDEFINED(audioSettings.sampleSize);
 		}
@@ -149,7 +142,6 @@ private:
 		configSettingsIt = configSettings.find("bufferSize");
 		if (configSettingsIt != configSettings.end()) {
 			audioSettings.bufferSize = std::stoi(configSettingsIt->second);
-			PRINT_VAL(audioSettings.bufferSize);
 		} else {
 			PRINT_UNDEFINED(audioSettings.bufferSize);
 		}
@@ -157,7 +149,6 @@ private:
 		configSettingsIt = configSettings.find("sampleRate");
 		if (configSettingsIt != configSettings.end()) {
 			audioSettings.sampleRate = std::stoi(configSettingsIt->second);
-			PRINT_VAL(audioSettings.sampleRate);
 		} else {
 			PRINT_UNDEFINED(audioSettings.sampleRate);
 		}
@@ -165,12 +156,10 @@ private:
 		cmdLineArgsIt = cmdLineArgs.find('s');
 		if (cmdLineArgsIt != cmdLineArgs.end()) {
 			audioSettings.sinkName = cmdLineArgsIt->second;
-			PRINT_VAL(audioSettings.sinkName);
 		} else {
 			configSettingsIt = configSettings.find("sinkName");
 			if (configSettingsIt != configSettings.end()) {
 				audioSettings.sinkName = configSettingsIt->second;
-				PRINT_VAL(audioSettings.sinkName);
 				if (audioSettings.sinkName == "auto") {
 					audioSettings.sinkName.clear();
 				}
@@ -196,11 +185,6 @@ private:
 				renderSettings.shaderDirectories.push_back(directory);
 
 			}
-			std::clog << "renderSettings.shaderDirectories = {";
-			for (const auto& i : renderSettings.shaderDirectories) {
-				std::clog << i << ", ";
-			}
-			std::clog << "\b\b}" << std::endl;
 		} else {
 			PRINT_UNDEFINED(renderSettings.shaderDirectories);
 		}
@@ -211,8 +195,6 @@ private:
 			if (renderSettings.backgroundImage == "none") {
 				renderSettings.backgroundImage.clear();
 				std::clog << "renderSettings.backgroundImage = none\n";
-			} else {
-				PRINT_VAL(renderSettings.backgroundImage);
 			}
 		} else {
 			PRINT_UNDEFINED(renderSettings.backgroundImage)
@@ -221,7 +203,6 @@ private:
 		configSettingsIt = configSettings.find("width");
 		if (configSettingsIt != configSettings.end()) {
 			renderSettings.width = std::stoi(configSettingsIt->second);
-			PRINT_VAL(renderSettings.width);
 		} else {
 			PRINT_UNDEFINED(renderSettings.width);
 		}
@@ -229,7 +210,6 @@ private:
 		configSettingsIt = configSettings.find("height");
 		if (configSettingsIt != configSettings.end()) {
 			renderSettings.height = std::stoi(configSettingsIt->second);
-			PRINT_VAL(renderSettings.height);
 		} else {
 			PRINT_UNDEFINED(renderSettings.height);
 		}
@@ -237,20 +217,15 @@ private:
 		configSettingsIt = configSettings.find("transparency");
 		if (configSettingsIt != configSettings.end()) {
 			std::string transparency = configSettingsIt->second;
-			#define PRINT(p) std::clog << "renderSettings.transparency = " << #p << std::endl;
 			if (transparency == "Vulkan") {
 				renderSettings.transparency = VULKAN;
-				PRINT(VULKAN)
 			} else if (transparency == "Native") {
 				renderSettings.transparency = NATIVE;
-				PRINT(NATIVE);
 			} else if (transparency == "Opaque") {
 				renderSettings.transparency = OPAQUE;
-				PRINT(OPAQUE);
 			} else {
 				std::cerr << "Transparency set to an invalid value!\n";
 			}
-			#undef PRINT
 		} else {
 			PRINT_UNDEFINED(renderSettings.transparency);
 		}
@@ -261,7 +236,6 @@ private:
 			if (renderSettings.windowTitle.find("executable") != std::string::npos) {
 				renderSettings.windowTitle = argv[0];
 			}
-			PRINT_VAL(renderSettings.windowTitle);
 		} else {
 			PRINT_UNDEFINED(renderSettings.windowTitle);
 		}
@@ -274,12 +248,6 @@ private:
 				std::stoi(position.substr(1, gapPosition-1)),
 				std::stoi(position.substr(gapPosition+1, position.size()-gapPosition))
 			};
-			std::clog << "renderSettings.windowPosition = {"
-			          << renderSettings.windowPosition.value().first
-					  << ","
-					  << renderSettings.windowPosition.value().first
-					  << "}"
-					  << std::endl;
 		} else {
 			PRINT_UNDEFINED(renderSettings.windowPosition);
 		}
@@ -287,7 +255,6 @@ private:
 		configSettingsIt = configSettings.find("decorated");
 		if (configSettingsIt != configSettings.end()) {
 			renderSettings.windowHints.decorated = (configSettingsIt->second == "true");
-			PRINT_VAL(renderSettings.windowHints.decorated);
 		} else {
 			PRINT_UNDEFINED(renderSettings.windowHints.decorated);
 		}
@@ -295,7 +262,6 @@ private:
 		configSettingsIt = configSettings.find("resizable");
 		if (configSettingsIt != configSettings.end()) {
 			renderSettings.windowHints.resizable = (configSettingsIt->second == "true");
-			PRINT_VAL(renderSettings.windowHints.resizable);
 		} else {
 			PRINT_UNDEFINED(renderSettings.windowHints.resizable);
 		}
@@ -304,9 +270,8 @@ private:
 		if (configSettingsIt != configSettings.end()) {
 			smoothingLevel = std::stof(configSettingsIt->second);
 			renderSettings.smoothingLevel = smoothingLevel;
-			PRINT_VAL(smoothingLevel);
 		} else {
-			PRINT_VAL(smoothingLevel);
+			PRINT_UNDEFINED(smoothingLevel);
 		}
 
 		switch (smoothingDevice) {
@@ -324,15 +289,11 @@ private:
 		cmdLineArgsIt = cmdLineArgs.find('d');
 		if (cmdLineArgsIt != cmdLineArgs.end()) {
 			renderSettings.physicalDevice.value() = std::stoi(cmdLineArgsIt->second);
-			std::clog << "renderSettings.physicalDevice = " << renderSettings.physicalDevice.value() << std::endl;
 		} else {
 			configSettingsIt = configSettings.find("physicalDevice");
 			if (configSettingsIt != configSettings.end()) {
-				if (configSettingsIt->second == "auto") {
-					std::clog << "renderSettings.physicalDevice = auto\n";
-				} else {
+				if (configSettingsIt->second != "auto") {
 					renderSettings.physicalDevice.value() = std::stoi(configSettingsIt->second);
-					std::clog << "renderSettings.physicalDevice = " << renderSettings.physicalDevice.value() << std::endl;
 				}
 			} else {
 				PRINT_UNDEFINED(renderSettings.physicalDevice);
@@ -350,7 +311,6 @@ private:
 		configSettingsIt = configSettings.find("amplitude");
 		if (configSettingsIt != configSettings.end()) {
 			proccessSettings.amplitude = std::stof(configSettingsIt->second);
-			PRINT_VAL(proccessSettings.amplitude);
 		} else {
 			PRINT_UNDEFINED(proccessSettings);
 		}
