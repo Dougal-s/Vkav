@@ -1,10 +1,22 @@
 src = $(wildcard *.cpp)
 obj = $(src:.cpp=.o)
 
-VULKAN_SDK_PATH = 
+VULKAN_SDK_PATH = /home/dougal/Programming/Vulkan/VulkanSDK/1.1.97.0/x86_64
 
 CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
-LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs -lpng -ljpeg
+LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs
+
+ifdef DISABLE_PNG
+	CFLAGS += -D DISABLE_PNG
+else
+	LDFLAGS += -lpng
+endif
+
+ifdef DISABLE_JPEG
+	CFLAGS += -D DISABLE_JPEG
+else
+	LDFLAGS += -ljpeg
+endif
 
 ifeq ($(BUILD),debug)
 CFLAGS += -O0 -Wall -ggdb

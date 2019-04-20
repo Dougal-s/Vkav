@@ -7,10 +7,13 @@
 #include <iostream>
 
 // For png files
-#include <png.h>
-
+#ifndef DISABLE_PNG
+	#include <png.h>
+#endif
 // for jpeg files
-#include <jpeglib.h>
+#ifndef DISABLE_JPEG
+	#include <jpeglib.h>
+#endif
 
 #include "Image.hpp"
 
@@ -33,6 +36,7 @@ public:
 	static void destroy(Image* image);
 };
 
+#ifndef DISABLE_PNG
 class PNG : public Image {
 public:
 
@@ -159,7 +163,9 @@ private:
 
 	png_bytep* image;
 };
+#endif
 
+#ifndef DISABLE_JPEG
 class JPEG : public Image {
 public:
 
@@ -246,13 +252,20 @@ private:
 		longjmp(err->setjmpBuffer, 1);
 	}
 };
+#endif
 
 Image* Image::create(const std::filesystem::path& filePath) {
-	if (filePath.extension() == ".png") {
-		return new PNG();
-	} else if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg") {
-		return new JPEG();
-	}
+	#ifndef DISABLE_PNG
+		if (filePath.extension() == ".png") {
+			return new PNG();
+		}
+	#endif
+
+	#ifndef DISABLE_JPEG
+		if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg") {
+			return new JPEG();
+		}
+	#endif
 
 	return nullptr;
 }
