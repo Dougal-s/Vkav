@@ -3,15 +3,7 @@
 #define AUDIO_HPP
 
 // C++ standard libraries
-#include <atomic>
-#include <mutex>
 #include <string>
-#include <thread>
-
-// PulseAudio libraries
-#include <pulse/simple.h>
-#include <pulse/error.h>
-#include <pulse/pulseaudio.h>
 
 #include "Data.hpp"
 
@@ -25,9 +17,9 @@ struct AudioSettings {
 
 class AudioSampler {
 public:
-	std::atomic<bool> stopped;
-	std::atomic<bool> modified;
-	std::atomic<int> ups;
+	bool stopped();
+	bool modified();
+	int ups();
 
 	void start(const AudioSettings& audioSettings);
 
@@ -36,34 +28,8 @@ public:
 	void copyData(AudioData& audioData);
 
 private:
-	float** ppAudioBuffer;
-	float* pSampleBuffer;
-
-	std::mutex audioMutexLock;
-
-	pa_simple* s;
-
-	AudioSettings settings;
-
-	std::thread audioThread;
-
-	pa_mainloop* mainloop;
-
-	int error;
-
-	void init(const AudioSettings& audioSettings);
-
-	void run();
-
-	void cleanup();
-
-	void getDefaultSink();
-
-	void setupPulse();
-
-	static void callback(pa_context* c, const pa_server_info* i, void* userdata);
-
-	static void contextStateCallback(pa_context* c, void* userdata);
+	class AudioSamplerImpl;
+	AudioSamplerImpl* audioSamplerImpl;
 };
 
 #endif

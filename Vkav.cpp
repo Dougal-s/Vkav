@@ -327,8 +327,8 @@ private:
 		int numFrames = 0;
 		std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
 
-		while (!audioSampler.stopped) {
-			if (audioSampler.modified) {
+		while (!audioSampler.stopped()) {
+			if (audioSampler.modified()) {
 				audioSampler.copyData(audioData);
 				proccess.proccessSignal(audioData);
 				if (!renderer.drawFrame(audioData)) {break;}
@@ -338,7 +338,8 @@ private:
 
 			std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 			if (std::chrono::duration_cast<std::chrono::seconds>(currentTime-lastFrame).count() >= 1) {
-				std::clog << "FPS: " << std::setw(3) << std::right << numFrames << " | UPS: " << std::setw(3) << std::right << audioSampler.ups << std::endl;
+				std::clog << "FPS: " << std::setw(3) << std::right << numFrames
+				          << " | UPS: " << std::setw(3) << std::right << audioSampler.ups() << std::endl;
 				numFrames = 0;
 				lastFrame = currentTime;
 			}
