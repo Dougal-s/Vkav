@@ -2,7 +2,6 @@
 #include <complex>
 #include <cmath>
 #include <utility>
-#include <vector>
 
 #include "Data.hpp"
 #include "Proccess.hpp"

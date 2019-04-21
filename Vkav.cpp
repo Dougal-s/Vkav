@@ -1,6 +1,5 @@
 // C++ standard libraries
 #include <algorithm>
-#include <atomic>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>

@@ -2,7 +2,6 @@
 #ifndef AUDIO_HPP
 #define AUDIO_HPP
 
-// C++ standard libraries
 #include <string>
 
 #include "Data.hpp"
