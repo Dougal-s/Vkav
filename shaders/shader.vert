@@ -1,4 +1,5 @@
 #version 450
+#extension GL_ARB_separate_shader_objects : enable
 
 vec2 positions[6] = vec2[](
     vec2(-1.0f, -1.0f), // top left
