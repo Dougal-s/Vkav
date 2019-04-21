@@ -5,7 +5,7 @@
 /**
  * Paths to the folders containing the fragment shaders to use.
  */
-shaderDirectories = {"shaders/background", "shaders/radial", "shaders/bars"}
+shaderDirectories = {"shaders/background (blur)", "shaders/radial", "shaders/bars"}
 
 /**
  * Path to an image, which is sent to the fragment shaders. Set to none to disable background images.
@@ -18,7 +18,7 @@ backgroundImage = none
 /**
  *
  */
-amplitude = 1.f
+amplitude = 0.4f
 
 /**
  * Name of the PulseAudio sink to record audio from.
