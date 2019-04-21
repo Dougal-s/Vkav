@@ -15,6 +15,8 @@ layout(binding = 0) uniform audioVolume {
 
 layout(binding = 3) uniform sampler2D backgroundImage;
 
+layout(location = 0) in vec2 fragTexCoord;
+
 layout(location = 0) out vec4 outColor;
 
 const vec4 color = vec4(38.45/255.0f, 40.6/255.0f, 41.2/255.0f, 1.0);
@@ -28,7 +30,6 @@ void main() {
 	// gaussian curve with width controlled by volume
 	float brightness = min(4*volume, 1.f)*exp(-position/(2*volume*volume));
 
-	vec2 fragTexCoord = vec2(gl_FragCoord.x/width, gl_FragCoord.y/height);
 	vec4 color = texture(backgroundImage, fragTexCoord);
 	color.a = color.a*brightness;
 	outColor = color;

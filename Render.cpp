@@ -22,6 +22,8 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
+constexpr const char* VERTEX_SHADER_PATH = "./shaders/vert.spv";
+
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_LUNARG_standard_validation"
 };
@@ -89,6 +91,8 @@ struct GraphicsPipeline {
 	VkShaderModule fragShaderModule;
 	// Name of the fragment shader function to call
 	std::string moduleName;
+
+	VkShaderModule vertShaderModule;
 };
 
 class Renderer::RendererImpl {
@@ -749,6 +753,7 @@ private:
 	void destroyGraphicsPipelines() {
 		for (auto& graphicsPipeline : graphicsPipelines) {
 			vkDestroyShaderModule(device, graphicsPipeline.fragShaderModule, nullptr);
+			vkDestroyShaderModule(device, graphicsPipeline.vertShaderModule, nullptr);
 		}
 	}
 
@@ -756,6 +761,14 @@ private:
 		graphicsPipelines.resize(settings.shaderDirectories.size());
 
 		for (uint32_t i = 0; i < graphicsPipelines.size(); ++i) {
+			std::filesystem::path vertexShaderPath = settings.shaderDirectories[i];
+			vertexShaderPath /= "vert.spv";
+			if (!std::filesystem::exists(vertexShaderPath)) {
+				vertexShaderPath = VERTEX_SHADER_PATH;
+			}
+			auto vertShaderCode = readFile(vertexShaderPath);
+			graphicsPipelines[i].vertShaderModule = createShaderModule(vertShaderCode);
+
 			std::filesystem::path fragmentShaderPath = settings.shaderDirectories[i];
 			fragmentShaderPath /= "frag.spv";
 			auto fragShaderCode = readFile(fragmentShaderPath);
@@ -770,14 +783,6 @@ private:
 	}
 
 	void createGraphicsPipelines() {
-		auto vertShaderCode = readFile("./shaders/vert.spv");
-		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
-		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertShaderStageInfo.module = vertShaderModule;
-		vertShaderStageInfo.pName = "main";
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -853,6 +858,7 @@ private:
 			throw std::runtime_error(__FILE__": failed to create pipeline layout!");
 		}
 
+		VkPipelineShaderStageCreateInfo vertShaderStageInfos[graphicsPipelines.size()];
 		VkPipelineShaderStageCreateInfo fragShaderStageInfos[graphicsPipelines.size()];
 		VkSpecializationInfo specializationInfos[graphicsPipelines.size()];
 		VkPipelineShaderStageCreateInfo shaderStages[graphicsPipelines.size()][2];
@@ -861,6 +867,12 @@ private:
 
 		for (uint32_t i = 0; i < graphicsPipelines.size(); ++i) {
 			pipelines[i] = graphicsPipelines[i].graphicsPipeline;
+
+			vertShaderStageInfos[i] = {};
+			vertShaderStageInfos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			vertShaderStageInfos[i].stage = VK_SHADER_STAGE_VERTEX_BIT;
+			vertShaderStageInfos[i].module = graphicsPipelines[i].vertShaderModule;
+			vertShaderStageInfos[i].pName = "main";
 
 			fragShaderStageInfos[i] = {};
 			fragShaderStageInfos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -879,7 +891,7 @@ private:
 
 			fragShaderStageInfos[i].pSpecializationInfo = &specializationInfos[i];
 
-			shaderStages[i][0] = vertShaderStageInfo;
+			shaderStages[i][0] = vertShaderStageInfos[i];
 			shaderStages[i][1] = fragShaderStageInfos[i];
 
 			pipelineInfos[i] = {};
@@ -899,7 +911,6 @@ private:
 			pipelineInfos[i].subpass = 0;
 			pipelineInfos[i].basePipelineHandle = VK_NULL_HANDLE;
 			pipelineInfos[i].basePipelineIndex = 0;
-
 		}
 
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, graphicsPipelines.size(), pipelineInfos, nullptr, pipelines)) {
@@ -909,8 +920,6 @@ private:
 		for (uint32_t i = 0; i < graphicsPipelines.size(); ++i) {
 			graphicsPipelines[i].graphicsPipeline = pipelines[i];
 		}
-
-		vkDestroyShaderModule(device, vertShaderModule, nullptr);
 	}
 
 	VkShaderModule createShaderModule(const std::vector<char>& shaderCode) {
