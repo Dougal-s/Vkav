@@ -31,9 +31,10 @@ static constexpr const char* helpStr = "An audio visualiser using Vulkan for ren
                              "\n"
                              "Available Arguments:\n"
                              "\t-v, --verbose                 Prints detailed information about the programs execution.\n"
-                             "\t-s, --sink-name=SINK          Uses SINK instead of the default audio sink.(Overrides sink specified in the config file)\n"
+                             "\t-s, --sink-name=SINK          Uses SINK instead of the default audio sink.(Overrides sink specified in the config file.)\n"
                              "\t-d, --device=DEVICE_NUMBER    Uses Device number DEVICE_NUMBER.(Overrides device number specified in the config file.)\n"
-                             "\t-c, --config-file=CONFIG_PATH Specifies the path to the configuration file to use\n"
+                             "\t-c, --config-file=CONFIG_PATH Specifies the path to the configuration file to use.\n"
+							 "\t-a, --amplitude=AMPLITUDE     Changes the amplitude of the fft output.\n"
                              "\t-h, --help                    Display this help and exit.\n"
                              "\t-V, --version                 Output version information and exit.\n";
 
@@ -308,11 +309,16 @@ private:
 		proccessSettings.outputSize = smoothedSize;
 		proccessSettings.smoothingLevel = smoothingLevel;
 
-		configSettingsIt = configSettings.find("amplitude");
-		if (configSettingsIt != configSettings.end()) {
-			proccessSettings.amplitude = std::stof(configSettingsIt->second);
+		cmdLineArgsIt = cmdLineArgs.find('a');
+		if (cmdLineArgsIt != cmdLineArgs.end()) {
+			proccessSettings.amplitude = std::stof(cmdLineArgsIt->second);
 		} else {
-			PRINT_UNDEFINED(amplitude);
+			configSettingsIt = configSettings.find("amplitude");
+			if (configSettingsIt != configSettings.end()) {
+				proccessSettings.amplitude = std::stof(configSettingsIt->second);
+			} else {
+				PRINT_UNDEFINED(amplitude);
+			}
 		}
 
 		proccess.init(proccessSettings);

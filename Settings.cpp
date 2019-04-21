@@ -68,12 +68,13 @@ std::unordered_map<char, std::string> readCmdLineArgs(int argc, char* argv[]) {
 			if (argv[i][1] == '-') {
 				char charKey = 0;
 
-				if      (argName == "--verbose") {charKey = 'v';}
-				else if (argName == "--sink-name") {charKey = 's';}
-				else if (argName == "--device") {charKey = 'd';}
+				if      (argName == "--verbose"    ) {charKey = 'v';}
+				else if (argName == "--sink-name"  ) {charKey = 's';}
+				else if (argName == "--device"     ) {charKey = 'd';}
 				else if (argName == "--config-file") {charKey = 'c';}
-				else if (argName == "--help") {charKey = 'h';}
-				else if (argName == "--version") {charKey = 'V';}
+				else if (argName == "--amplitude"  ) {charKey = 'a';}
+				else if (argName == "--help"       ) {charKey = 'h';}
+				else if (argName == "--version"    ) {charKey = 'V';}
 
 				if (charKey == 0) {
 					throw std::invalid_argument(__FILE__": Invalid command line argument!");
@@ -87,6 +88,7 @@ std::unordered_map<char, std::string> readCmdLineArgs(int argc, char* argv[]) {
 					argv[i][1] != 's' &&
 					argv[i][1] != 'd' &&
 					argv[i][1] != 'c' &&
+					argv[i][1] != 'a' &&
 					argv[i][1] != 'h' &&
 					argv[i][1] != 'V'
 				) {
