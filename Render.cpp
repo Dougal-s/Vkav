@@ -291,27 +291,16 @@ private:
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-		if (settings.windowHints.decorated) {
-			glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-		} else {
-			glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
-		}
-
-		if (settings.windowHints.resizable) {
-			glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-		} else {
-			glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		}
+		glfwWindowHint(GLFW_DECORATED, settings.windowHints.decorated ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, settings.windowHints.resizable ? GLFW_TRUE : GLFW_FALSE);
 
 		#if GLFW_VERSION_MAJOR >= 3 && GLFW_VERSION_MINOR >= 3
-			if (settings.transparency == NATIVE) {
-				glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-			}
+			glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, settings.transparency == NATIVE ? GLFW_TRUE : GLFW_FALSE);
 		#else
-		if (settings.transparency == NATIVE) {
-			std::cerr << "Native transaprency unsupported by current configuration!" << std::endl;
-			settings.transparency = OPAQUE;
-		}
+			if (settings.transparency == NATIVE) {
+				std::cerr << "Native transaprency unsupported by current configuration!" << std::endl;
+				settings.transparency = OPAQUE;
+			}
 		#endif
 
 		window = glfwCreateWindow(settings.width, settings.height, settings.windowTitle.c_str(), nullptr, nullptr);
