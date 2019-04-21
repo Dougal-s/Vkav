@@ -7,8 +7,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "Data.hpp"
+struct AudioData;
 
 enum TransparencyType {
 	VULKAN,

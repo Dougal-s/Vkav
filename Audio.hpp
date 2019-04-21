@@ -3,8 +3,7 @@
 #define AUDIO_HPP
 
 #include <string>
-
-#include "Data.hpp"
+struct AudioData;
 
 struct AudioSettings {
 	unsigned char channels   = 2;

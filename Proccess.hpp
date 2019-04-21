@@ -3,8 +3,7 @@
 #define SIGNAL_FUNCTIONS_HPP
 
 #include <complex>
-
-#include "Data.hpp"
+struct AudioData;
 
 struct ProccessSettings {
 	size_t inputSize;
