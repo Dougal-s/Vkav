@@ -25,10 +25,11 @@ namespace {
 		virtual ~Image() = default;
 
 		static unsigned char** emptyBuffer() {
-		unsigned char** buffer = new unsigned char*[1];
-		buffer[0] = new unsigned char[4]{0, 0, 0, 0};
-		return buffer;
-	}
+			unsigned char** buffer = new unsigned char*[1];
+			buffer[0] = new unsigned char[4]{0, 0, 0, 0};
+			return buffer;
+		}
+
 		static Image* create(const std::filesystem::path& filePath);
 		static void destroy(Image* image);
 	};
