@@ -64,47 +64,40 @@ private:
 
 		std::chrono::high_resolution_clock::time_point initStart = std::chrono::high_resolution_clock::now();
 
-		std::unordered_map<char, std::string>::iterator cmdLineArgsIt;
 		std::unordered_map<char, std::string> cmdLineArgs = readCmdLineArgs(argc, argv);
 
-		cmdLineArgsIt = cmdLineArgs.find('h');
-		if (cmdLineArgsIt != cmdLineArgs.end()) {
+		if (cmdLineArgs.find('h') != cmdLineArgs.end()) {
 			std::cout << "Usage: " << argv[0] << " [OPTIONS]...\n" << helpStr << versionStr;
 			std::exit(0);
 		}
 
-		cmdLineArgsIt = cmdLineArgs.find('V');
-		if (cmdLineArgsIt != cmdLineArgs.end()) {
+		if (cmdLineArgs.find('V') != cmdLineArgs.end()) {
 			std::cout << versionStr;
 			std::exit(0);
 		}
 
-		cmdLineArgsIt = cmdLineArgs.find('v');
-		if (cmdLineArgsIt == cmdLineArgs.end()) {
+		if (cmdLineArgs.find('v') == cmdLineArgs.end()) {
 			std::clog.setstate(std::ios::failbit);
 		}
 
 		std::filesystem::path configFilePath = argv[0];
 		configFilePath.replace_filename("config");
-		cmdLineArgsIt = cmdLineArgs.find('c');
-		if (cmdLineArgsIt != cmdLineArgs.end()) {
-			configFilePath = cmdLineArgsIt->second;
+		if (const auto cmdLineArg = cmdLineArgs.find('c'); cmdLineArg != cmdLineArgs.end()) {
+			configFilePath = cmdLineArg->second;
 		}
 
 		std::clog << "Parsing configuration file.\n";
-		std::unordered_map<std::string, std::string>::iterator configSettingsIt;
 		std::unordered_map<std::string, std::string> configSettings = readConfigFile(configFilePath);
 
-		configSettingsIt = configSettings.find("trebleCut");
-		if (configSettingsIt != configSettings.end()) {
-			trebleCut = std::stof(configSettingsIt->second);
+
+		if (const auto confSetting = configSettings.find("trebleCut"); confSetting != configSettings.end()) {
+			trebleCut = std::stof(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(trebleCut);
 		}
 
-		configSettingsIt = configSettings.find("smoothingDevice");
-		if (configSettingsIt != configSettings.end()) {
-			std::string deviceStr = configSettingsIt->second;
+		if (const auto confSetting = configSettings.find("smoothingDevice"); confSetting != configSettings.end()) {
+			std::string deviceStr = confSetting->second;
 			if (deviceStr == "CPU") {
 				smoothingDevice = CPU;
 			} else if (deviceStr == "GPU") {
@@ -116,50 +109,43 @@ private:
 			PRINT_UNDEFINED(smoothingDevice);
 		}
 
-		configSettingsIt = configSettings.find("smoothedSize");
-		if (configSettingsIt != configSettings.end()) {
-			smoothedSize = std::stoi(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("smoothedSize"); confSetting != configSettings.end()) {
+			smoothedSize = std::stoi(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(smoothedSize);
 		}
 
 		AudioSettings audioSettings = {};
 
-		configSettingsIt = configSettings.find("channels");
-		if (configSettingsIt != configSettings.end()) {
-			audioSettings.channels = std::stoi(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("channels"); confSetting != configSettings.end()) {
+			audioSettings.channels = std::stoi(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(channels);
 		}
 
-		configSettingsIt = configSettings.find("sampleSize");
-		if (configSettingsIt != configSettings.end()) {
-			audioSettings.sampleSize = std::stoi(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("sampleSize"); confSetting != configSettings.end()) {
+			audioSettings.sampleSize = std::stoi(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(sampleSize);
 		}
 
-		configSettingsIt = configSettings.find("bufferSize");
-		if (configSettingsIt != configSettings.end()) {
-			audioSettings.bufferSize = std::stoi(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("bufferSize"); confSetting != configSettings.end()) {
+			audioSettings.bufferSize = std::stoi(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(bufferSize);
 		}
 
-		configSettingsIt = configSettings.find("sampleRate");
-		if (configSettingsIt != configSettings.end()) {
-			audioSettings.sampleRate = std::stoi(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("sampleRate"); confSetting != configSettings.end()) {
+			audioSettings.sampleRate = std::stoi(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(sampleRate);
 		}
 
-		cmdLineArgsIt = cmdLineArgs.find('s');
-		if (cmdLineArgsIt != cmdLineArgs.end()) {
-			audioSettings.sinkName = cmdLineArgsIt->second;
+		if (const auto cmdLineArg = cmdLineArgs.find('s'); cmdLineArg != cmdLineArgs.end()) {
+			audioSettings.sinkName = cmdLineArg->second;
 		} else {
-			configSettingsIt = configSettings.find("sinkName");
-			if (configSettingsIt != configSettings.end()) {
-				audioSettings.sinkName = configSettingsIt->second;
+			if (const auto confSetting = configSettings.find("sinkName"); confSetting != configSettings.end()) {
+				audioSettings.sinkName = confSetting->second;
 				if (audioSettings.sinkName == "auto") {
 					audioSettings.sinkName.clear();
 				}
@@ -173,10 +159,9 @@ private:
 
 		RenderSettings renderSettings = {};
 
-		configSettingsIt = configSettings.find("shaderDirectories");
-		if (configSettingsIt != configSettings.end()) {
+		if (const auto confSetting = configSettings.find("shaderDirectories"); confSetting != configSettings.end()) {
 			renderSettings.shaderDirectories.clear();
-			std::stringstream ss(configSettingsIt->second);
+			std::stringstream ss(confSetting->second);
 			std::string directory;
 		 	while (std::getline(ss, directory, '\"').good()) {
 				if (!std::getline(ss, directory, '\"').good()) {
@@ -189,9 +174,8 @@ private:
 			PRINT_UNDEFINED(shaderDirectories);
 		}
 
-		configSettingsIt = configSettings.find("backgroundImage");
-		if (configSettingsIt != configSettings.end()) {
-			renderSettings.backgroundImage = configSettingsIt->second;
+		if (const auto confSetting = configSettings.find("backgroundImage"); confSetting != configSettings.end()) {
+			renderSettings.backgroundImage = confSetting->second;
 			if (renderSettings.backgroundImage == "none") {
 				renderSettings.backgroundImage.clear();
 				std::clog << "renderSettings.backgroundImage = none\n";
@@ -200,23 +184,20 @@ private:
 			PRINT_UNDEFINED(backgroundImage)
 		}
 
-		configSettingsIt = configSettings.find("width");
-		if (configSettingsIt != configSettings.end()) {
-			renderSettings.width = std::stoi(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("width"); confSetting != configSettings.end()) {
+			renderSettings.width = std::stoi(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(width);
 		}
 
-		configSettingsIt = configSettings.find("height");
-		if (configSettingsIt != configSettings.end()) {
-			renderSettings.height = std::stoi(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("height"); confSetting != configSettings.end()) {
+			renderSettings.height = std::stoi(confSetting->second);
 		} else {
 			PRINT_UNDEFINED(height);
 		}
 
-		configSettingsIt = configSettings.find("transparency");
-		if (configSettingsIt != configSettings.end()) {
-			std::string transparency = configSettingsIt->second;
+		if (const auto confSetting = configSettings.find("transparency"); confSetting != configSettings.end()) {
+			std::string transparency = confSetting->second;
 			if (transparency == "Vulkan") {
 				renderSettings.transparency = VULKAN;
 			} else if (transparency == "Native") {
@@ -230,9 +211,8 @@ private:
 			PRINT_UNDEFINED(transparency);
 		}
 
-		configSettingsIt = configSettings.find("windowTitle");
-		if (configSettingsIt != configSettings.end()) {
-			renderSettings.windowTitle = configSettingsIt->second;
+		if (const auto confSetting = configSettings.find("windowTitle"); confSetting != configSettings.end()) {
+			renderSettings.windowTitle = confSetting->second;
 			if (renderSettings.windowTitle.find("executable") != std::string::npos) {
 				renderSettings.windowTitle = argv[0];
 			}
@@ -240,9 +220,8 @@ private:
 			PRINT_UNDEFINED(windowTitle);
 		}
 
-		configSettingsIt = configSettings.find("windowPosition");
-		if (configSettingsIt != configSettings.end()) {
-			std::string position = configSettingsIt->second;
+		if (const auto confSetting = configSettings.find("windowPosition"); confSetting != configSettings.end()) {
+			std::string position = confSetting->second;
 			size_t gapPosition = position.find(',');
 			renderSettings.windowPosition = {
 				std::stoi(position.substr(1, gapPosition-1)),
@@ -252,23 +231,20 @@ private:
 			PRINT_UNDEFINED(windowPosition);
 		}
 
-		configSettingsIt = configSettings.find("decorated");
-		if (configSettingsIt != configSettings.end()) {
-			renderSettings.windowHints.decorated = (configSettingsIt->second == "true");
+		if (const auto confSetting = configSettings.find("decorated"); confSetting != configSettings.end()) {
+			renderSettings.windowHints.decorated = (confSetting->second == "true");
 		} else {
 			PRINT_UNDEFINED(decorated);
 		}
 
-		configSettingsIt = configSettings.find("resizable");
-		if (configSettingsIt != configSettings.end()) {
-			renderSettings.windowHints.resizable = (configSettingsIt->second == "true");
+		if (const auto confSetting = configSettings.find("resizable"); confSetting != configSettings.end()) {
+			renderSettings.windowHints.resizable = (confSetting->second == "true");
 		} else {
 			PRINT_UNDEFINED(resizable);
 		}
 
-		configSettingsIt = configSettings.find("smoothingLevel");
-		if (configSettingsIt != configSettings.end()) {
-			smoothingLevel = std::stof(configSettingsIt->second);
+		if (const auto confSetting = configSettings.find("smoothingLevel"); confSetting != configSettings.end()) {
+			smoothingLevel = std::stof(confSetting->second);
 			renderSettings.smoothingLevel = smoothingLevel;
 		} else {
 			PRINT_UNDEFINED(smoothingLevel);
@@ -286,14 +262,13 @@ private:
 				break;
 		}
 
-		cmdLineArgsIt = cmdLineArgs.find('d');
-		if (cmdLineArgsIt != cmdLineArgs.end()) {
-			renderSettings.physicalDevice.value() = std::stoi(cmdLineArgsIt->second);
+
+		if (const auto cmdLineArg = cmdLineArgs.find('d'); cmdLineArg != cmdLineArgs.end()) {
+			renderSettings.physicalDevice.value() = std::stoi(cmdLineArg->second);
 		} else {
-			configSettingsIt = configSettings.find("physicalDevice");
-			if (configSettingsIt != configSettings.end()) {
-				if (configSettingsIt->second != "auto") {
-					renderSettings.physicalDevice.value() = std::stoi(configSettingsIt->second);
+			if (const auto confSetting = configSettings.find("physicalDevice"); confSetting != configSettings.end()) {
+				if (confSetting->second != "auto") {
+					renderSettings.physicalDevice.value() = std::stoi(confSetting->second);
 				}
 			} else {
 				PRINT_UNDEFINED(physicalDevice);
@@ -308,13 +283,12 @@ private:
 		proccessSettings.outputSize = smoothedSize;
 		proccessSettings.smoothingLevel = smoothingLevel;
 
-		cmdLineArgsIt = cmdLineArgs.find('a');
-		if (cmdLineArgsIt != cmdLineArgs.end()) {
-			proccessSettings.amplitude = std::stof(cmdLineArgsIt->second);
+
+		if (const auto cmdLineArg = cmdLineArgs.find('a'); cmdLineArg != cmdLineArgs.end()) {
+			proccessSettings.amplitude = std::stof(cmdLineArg->second);
 		} else {
-			configSettingsIt = configSettings.find("amplitude");
-			if (configSettingsIt != configSettings.end()) {
-				proccessSettings.amplitude = std::stof(configSettingsIt->second);
+			if (const auto confSetting = configSettings.find("amplitude"); confSetting != configSettings.end()) {
+				proccessSettings.amplitude = std::stof(confSetting->second);
 			} else {
 				PRINT_UNDEFINED(amplitude);
 			}
