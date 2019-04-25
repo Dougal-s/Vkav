@@ -20,80 +20,82 @@
 
 // Miscellaneous variables
 
-constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+namespace {
+	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-constexpr const char* VERTEX_SHADER_PATH = "./shaders/vert.spv";
+	constexpr const char* VERTEX_SHADER_PATH = "./shaders/vert.spv";
 
-const std::vector<const char*> validationLayers = {
-	"VK_LAYER_LUNARG_standard_validation"
-};
+	const std::vector<const char*> validationLayers = {
+		"VK_LAYER_LUNARG_standard_validation"
+	};
 
-const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+	const std::vector<const char*> deviceExtensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
 
-#ifdef NDEBUG
-	constexpr bool enableValidationLayers = false;
-#else
-	constexpr bool enableValidationLayers = true;
-#endif
+	#ifdef NDEBUG
+		constexpr bool enableValidationLayers = false;
+	#else
+		constexpr bool enableValidationLayers = true;
+	#endif
 
-static VkResult createDebugUtilsMessengerEXT(
-	VkInstance instance,
-	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-	const VkAllocationCallbacks* pAllocator,
-	VkDebugUtilsMessengerEXT* pDebugMessenger
-) {
-	auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-	if (func == nullptr) {return VK_ERROR_EXTENSION_NOT_PRESENT;}
-	return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-}
-
-static void DestroyDebugUtilsMessengerEXT(
-	VkInstance instance,
-	VkDebugUtilsMessengerEXT debugMessenger,
-	const VkAllocationCallbacks* pAllocator
-) {
-	auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-	if (func == nullptr) {return;}
-	func(instance, debugMessenger, pAllocator);
-}
-
-struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
-
-	bool isComplete() {
-		return graphicsFamily.has_value() && presentFamily.has_value();
+	static VkResult createDebugUtilsMessengerEXT(
+		VkInstance instance,
+		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+		const VkAllocationCallbacks* pAllocator,
+		VkDebugUtilsMessengerEXT* pDebugMessenger
+	) {
+		auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+		if (func == nullptr) {return VK_ERROR_EXTENSION_NOT_PRESENT;}
+		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 	}
-};
 
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
-};
+	static void DestroyDebugUtilsMessengerEXT(
+		VkInstance instance,
+		VkDebugUtilsMessengerEXT debugMessenger,
+		const VkAllocationCallbacks* pAllocator
+	) {
+		auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+		if (func == nullptr) {return;}
+		func(instance, debugMessenger, pAllocator);
+	}
 
-union SpecializationConstant {
-	int32_t intVal;
-	float floatVal;
-};
+	struct QueueFamilyIndices {
+		std::optional<uint32_t> graphicsFamily;
+		std::optional<uint32_t> presentFamily;
 
-struct SpecializationConstants {
-	std::vector<SpecializationConstant> data;
-	std::vector<VkSpecializationMapEntry> specializationInfo;
-};
+		bool isComplete() {
+			return graphicsFamily.has_value() && presentFamily.has_value();
+		}
+	};
 
-struct GraphicsPipeline {
-	VkPipeline graphicsPipeline;
-	SpecializationConstants specializationConstants;
+	struct SwapChainSupportDetails {
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
+	};
 
-	VkShaderModule fragShaderModule;
-	// Name of the fragment shader function to call
-	std::string moduleName;
+	union SpecializationConstant {
+		int32_t intVal;
+		float floatVal;
+	};
 
-	VkShaderModule vertShaderModule;
-};
+	struct SpecializationConstants {
+		std::vector<SpecializationConstant> data;
+		std::vector<VkSpecializationMapEntry> specializationInfo;
+	};
+
+	struct GraphicsPipeline {
+		VkPipeline graphicsPipeline;
+		SpecializationConstants specializationConstants;
+
+		VkShaderModule fragShaderModule;
+		// Name of the fragment shader function to call
+		std::string moduleName;
+
+		VkShaderModule vertShaderModule;
+	};
+}
 
 class Renderer::RendererImpl {
 public:
