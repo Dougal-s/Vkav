@@ -1,7 +1,7 @@
 src = $(wildcard *.cpp)
 obj = $(src:.cpp=.o)
 
-VULKAN_SDK_PATH = /home/dougal/Programming/Vulkan/VulkanSDK/1.1.97.0/x86_64
+VULKAN_SDK_PATH =
 
 CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
 LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs
@@ -19,10 +19,10 @@ else
 endif
 
 ifeq ($(BUILD),debug)
-CFLAGS += -O0 -Wall -ggdb
+	CFLAGS += -O0 -Wall -ggdb
 else
-CFLAGS += -DNDEBUG -O3 -march=native
-STRIP = strip --strip-all Vkav
+	CFLAGS += -DNDEBUG -O3 -march=native
+	STRIP = strip --strip-all Vkav
 endif
 
 all: compile run
