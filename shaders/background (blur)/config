@@ -1,4 +1,5 @@
 
 module = "main"
 
-(id=4) float amplitude = 15.f
+(id=4) float amplitude = 15.0
+(id=5) float maxBlur = 0.01
