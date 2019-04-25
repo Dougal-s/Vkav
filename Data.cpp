@@ -1,9 +1,9 @@
 #include "Data.hpp"
 
-void AudioData::allocate(size_t size) {
-	lBuffer = new float[size/2];
-	rBuffer = new float[size/2];
-	buffer = new float[2*size];
+void AudioData::allocate(size_t bufferSize, size_t lrBufferSize) {
+	lBuffer = new float[lrBufferSize];
+	rBuffer = new float[lrBufferSize];
+	buffer = new float[bufferSize];
 }
 
 void AudioData::deallocate() {

@@ -12,7 +12,7 @@ struct AudioData {
 	float lVolume = 0.f;
 	float rVolume = 0.f;
 
-	void allocate(size_t size);
+	void allocate(size_t bufferSize, size_t lrBufferSize);
 
 	void deallocate();
 };

@@ -296,7 +296,7 @@ private:
 
 		proccess.init(proccessSettings);
 
-		audioData.allocate(std::max(smoothedSize, audioSettings.bufferSize));
+		audioData.allocate(2*audioSettings.bufferSize, std::max(smoothedSize, audioSettings.bufferSize/2));
 
 		std::chrono::high_resolution_clock::time_point initEnd = std::chrono::high_resolution_clock::now();
 		std::clog << "Initialisation took: " << std::chrono::duration_cast<std::chrono::milliseconds>(initEnd-initStart).count() << " milliseconds\n";
