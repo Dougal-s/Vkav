@@ -10,6 +10,7 @@ class Proccess::ProccessImpl {
 public:
 
 	ProccessImpl(const ProccessSettings& settings) {
+		channels = settings.channels;
 		const size_t capacity = std::max(settings.inputSize/2, settings.outputSize);
 		lBuffer = new float[capacity];
 		rBuffer = new float[capacity];
@@ -45,6 +46,7 @@ private:
 	float* rBuffer;
 
 	size_t inputSize;
+	unsigned char channels;
 
 	float amplitude;
 
@@ -58,28 +60,58 @@ private:
 
 	// Member functions
 	void windowFunction(AudioData& audioData) {
-		std::complex<float>* tmp = reinterpret_cast<std::complex<float>*>(audioData.buffer);
+		if (channels == 1) {
+			float* audio = reinterpret_cast<float*>(audioData.buffer);
+			windowFunction(audio);
+		} else {
+			std::complex<float>* audio = reinterpret_cast<std::complex<float>*>(audioData.buffer);
+			windowFunction(audio);
+		}
+	}
+
+	template <class T>
+	void windowFunction(T* audio) {
 		for (size_t n = 0; n < inputSize; ++n) {
 			float weight = sinf(wfCoeff*n);
 			weight *= weight;
-			tmp[n] *= weight;
+			audio[n] *= weight;
 		}
 	}
 
 	void magnitudes(AudioData& audioData) {
-		std::complex<float>* fftBuffer = reinterpret_cast<std::complex<float>*>(audioData.buffer);
+		if (channels == 1) {
+			//Y has range [0, inputSize/2)
+			std::complex<float>* Y = reinterpret_cast<std::complex<float>*>(audioData.buffer);
+			size_t N = inputSize;
+			fft(Y, N/2);
+			for (size_t r = 1; r < N/2; ++r) {
+				std::complex<float> F = 0.5f*(Y[r] + std::conj(Y[N/2 - r]));
+				std::complex<float> G = std::complex<float>(0, 0.5f)*(std::conj(Y[N/2 - r]) - Y[r]);
 
-		fft(fftBuffer, inputSize);
+				std::complex<float> w = exp( std::complex<float>(0.f, -2.f * M_PI * r / N));
+				std::complex<float> X = F+w*G;
 
-		for (size_t i = 1; i < inputSize/2; ++i) {
-			std::complex<float> val = (fftBuffer[i] + std::conj(fftBuffer[inputSize - i]))*0.5f;
-			audioData.lBuffer[i]    = std::hypot(val.real(), val.imag());
+				audioData.lBuffer[r] = std::hypot(X.real(), X.imag());
+				audioData.rBuffer[r] = audioData.lBuffer[r];
+			}
+			audioData.lBuffer[0] = audioData.rBuffer[1];
+			audioData.rBuffer[0] = audioData.lBuffer[1];
 
-			val                     = std::complex<float>(0, 1)*(std::conj(fftBuffer[inputSize - i]) - fftBuffer[i])*0.5f;
-			audioData.rBuffer[i]    = std::hypot(val.real(), val.imag());
+		} else {
+			// fftBuffer has range [0, inputSize)
+			std::complex<float>* fftBuffer = reinterpret_cast<std::complex<float>*>(audioData.buffer);
+			fft(fftBuffer, inputSize);
+
+			for (size_t i = 1; i < inputSize/2; ++i) {
+				std::complex<float> val = (fftBuffer[i] + std::conj(fftBuffer[inputSize - i]))*0.5f;
+				audioData.lBuffer[i]    = std::hypot(val.real(), val.imag());
+
+				val                     = std::complex<float>(0, 1)*(std::conj(fftBuffer[inputSize - i]) - fftBuffer[i])*0.5f;
+				audioData.rBuffer[i]    = std::hypot(val.real(), val.imag());
+			}
+			audioData.lBuffer[0] = audioData.rBuffer[1];
+			audioData.rBuffer[0] = audioData.lBuffer[1];
 		}
-		audioData.lBuffer[0] = audioData.rBuffer[1];
-		audioData.rBuffer[0] = audioData.lBuffer[1];
 	}
 
 	void equalise(AudioData& audioData) {

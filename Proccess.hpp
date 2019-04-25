@@ -6,6 +6,7 @@
 struct AudioData;
 
 struct ProccessSettings {
+	unsigned char channels;
 	size_t inputSize;
 	size_t outputSize;
 	float smoothingLevel;

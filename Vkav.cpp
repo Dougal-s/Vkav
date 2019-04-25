@@ -279,10 +279,10 @@ private:
 		renderer.init(renderSettings);
 
 		ProccessSettings proccessSettings = {};
+		proccessSettings.channels = audioSettings.channels;
 		proccessSettings.inputSize = audioSettings.bufferSize;
 		proccessSettings.outputSize = smoothedSize;
 		proccessSettings.smoothingLevel = smoothingLevel;
-
 
 		if (const auto cmdLineArg = cmdLineArgs.find('a'); cmdLineArg != cmdLineArgs.end()) {
 			proccessSettings.amplitude = std::stof(cmdLineArg->second);

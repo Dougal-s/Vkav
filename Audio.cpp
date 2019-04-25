@@ -37,18 +37,7 @@ public:
 	void copyData(AudioData& audioData) {
 		audioMutexLock.lock();
 			for (size_t i = 0; i < settings.bufferSize; ++i) {
-				switch (settings.channels) {
-					case 1:
-						audioData.buffer[2*i  ] = ppAudioBuffer[i/settings.sampleSize][i%settings.sampleSize];
-						audioData.buffer[2*i+1] = audioData.buffer[2*i];
-						break;
-					case 2:
-						audioData.buffer[i] = ppAudioBuffer[i/settings.sampleSize][i%settings.sampleSize];
-						break;
-					default:
-						this->stopped = true;
-						break;
-				}
+				audioData.buffer[i] = ppAudioBuffer[i/settings.sampleSize][i%settings.sampleSize];
 			}
 		audioMutexLock.unlock();
 
