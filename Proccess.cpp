@@ -75,7 +75,7 @@ private:
 			std::complex<float> val = (fftBuffer[i] + std::conj(fftBuffer[inputSize - i]))*0.5f;
 			audioData.lBuffer[i]    = std::hypot(val.real(), val.imag());
 
-			val                     = std::complex<float>(0, 1) * (val - fftBuffer[i]);
+			val                     = std::complex<float>(0, 1)*(std::conj(fftBuffer[inputSize - i]) - fftBuffer[i])*0.5f;
 			audioData.rBuffer[i]    = std::hypot(val.real(), val.imag());
 		}
 		audioData.lBuffer[0] = audioData.rBuffer[1];
