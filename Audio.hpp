@@ -15,9 +15,9 @@ struct AudioSettings {
 
 class AudioSampler {
 public:
-	bool stopped();
-	bool modified();
-	int ups();
+	bool stopped() const;
+	bool modified() const;
+	int ups() const;
 
 	void start(const AudioSettings& audioSettings);
 

@@ -123,7 +123,7 @@ private:
 		}
 	}
 
-	void calculateVolume(AudioData& audioData) {
+	void calculateVolume(AudioData& audioData) const {
 		audioData.lVolume = 0.f;
 		audioData.rVolume = 0.f;
 		for (size_t i = 0; i < inputSize/2; ++i) {

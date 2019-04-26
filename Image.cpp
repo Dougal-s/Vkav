@@ -20,8 +20,8 @@ namespace {
 		virtual int init(const std::filesystem::path& filepath) = 0;
 		virtual void readImage() = 0;
 		virtual unsigned char** getBuffer() = 0;
-		virtual size_t getWidth() = 0;
-		virtual size_t getHeight() = 0;
+		virtual size_t getWidth() const = 0;
+		virtual size_t getHeight() const = 0;
 		virtual ~Image() = default;
 
 		static unsigned char** emptyBuffer() {
@@ -140,11 +140,11 @@ namespace {
 			return reinterpret_cast<unsigned char**>(image);
 		}
 
-		size_t getHeight() {
+		size_t getHeight() const {
 			return imgHeight;
 		}
 
-		size_t getWidth() {
+		size_t getWidth() const {
 			return imgWidth;
 		}
 
@@ -218,11 +218,11 @@ namespace {
 			return image;
 		}
 
-		size_t getWidth() {
+		size_t getWidth() const {
 			return imgWidth;
 		}
 
-		size_t getHeight() {
+		size_t getHeight() const {
 			return imgHeight;
 		}
 

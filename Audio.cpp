@@ -201,15 +201,15 @@ private:
 	}
 };
 
-bool AudioSampler::stopped() {
+bool AudioSampler::stopped() const {
 	return audioSamplerImpl->stopped;
 }
 
-bool AudioSampler::modified() {
+bool AudioSampler::modified() const {
 	return audioSamplerImpl->modified;
 }
 
-int AudioSampler::ups() {
+int AudioSampler::ups() const {
 	return audioSamplerImpl->ups;
 }
 
