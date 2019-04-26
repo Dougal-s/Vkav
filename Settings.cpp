@@ -25,7 +25,7 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::filesyste
 	while (std::getline(configFile, line).good()) {
 		std::string::size_type position;
 		// Check for comments
-		if ( (position = line.find("//")) != std::string::npos) {
+		if (position = line.find("//"); position != std::string::npos) {
 			line.erase(position);
 		}
 
@@ -37,9 +37,9 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::filesyste
 		// Remove whitespaces
 		varName.resize(std::remove_if(varName.begin(), varName.end(), isspace) - varName.begin());
 
-		if ( (position = varVal.find('{')) != std::string::npos) { // Check if the input is a list
+		if (position = varVal.find('{'); position != std::string::npos) { // Check if the input is a list
 			varVal = varVal.substr(position, varVal.find('}', position+1)-position+1);
-		} else if ( (position = varVal.find('\"')) != std::string::npos) { // Check if the input is a string
+		} else if (position = varVal.find('\"'); position != std::string::npos) { // Check if the input is a string
 			varVal = varVal.substr(position+1, varVal.find('\"', position+1)-position-1);
 		} else { // remove whitespaces
 			varVal.resize(std::remove_if(varVal.begin(), varVal.end(), isspace) - varVal.begin());
