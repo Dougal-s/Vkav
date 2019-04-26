@@ -80,7 +80,7 @@ private:
 
 	void magnitudes(AudioData& audioData) {
 		if (channels == 1) {
-			//Y has range [0, inputSize/2)
+			// Y has range [0, inputSize/2)
 			std::complex<float>* Y = reinterpret_cast<std::complex<float>*>(audioData.buffer);
 			size_t N = inputSize;
 			fft(Y, N/2);
