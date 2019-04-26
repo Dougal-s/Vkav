@@ -241,7 +241,6 @@ namespace {
 		int rowSize;
 		int imgWidth, imgHeight;
 
-		JSAMPARRAY buffer;
 		unsigned char** image;
 
 		[[ noreturn ]] static void errorExit(j_common_ptr cInfo) {
