@@ -38,7 +38,7 @@ namespace {
 	class PNG : public Image {
 	public:
 
-		int init(const std::filesystem::path& filePath) {
+		int init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
 			if (!file) {
 				std::cerr << "failed to open image!" << std::endl;
@@ -84,7 +84,7 @@ namespace {
 			return 0;
 		}
 
-		void readImage() {
+		void readImage() override {
 			// if the image has a bit depth of 16, reduce it to a bit depth of 8
 			if (bitDepth == 16) {
 				png_set_strip_16(pPng);
@@ -136,19 +136,19 @@ namespace {
 			png_destroy_read_struct(&pPng, &pInfo, nullptr);
 		}
 
-		unsigned char** getBuffer() {
+		unsigned char** getBuffer() override {
 			return reinterpret_cast<unsigned char**>(image);
 		}
 
-		size_t getHeight() const {
+		size_t getHeight() const override {
 			return imgHeight;
 		}
 
-		size_t getWidth() const {
+		size_t getWidth() const override {
 			return imgWidth;
 		}
 
-		~PNG() = default;
+		~PNG() override = default;
 
 	private:
 		FILE* file;
@@ -167,7 +167,7 @@ namespace {
 	class JPEG : public Image {
 	public:
 
-		int init(const std::filesystem::path& filePath) {
+		int init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
 			if (!file) {
 				std::cerr << "failed to open image!" << std::endl;
@@ -190,7 +190,7 @@ namespace {
 			return 0;
 		}
 
-		void readImage() {
+		void readImage() override {
 			jpeg_read_header(&cInfo, TRUE);
 
 			cInfo.out_color_space = JCS_EXT_RGBA;
@@ -214,19 +214,19 @@ namespace {
 			fclose(file);
 		}
 
-		unsigned char** getBuffer() {
+		unsigned char** getBuffer() override {
 			return image;
 		}
 
-		size_t getWidth() const {
+		size_t getWidth() const override {
 			return imgWidth;
 		}
 
-		size_t getHeight() const {
+		size_t getHeight() const override {
 			return imgHeight;
 		}
 
-		~JPEG() = default;
+		~JPEG() override = default;
 
 	private:
 		FILE* file;
