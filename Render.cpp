@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+#include <variant>
+
 #include "Data.hpp"
 #include "Image.hpp"
 #include "Render.hpp"
@@ -75,10 +77,7 @@ namespace {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
-	union SpecializationConstant {
-		int32_t intVal;
-		float floatVal;
-	};
+	typedef std::variant<uint32_t, int32_t, float> SpecializationConstant;
 
 	struct SpecializationConstants {
 		std::vector<SpecializationConstant> data;
@@ -768,8 +767,8 @@ private:
 			std::filesystem::path configFilePath = settings.shaderDirectories[i];
 			configFilePath /= "config";
 			graphicsPipelines[i].specializationConstants = readSpecializationConstants(configFilePath, graphicsPipelines[i].moduleName);
-			graphicsPipelines[i].specializationConstants.data[0].intVal   = settings.audioSize;
-			graphicsPipelines[i].specializationConstants.data[1].floatVal = settings.smoothingLevel;
+			graphicsPipelines[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
+			graphicsPipelines[i].specializationConstants.data[1] = settings.smoothingLevel;
 		}
 	}
 
@@ -871,8 +870,8 @@ private:
 			fragShaderStageInfos[i].module = graphicsPipelines[i].fragShaderModule;
 			fragShaderStageInfos[i].pName = graphicsPipelines[i].moduleName.c_str();
 
-			graphicsPipelines[i].specializationConstants.data[2].intVal = swapChainExtent.width;
-			graphicsPipelines[i].specializationConstants.data[3].intVal = swapChainExtent.height;
+			graphicsPipelines[i].specializationConstants.data[2] = swapChainExtent.width;
+			graphicsPipelines[i].specializationConstants.data[3] = swapChainExtent.height;
 
 			specializationInfos[i] = {};
 			specializationInfos[i].mapEntryCount = graphicsPipelines[i].specializationConstants.specializationInfo.size();
@@ -1702,9 +1701,9 @@ private:
 
 			SpecializationConstant value;
 			if (line.substr(position+1, 3) == "int") {
-				value.intVal = std::stoi(line.substr(equalSignPos+1));
+				value = std::stoi(line.substr(equalSignPos+1));
 			} else if (line.substr(position+1, 5) == "float") {
-				value.floatVal = std::stof(line.substr(equalSignPos+1));
+				value = std::stof(line.substr(equalSignPos+1));
 			} else {
 				throw std::invalid_argument(__FILE__": Invalid variable type in shader configuration file!");
 			}
