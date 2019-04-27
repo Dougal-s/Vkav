@@ -333,7 +333,6 @@ private:
 		audioSampler.stop();
 		renderer.cleanup();
 		proccess.cleanup();
-		audioData.deallocate();
 	}
 
 };
