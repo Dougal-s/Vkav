@@ -86,21 +86,17 @@ namespace {
 
 		void readImage() override {
 			// if the image has a bit depth of 16, reduce it to a bit depth of 8
-			if (bitDepth == 16) {
+			if (bitDepth == 16)
 				png_set_strip_16(pPng);
-			}
 
-			if (colorType == PNG_COLOR_TYPE_PALETTE) {
+			if (colorType == PNG_COLOR_TYPE_PALETTE)
 				png_set_palette_to_rgb(pPng);
-			}
 
-			if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8) {
+			if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8)
 				png_set_expand_gray_1_2_4_to_8(pPng);
-			}
 
-			if (png_get_valid(pPng, pInfo, PNG_INFO_tRNS)) {
+			if (png_get_valid(pPng, pInfo, PNG_INFO_tRNS))
 				png_set_tRNS_to_alpha(pPng);
-			}
 
 			// If the image is missing an alpha channel then fill it with 0xff
 
@@ -253,15 +249,13 @@ namespace {
 
 	Image* Image::create(const std::filesystem::path& filePath) {
 		#ifndef DISABLE_PNG
-			if (filePath.extension() == ".png") {
+			if (filePath.extension() == ".png")
 				return new PNG();
-			}
 		#endif
 
 		#ifndef DISABLE_JPEG
-			if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg") {
+			if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg")
 				return new JPEG();
-			}
 		#endif
 
 		return nullptr;
@@ -286,9 +280,8 @@ unsigned char** readImg(const std::filesystem::path& filePath, size_t& width, si
 	}
 
 	if ((error = img->init(filePath))) {
-		if (error == 2) {
+		if (error == 2)
 			std::cerr << "failed to read image!" << std::endl;
-		}
 		width = 1;
 		height = 1;
 		Image::destroy(img);
