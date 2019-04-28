@@ -352,6 +352,9 @@ private:
 				lastFrame = currentTime;
 			}
 		}
+
+		// rethrow any exceptions the audio thread may have thrown
+		audioSampler.rethrowExceptions();
 	}
 
 	void cleanup() {

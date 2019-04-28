@@ -25,6 +25,8 @@ public:
 
 	void copyData(AudioData& audioData);
 
+	void rethrowExceptions();
+
 private:
 	class AudioSamplerImpl;
 	AudioSamplerImpl* audioSamplerImpl;

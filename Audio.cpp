@@ -2,6 +2,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
+#include <exception>
+#include <future>
 #include <iostream>
 #include <mutex>
 #include <string>
@@ -25,7 +27,14 @@ public:
 	AudioSamplerImpl(const AudioSettings& audioSettings) {
 		init(audioSettings);
 
-		audioThread = std::thread(&AudioSamplerImpl::run, std::ref(*this));
+		audioThread = std::thread([&]() {
+			try {
+				run();
+			} catch (const std::exception& e) {
+				stopped = true;
+				exceptionPtr = std::current_exception();
+			}
+		});
 	}
 
 	~AudioSamplerImpl() {
@@ -44,7 +53,14 @@ public:
 		modified = false;
 	}
 
+	void rethrowExceptions() {
+		if (exceptionPtr) std::rethrow_exception(exceptionPtr);
+	}
+
 private:
+	// used to handle exceptions
+	std::exception_ptr exceptionPtr = nullptr;
+
 	float** ppAudioBuffer;
 	float* pSampleBuffer;
 
@@ -93,10 +109,9 @@ private:
 			if (pa_simple_read(s, pSampleBuffer,
 			                   sizeof(float) * settings.sampleSize,
 			                   &error) < 0) {
-				std::cerr << "pa_simple_read() failed: " << pa_strerror(error)
-				          << std::endl;
-				this->stopped = true;
-				break;
+				throw std::runtime_error(
+				    std::string(__FILE__ ": pa_simple_read() failed: ") +
+				    pa_strerror(error));
 			}
 
 			audioMutexLock.lock();
@@ -167,11 +182,10 @@ private:
 		                  settings.sinkName.c_str(), "recorder for Vkav", &ss,
 		                  NULL, &attr, &error);
 
-		if (!s) {
-			std::cerr << "pa_simple_new() failed:" << pa_strerror(error)
-			          << std::endl;
-			stopped = true;
-		}
+		if (!s)
+			throw std::runtime_error(
+			    std::string(__FILE__ ": pa_simple_new() failed: ") +
+			    pa_strerror(error));
 	}
 
 	static void callback(pa_context* c, const pa_server_info* i,
@@ -218,4 +232,8 @@ void AudioSampler::stop() { delete audioSamplerImpl; }
 
 void AudioSampler::copyData(AudioData& audioData) {
 	audioSamplerImpl->copyData(audioData);
+}
+
+void AudioSampler::rethrowExceptions() {
+	return audioSamplerImpl->rethrowExceptions();
 }
