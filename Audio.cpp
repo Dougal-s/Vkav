@@ -90,7 +90,7 @@ private:
 		int numUpdates = 0;
 
 		while (!this->stopped) {
-			if (pa_simple_read(s, reinterpret_cast<char*>(pSampleBuffer),
+			if (pa_simple_read(s, pSampleBuffer,
 			                   sizeof(float) * settings.sampleSize,
 			                   &error) < 0) {
 				std::cerr << "pa_simple_read() failed: " << pa_strerror(error)
