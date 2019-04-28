@@ -2,7 +2,7 @@
 #ifndef DATA_HPP
 #define DATA_HPP
 
-#include <stddef.h>
+#include <cstddef>
 
 struct AudioData {
 	float* lBuffer;

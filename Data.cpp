@@ -1,3 +1,5 @@
+#include <cstddef>
+
 #include "Data.hpp"
 
 AudioData::AudioData() {
