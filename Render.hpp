@@ -9,14 +9,10 @@
 #include <vector>
 struct AudioData;
 
-enum TransparencyType {
-	VULKAN,
-	NATIVE,
-	OPAQUE
-};
+enum TransparencyType { VULKAN, NATIVE, OPAQUE };
 
 struct RenderSettings {
-	uint32_t width  = 800;
+	uint32_t width = 800;
 	uint32_t height = 800;
 	std::optional<std::pair<int, int>> windowPosition;
 
@@ -31,7 +27,8 @@ struct RenderSettings {
 
 	size_t audioSize;
 	float smoothingLevel = 16.f;
-	std::vector<std::filesystem::path> shaderDirectories = std::vector<std::filesystem::path>(1, "shaders/bars");
+	std::vector<std::filesystem::path> shaderDirectories =
+	    std::vector<std::filesystem::path>(1, "shaders/bars");
 	std::filesystem::path backgroundImage;
 
 	std::optional<uint32_t> physicalDevice;

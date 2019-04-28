@@ -1,4 +1,5 @@
 src = $(wildcard *.cpp)
+hdr = $(wildcard *.hpp)
 obj = $(src:.cpp=.o)
 
 VULKAN_SDK_PATH =
@@ -26,6 +27,9 @@ else
 endif
 
 all: compile run
+
+format:
+	clang-format -style=file -i $(src) $(hdr)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c -o $@ $^

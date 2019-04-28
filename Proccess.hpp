@@ -15,7 +15,6 @@ struct ProccessSettings {
 
 class Proccess {
 public:
-
 	void init(const ProccessSettings& settings);
 
 	void proccessSignal(AudioData& audioData);

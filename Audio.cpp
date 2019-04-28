@@ -1,17 +1,17 @@
 // C++ standard libraries
 #include <atomic>
 #include <chrono>
+#include <cstdlib>
 #include <iostream>
 #include <mutex>
-#include <stdlib.h>
 #include <string>
 #include <thread>
 #include <utility>
 
 // PulseAudio
-#include <pulse/simple.h>
 #include <pulse/error.h>
 #include <pulse/pulseaudio.h>
+#include <pulse/simple.h>
 
 #include "Audio.hpp"
 #include "Data.hpp"
@@ -36,9 +36,9 @@ public:
 
 	void copyData(AudioData& audioData) {
 		audioMutexLock.lock();
-			for (size_t i = 0; i < settings.bufferSize; ++i) {
-				audioData.buffer[i] = ppAudioBuffer[i/settings.sampleSize][i%settings.sampleSize];
-			}
+		for (size_t i = 0; i < settings.bufferSize; ++i)
+			audioData.buffer[i] =
+			    ppAudioBuffer[i / settings.sampleSize][i % settings.sampleSize];
 		audioMutexLock.unlock();
 
 		modified = false;
@@ -61,11 +61,11 @@ private:
 	int error;
 
 	void init(const AudioSettings& audioSettings) {
-		settings.channels   = audioSettings.channels;
-		settings.sampleSize = audioSettings.sampleSize*audioSettings.channels;
-		settings.bufferSize = audioSettings.bufferSize*audioSettings.channels;
+		settings.channels = audioSettings.channels;
+		settings.sampleSize = audioSettings.sampleSize * audioSettings.channels;
+		settings.bufferSize = audioSettings.bufferSize * audioSettings.channels;
 		settings.sampleRate = audioSettings.sampleRate;
-		settings.sinkName   = audioSettings.sinkName;
+		settings.sinkName = audioSettings.sinkName;
 
 		stopped = false;
 		modified = false;
@@ -73,40 +73,48 @@ private:
 
 		pSampleBuffer = new float[settings.sampleSize];
 
-		ppAudioBuffer = new float*[settings.bufferSize/settings.sampleSize];
+		ppAudioBuffer = new float*[settings.bufferSize / settings.sampleSize];
 
-		for (uint32_t i = 0; i < settings.bufferSize/settings.sampleSize; ++i) {
+		for (uint32_t i = 0; i < settings.bufferSize / settings.sampleSize; ++i)
 			ppAudioBuffer[i] = new float[settings.sampleSize];
-		}
 
-		if (settings.sinkName.empty()) {
-			getDefaultSink();
-		}
+		if (settings.sinkName.empty()) getDefaultSink();
+
 		std::clog << "Using PulseAudio sink: \"" << settings.sinkName << "\"\n";
 		setupPulse();
 	}
 
 	void run() {
-		std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
+		std::chrono::steady_clock::time_point lastFrame =
+		    std::chrono::steady_clock::now();
 		int numUpdates = 0;
 
-		while(!this->stopped) {
-			if (pa_simple_read(s, reinterpret_cast<char*>(pSampleBuffer), sizeof(float)*settings.sampleSize, &error) < 0) {
-				std::cerr << "pa_simple_read() failed: " << pa_strerror(error) << std::endl;
+		while (!this->stopped) {
+			if (pa_simple_read(s, reinterpret_cast<char*>(pSampleBuffer),
+			                   sizeof(float) * settings.sampleSize,
+			                   &error) < 0) {
+				std::cerr << "pa_simple_read() failed: " << pa_strerror(error)
+				          << std::endl;
 				this->stopped = true;
 				break;
 			}
 
 			audioMutexLock.lock();
-				for (size_t i = 1; i < settings.bufferSize/settings.sampleSize; ++i)
-					std::swap(ppAudioBuffer[i-1], ppAudioBuffer[i]);
-				std::swap(ppAudioBuffer[settings.bufferSize/settings.sampleSize-1], pSampleBuffer);
+			for (size_t i = 1; i < settings.bufferSize / settings.sampleSize;
+			     ++i)
+				std::swap(ppAudioBuffer[i - 1], ppAudioBuffer[i]);
+			std::swap(
+			    ppAudioBuffer[settings.bufferSize / settings.sampleSize - 1],
+			    pSampleBuffer);
 			audioMutexLock.unlock();
 			this->modified = true;
 
 			++numUpdates;
-			std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
-			if (std::chrono::duration_cast<std::chrono::seconds>(currentTime-lastFrame).count() >= 1) {
+			std::chrono::steady_clock::time_point currentTime =
+			    std::chrono::steady_clock::now();
+			if (std::chrono::duration_cast<std::chrono::seconds>(currentTime -
+			                                                     lastFrame)
+			        .count() >= 1) {
 				ups = numUpdates;
 				numUpdates = 0;
 				lastFrame = currentTime;
@@ -115,9 +123,9 @@ private:
 	}
 
 	void cleanup() {
-		for (uint32_t i = 0; i < settings.bufferSize/settings.sampleSize; ++i) {
+		for (uint32_t i = 0; i < settings.bufferSize / settings.sampleSize; ++i)
 			delete[] ppAudioBuffer[i];
-		}
+
 		delete[] ppAudioBuffer;
 		delete[] pSampleBuffer;
 
@@ -134,7 +142,8 @@ private:
 
 		pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL);
 
-		pa_context_set_state_callback(context, contextStateCallback, reinterpret_cast<void*>(this));
+		pa_context_set_state_callback(context, contextStateCallback,
+		                              reinterpret_cast<void*>(this));
 
 		pa_mainloop_run(mainloop, nullptr);
 
@@ -146,33 +155,27 @@ private:
 
 	void setupPulse() {
 		pa_sample_spec ss = {};
-		ss.format   = PA_SAMPLE_FLOAT32LE;
-		ss.rate     = settings.sampleRate;
+		ss.format = PA_SAMPLE_FLOAT32LE;
+		ss.rate = settings.sampleRate;
 		ss.channels = settings.channels;
 
 		pa_buffer_attr attr = {};
 		attr.maxlength = (uint32_t)-1;
 		attr.fragsize = settings.sampleSize;
 
-		s = pa_simple_new(
-		    	NULL,
-		    	"Vkav",
-		    	PA_STREAM_RECORD,
-		    	settings.sinkName.c_str(),
-		    	"recorder for Vkav",
-		    	&ss,
-		    	NULL,
-		    	&attr,
-		    	&error
-		    );
+		s = pa_simple_new(NULL, "Vkav", PA_STREAM_RECORD,
+		                  settings.sinkName.c_str(), "recorder for Vkav", &ss,
+		                  NULL, &attr, &error);
 
 		if (!s) {
-			std::cerr << "pa_simple_new() failed:" << pa_strerror(error) << std::endl;
+			std::cerr << "pa_simple_new() failed:" << pa_strerror(error)
+			          << std::endl;
 			stopped = true;
 		}
 	}
 
-	static void callback(pa_context* c, const pa_server_info* i, void* userdata) {
+	static void callback(pa_context* c, const pa_server_info* i,
+	                     void* userdata) {
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(userdata);
 		audio->settings.sinkName = i->default_sink_name;
 		audio->settings.sinkName += ".monitor";
@@ -185,7 +188,8 @@ private:
 
 		switch (pa_context_get_state(c)) {
 			case PA_CONTEXT_READY:
-				pa_operation_unref(pa_context_get_server_info(c, callback, userdata));
+				pa_operation_unref(
+				    pa_context_get_server_info(c, callback, userdata));
 				break;
 			case PA_CONTEXT_FAILED:
 				pa_mainloop_quit(audio->mainloop, 0);
@@ -200,25 +204,17 @@ private:
 	}
 };
 
-bool AudioSampler::stopped() const {
-	return audioSamplerImpl->stopped;
-}
+bool AudioSampler::stopped() const { return audioSamplerImpl->stopped; }
 
-bool AudioSampler::modified() const {
-	return audioSamplerImpl->modified;
-}
+bool AudioSampler::modified() const { return audioSamplerImpl->modified; }
 
-int AudioSampler::ups() const {
-	return audioSamplerImpl->ups;
-}
+int AudioSampler::ups() const { return audioSamplerImpl->ups; }
 
 void AudioSampler::start(const AudioSettings& audioSettings) {
 	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
 }
 
-void AudioSampler::stop() {
-	delete audioSamplerImpl;
-}
+void AudioSampler::stop() { delete audioSamplerImpl; }
 
 void AudioSampler::copyData(AudioData& audioData) {
 	audioSamplerImpl->copyData(audioData);

@@ -6,7 +6,8 @@
 #include <string>
 #include <unordered_map>
 
-std::unordered_map<std::string, std::string> readConfigFile(const std::filesystem::path& filePath);
+std::unordered_map<std::string, std::string> readConfigFile(
+    const std::filesystem::path& filePath);
 std::unordered_map<char, std::string> readCmdLineArgs(int argc, char* argv[]);
 
 #endif
