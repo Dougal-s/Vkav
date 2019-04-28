@@ -61,14 +61,11 @@ private:
 
 	// Member functions
 	void windowFunction(AudioData& audioData) {
-		if (channels == 1) {
-			float* audio = reinterpret_cast<float*>(audioData.buffer);
-			windowFunction(audio);
-		} else {
-			std::complex<float>* audio =
-			    reinterpret_cast<std::complex<float>*>(audioData.buffer);
-			windowFunction(audio);
-		}
+		if (channels == 1)
+			windowFunction(reinterpret_cast<float*>(audioData.buffer));
+		else
+			windowFunction(
+			    reinterpret_cast<std::complex<float>*>(audioData.buffer));
 	}
 
 	template <class T>
