@@ -166,7 +166,7 @@ namespace {
 			if (setjmp(error.setjmpBuffer)) {
 				jpeg_destroy_decompress(&cInfo);
 				fclose(file);
-				return 1;
+				return 2;
 			}
 
 			jpeg_create_decompress(&cInfo);
