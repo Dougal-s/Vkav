@@ -98,9 +98,8 @@ private:
 			}
 
 			audioMutexLock.lock();
-				for (size_t i = 0; i < settings.bufferSize/settings.sampleSize-1; ++i) {
-					std::swap(ppAudioBuffer[i], ppAudioBuffer[i+1]);
-				}
+				for (size_t i = 1; i < settings.bufferSize/settings.sampleSize; ++i)
+					std::swap(ppAudioBuffer[i-1], ppAudioBuffer[i]);
 				std::swap(ppAudioBuffer[settings.bufferSize/settings.sampleSize-1], pSampleBuffer);
 			audioMutexLock.unlock();
 			this->modified = true;
