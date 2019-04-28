@@ -3,7 +3,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 layout(constant_id = 0) const int audioSize        = 1;
-layout(constant_id = 1) const float smoothingLevel = 0.f;
+layout(constant_id = 1) const float smoothingLevel = 0.0;
 layout(constant_id = 2) const int width            = 1;
 layout(constant_id = 3) const int height           = 1;
 
@@ -11,7 +11,7 @@ layout(constant_id = 4) const int originalRadius = 128;
 layout(constant_id = 5) const int centerLineWidth = 2;
 layout(constant_id = 6) const float barWidth = 3.5;
 layout(constant_id = 7) const int numBars = 180;
-layout(constant_id = 8) const float amplify = 6000.f;
+layout(constant_id = 8) const float amplitude = 6000.0;
 
 layout(binding = 0) uniform audioVolume {
 	float lVolume;
@@ -29,12 +29,12 @@ layout(location = 0) out vec4 outColor;
 #include "../smoothing/smoothing.glsl"
 #undef kernel
 
-const vec4 color = vec4(50/255.0f, 50/255.0f, 52/255.0f, 1.0);
+const vec4 color = vec4(50/255.0, 50/255.0, 52/255.0, 1.0);
 
 const float PI = 3.14159265359;
 
 void main() {
-	int radius = originalRadius+int(amplify*(lVolume+rVolume)/12);
+	int radius = originalRadius+int(amplitude*(lVolume+rVolume)/12);
 	float x = gl_FragCoord.x - (width/2.f);
 	float y = (height/2.f) - gl_FragCoord.y;
 
@@ -66,7 +66,7 @@ void main() {
 				v = smoothTexture(lBuffer, texCoord);
 			}
 
-			v *= amplify;
+			v *= amplitude;
 
 			distance -= radius;
 

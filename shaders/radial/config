@@ -9,4 +9,4 @@ module = "main"
 
 (id=7) int numBars = 180
 
-(id=8) float amplify = 3000.f
+(id=8) float amplitude = 3000.0
