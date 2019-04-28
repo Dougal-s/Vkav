@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <numeric>
 #include <utility>
 
 #include "Data.hpp"
@@ -131,14 +132,14 @@ private:
 	}
 
 	void calculateVolume(AudioData& audioData) const {
-		audioData.lVolume = 0.f;
-		audioData.rVolume = 0.f;
-		for (size_t i = 0; i < inputSize / 2; ++i) {
-			audioData.lVolume += audioData.lBuffer[i];
-			audioData.rVolume += audioData.rBuffer[i];
-		}
-		audioData.lVolume /= inputSize;
-		audioData.rVolume /= inputSize;
+		audioData.lVolume =
+		    std::accumulate(audioData.lBuffer,
+		                    audioData.lBuffer + inputSize / 2, 0.f) /
+		    inputSize;
+		audioData.rVolume =
+		    std::accumulate(audioData.rBuffer,
+		                    audioData.rBuffer + inputSize / 2, 0.f) /
+		    inputSize;
 	}
 
 	void smooth(AudioData& audioData) { kernelSmooth(audioData); }
