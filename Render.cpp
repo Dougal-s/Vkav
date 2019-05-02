@@ -1784,16 +1784,13 @@ private:
 
 		specializationConstants.data.resize(4);
 
-		uint32_t offset = 0;
-
-		while (offset < 4) {
+		for (uint32_t offset = 0; offset < 4; ++offset) {
 			VkSpecializationMapEntry mapEntry = {};
 			mapEntry.constantID = offset;
 			mapEntry.offset = offset * sizeof(SpecializationConstant);
 			mapEntry.size = sizeof(SpecializationConstant);
 
 			specializationConstants.specializationInfo.push_back(mapEntry);
-			++offset;
 		}
 
 		std::ifstream file(configFilePath);
@@ -1820,8 +1817,9 @@ private:
 				continue;
 			}
 
-			if (position = line.find(')'); position == std::string::npos)
-				continue;
+			position = line.find(')');
+
+			if (position == std::string::npos) continue;
 
 			uint32_t id = std::stoi(line.substr(4, position - 4));
 
@@ -1839,13 +1837,12 @@ private:
 
 			VkSpecializationMapEntry mapEntry = {};
 			mapEntry.constantID = id;
-			mapEntry.offset = offset * sizeof(SpecializationConstant);
+			mapEntry.offset = specializationConstants.data.size() *
+			                  sizeof(SpecializationConstant);
 			mapEntry.size = sizeof(SpecializationConstant);
 
 			specializationConstants.data.push_back(value);
 			specializationConstants.specializationInfo.push_back(mapEntry);
-
-			++offset;
 		}
 
 		file.close();
