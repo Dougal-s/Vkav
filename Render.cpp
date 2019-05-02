@@ -1795,7 +1795,7 @@ private:
 
 		std::ifstream file(configFilePath);
 		if (!file.is_open()) {
-			std::cerr << "Shader configuration file not found!" << std::endl;
+			std::cerr << "shader configuration file not found!" << std::endl;
 			return specializationConstants;
 		}
 
@@ -1833,7 +1833,7 @@ private:
 			else
 				throw std::invalid_argument(
 				    __FILE__
-				    ": Invalid variable type in shader configuration file!");
+				    ": invalid variable type in shader configuration file!");
 
 			VkSpecializationMapEntry mapEntry = {};
 			mapEntry.constantID = id;
