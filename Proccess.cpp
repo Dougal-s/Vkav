@@ -121,8 +121,7 @@ private:
 	void equalise(AudioData& audioData) {
 		for (size_t n = 0; n < inputSize / 2; ++n) {
 			float weight =
-			    std::max(log10f(n * 0.5f), 1.0f) + 20.f * n / inputSize;
-			weight *= 0.002f * amplitude;
+			    0.08f * amplitude * log10f(2.f * n / inputSize + 1.05f);
 			audioData.lBuffer[n] *= weight;
 			audioData.rBuffer[n] *= weight;
 		}
