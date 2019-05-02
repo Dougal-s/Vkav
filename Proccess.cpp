@@ -94,7 +94,7 @@ private:
 				    exp(std::complex<float>(0.f, -2.f * M_PI * r / N));
 				std::complex<float> X = F + w * G;
 
-				audioData.lBuffer[r] = std::hypot(X.real(), X.imag());
+				audioData.lBuffer[r] = std::abs(X);
 				audioData.rBuffer[r] = audioData.lBuffer[r];
 			}
 			audioData.lBuffer[0] = audioData.rBuffer[1];
@@ -109,12 +109,12 @@ private:
 			for (size_t i = 1; i < inputSize / 2; ++i) {
 				std::complex<float> val =
 				    (fftBuffer[i] + std::conj(fftBuffer[inputSize - i])) * 0.5f;
-				audioData.lBuffer[i] = std::hypot(val.real(), val.imag());
+				audioData.lBuffer[i] = std::abs(val);
 
 				val = std::complex<float>(0, 1) *
 				      (std::conj(fftBuffer[inputSize - i]) - fftBuffer[i]) *
 				      0.5f;
-				audioData.rBuffer[i] = std::hypot(val.real(), val.imag());
+				audioData.rBuffer[i] = std::abs(val);
 			}
 			audioData.lBuffer[0] = audioData.rBuffer[1];
 			audioData.rBuffer[0] = audioData.lBuffer[1];
