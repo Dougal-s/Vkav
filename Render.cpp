@@ -1782,12 +1782,6 @@ private:
 	    const std::filesystem::path& configFilePath, std::string& moduleName) {
 		SpecializationConstants specializationConstants;
 
-		std::ifstream file(configFilePath);
-		if (!file.is_open()) {
-			std::cerr << "Shader configuration file not found!";
-			return specializationConstants;
-		}
-
 		specializationConstants.data.resize(4);
 
 		uint32_t offset = 0;
@@ -1800,6 +1794,12 @@ private:
 
 			specializationConstants.specializationInfo.push_back(mapEntry);
 			++offset;
+		}
+
+		std::ifstream file(configFilePath);
+		if (!file.is_open()) {
+			std::cerr << "Shader configuration file not found!" << std::endl;
+			return specializationConstants;
 		}
 
 		std::string line;
