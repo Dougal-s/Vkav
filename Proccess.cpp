@@ -72,8 +72,7 @@ private:
 	template <class T>
 	void windowFunction(T* audio) {
 		for (size_t n = 0; n < inputSize; ++n) {
-			float weight = sinf(wfCoeff * n);
-			weight *= weight;
+			float weight = pow(sinf(wfCoeff * n), 2);
 			audio[n] *= weight;
 		}
 	}
