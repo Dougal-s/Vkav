@@ -97,8 +97,6 @@ private:
 				audioData.lBuffer[r] = std::abs(X);
 				audioData.rBuffer[r] = audioData.lBuffer[r];
 			}
-			audioData.lBuffer[0] = audioData.rBuffer[1];
-			audioData.rBuffer[0] = audioData.lBuffer[1];
 
 		} else {
 			// fftBuffer has range [0, inputSize)
@@ -116,9 +114,9 @@ private:
 				      0.5f;
 				audioData.rBuffer[i] = std::abs(val);
 			}
-			audioData.lBuffer[0] = audioData.rBuffer[1];
-			audioData.rBuffer[0] = audioData.lBuffer[1];
 		}
+		audioData.lBuffer[0] = audioData.rBuffer[1];
+		audioData.rBuffer[0] = audioData.lBuffer[1];
 	}
 
 	void equalise(AudioData& audioData) {
