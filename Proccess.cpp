@@ -72,8 +72,7 @@ private:
 	template <class T>
 	void windowFunction(T* audio) {
 		for (size_t n = 0; n < inputSize; ++n) {
-			float weight = pow(sinf(wfCoeff * n), 2);
-			audio[n] *= weight;
+			audio[n] *= pow(sinf(wfCoeff * n), 2);
 		}
 	}
 
@@ -96,7 +95,6 @@ private:
 				audioData.lBuffer[r] = std::abs(X);
 				audioData.rBuffer[r] = audioData.lBuffer[r];
 			}
-
 		} else {
 			// fftBuffer has range [0, inputSize)
 			std::complex<float>* fftBuffer =
@@ -108,9 +106,8 @@ private:
 				    (fftBuffer[i] + std::conj(fftBuffer[inputSize - i])) * 0.5f;
 				audioData.lBuffer[i] = std::abs(val);
 
-				val = std::complex<float>(0, 1) *
-				      (std::conj(fftBuffer[inputSize - i]) - fftBuffer[i]) *
-				      0.5f;
+				val = std::complex<float>(0, 0.5f) *
+				      (std::conj(fftBuffer[inputSize - i]) - fftBuffer[i]);
 				audioData.rBuffer[i] = std::abs(val);
 			}
 		}
