@@ -4,6 +4,9 @@ float texture(in samplerBuffer s, in float index) {
 }
 
 float smoothTexture(in samplerBuffer s, in float index) {
+	// simulates VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT to clamp input between 0 and 1
+	index = 1.f - abs(mod(abs(index), 2.f)-1.f);
+
 	if (smoothingLevel == 0.f)
 		return texture(s, index);
 
