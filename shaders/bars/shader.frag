@@ -27,7 +27,7 @@ layout(location = 0) out vec4 outColor;
 #include "../smoothing/smoothing.glsl"
 #undef kernel
 
-const vec4 color = vec4(50/255.0f, 50/255.0f, 52/255.0f, 1.0);
+const vec4 color = vec4(50, 50, 52, 255)/255.0;
 
 void main() {
 	float x = gl_FragCoord.x - (width/2.0);

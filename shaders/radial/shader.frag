@@ -29,7 +29,7 @@ layout(location = 0) out vec4 outColor;
 #include "../smoothing/smoothing.glsl"
 #undef kernel
 
-const vec4 color = vec4(50/255.0, 50/255.0, 52/255.0, 1.0);
+const vec4 color = vec4(50, 50, 52, 255)/255;
 
 const float PI = 3.14159265359;
 
