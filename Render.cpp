@@ -306,7 +306,7 @@ private:
 		glfwWindowHint(GLFW_RESIZABLE,
 		               settings.windowHints.resizable ? GLFW_TRUE : GLFW_FALSE);
 
-#if GLFW_VERSION_MAJOR >= 3 && GLFW_VERSION_MINOR >= 3
+#ifdef GLFW_TRANSPARENT_FRAMEBUFFER
 		glfwWindowHint(
 		    GLFW_TRANSPARENT_FRAMEBUFFER,
 		    settings.transparency == NATIVE ? GLFW_TRUE : GLFW_FALSE);
