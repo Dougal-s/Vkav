@@ -7,6 +7,10 @@ float smoothTexture(in samplerBuffer s, in float index) {
 	if (smoothingLevel == 0.f)
 		return texture(s, index);
 
+	#ifdef exponential
+		index = exp2(index)-1.f;
+	#endif
+
 	const float pi = 3.14159265359;
 	float val = 0.f;
 
