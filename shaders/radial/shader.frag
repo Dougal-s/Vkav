@@ -49,7 +49,7 @@ void main() {
 	if (distance > radius) {
 		const float section = (2.f*PI/numBars);
 		const float centerLineAngle = section/2.f;
-		const float anglePos = mod(angle, section); // Position inside the section in radians
+		const float anglePos = mod(angle, section);
 		const float pos = distance * sin(centerLineAngle - anglePos);
 		if (abs(pos) < barWidth/2.f) {
 			float idx = angle + PI/2.f;
@@ -60,11 +60,10 @@ void main() {
 			float texCoord = int(abs(idx)/section) / float(numBars/2.f);
 
 			float v = 0;
-			if (idx > 0) {
+			if (idx > 0)
 				v = smoothTexture(rBuffer, texCoord);
-			} else {
+			else
 				v = smoothTexture(lBuffer, texCoord);
-			}
 
 			v *= amplitude;
 
