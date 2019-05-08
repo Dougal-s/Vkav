@@ -295,7 +295,7 @@ private:
 	void initWindow() {
 		glfwInit();
 
-		if (glfwVulkanSupported() == GLFW_FALSE)
+		if (!glfwVulkanSupported())
 			throw std::runtime_error(
 			    __FILE__ ": vulkan not supported by the current environment!");
 
