@@ -325,10 +325,9 @@ private:
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
-		if (settings.windowPosition) {
+		if (settings.windowPosition)
 			glfwSetWindowPos(window, settings.windowPosition.value().first,
 			                 settings.windowPosition.value().second);
-		}
 	}
 
 	void initVulkan() {
@@ -446,9 +445,8 @@ private:
 	}
 
 	void setupDebugCallback() {
-		if (!enableValidationLayers) {
-			return;
-		}
+		if (!enableValidationLayers) return;
+
 		VkDebugUtilsMessengerCreateInfoEXT messengerInfo = {};
 		messengerInfo.sType =
 		    VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -561,9 +559,7 @@ private:
 
 		int i = 0;
 		for (const auto& queueFamily : queueFamilies) {
-			if (queueFamily.queueCount <= 0) {
-				continue;
-			}
+			if (queueFamily.queueCount <= 0) continue;
 
 			VkBool32 presentSupport = false;
 			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface,
@@ -761,10 +757,8 @@ private:
 
 		for (const auto& availableFormat : availableFormats) {
 			if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
-			    availableFormat.colorSpace ==
-			        VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+			    availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 				return availableFormat;
-			}
 		}
 
 		return availableFormats[0];
@@ -1196,10 +1190,9 @@ private:
 			    vkCreateSemaphore(device, &semaphoreInfo, nullptr,
 			                      &renderFinishedSemaphores[i]) != VK_SUCCESS ||
 			    vkCreateFence(device, &fenceInfo, nullptr,
-			                  &inFlightFences[i]) != VK_SUCCESS) {
+			                  &inFlightFences[i]) != VK_SUCCESS)
 				throw std::runtime_error(__FILE__
 				                         ": failed to create sync objects!");
-			}
 		}
 	}
 
