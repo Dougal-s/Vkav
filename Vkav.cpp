@@ -45,20 +45,7 @@ static constexpr const char* helpStr =
 
 class Vkav {
 public:
-	void run(int argc, char* argv[]) {
-		init(argc, argv);
-		mainLoop();
-		cleanup();
-	}
-
-private:
-	AudioData audioData;
-
-	AudioSampler audioSampler;
-	Renderer renderer;
-	Proccess proccess;
-
-	void init(int argc, char* argv[]) {
+	Vkav(int argc, char* argv[]) {
 		// Temporary variables
 		float trebleCut = 0.09f;
 		float smoothingLevel = 16.0f;
@@ -326,6 +313,18 @@ private:
 		          << " milliseconds\n";
 	}
 
+	void run() {
+		mainLoop();
+		cleanup();
+	}
+
+private:
+	AudioData audioData;
+
+	AudioSampler audioSampler;
+	Renderer renderer;
+	Proccess proccess;
+
 	void mainLoop() {
 		int numFrames = 0;
 		std::chrono::steady_clock::time_point lastFrame =
@@ -365,10 +364,10 @@ private:
 };
 
 int main(int argc, char* argv[]) {
-	Vkav app;
+	Vkav app(argc, argv);
 
 	try {
-		app.run(argc, argv);
+		app.run();
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
 		return EXIT_FAILURE;
