@@ -45,7 +45,7 @@ static constexpr const char* helpStr =
 
 class Vkav {
 public:
-	Vkav(int argc, char* argv[]) {
+	Vkav(int argc, const char* argv[]) {
 		// Temporary variables
 		float trebleCut = 0.09f;
 		float smoothingLevel = 16.0f;
@@ -363,7 +363,7 @@ private:
 	}
 };
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
 	Vkav app(argc, argv);
 
 	try {

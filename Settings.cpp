@@ -60,7 +60,8 @@ std::unordered_map<std::string, std::string> readConfigFile(
 	return variables;
 }
 
-std::unordered_map<char, std::string> readCmdLineArgs(int argc, char* argv[]) {
+std::unordered_map<char, std::string> readCmdLineArgs(int argc,
+                                                      const char* argv[]) {
 	std::unordered_map<char, std::string> arguments(argc - 1);
 	for (int i = 1; i < argc; ++i) {
 		std::string argValue;
