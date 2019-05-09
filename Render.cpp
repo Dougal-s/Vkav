@@ -947,28 +947,6 @@ private:
 		for (uint32_t i = 0; i < graphicsPipelines.size(); ++i) {
 			pipelines[i] = graphicsPipelines[i].graphicsPipeline;
 
-			vertShaderStageInfos[i] = {};
-			vertShaderStageInfos[i].sType =
-			    VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			vertShaderStageInfos[i].stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertShaderStageInfos[i].module =
-			    graphicsPipelines[i].vertShaderModule;
-			vertShaderStageInfos[i].pName = "main";
-
-			fragShaderStageInfos[i] = {};
-			fragShaderStageInfos[i].sType =
-			    VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			fragShaderStageInfos[i].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			fragShaderStageInfos[i].module =
-			    graphicsPipelines[i].fragShaderModule;
-			fragShaderStageInfos[i].pName =
-			    graphicsPipelines[i].moduleName.c_str();
-
-			graphicsPipelines[i].specializationConstants.data[2] =
-			    swapChainExtent.width;
-			graphicsPipelines[i].specializationConstants.data[3] =
-			    swapChainExtent.height;
-
 			specializationInfos[i] = {};
 			specializationInfos[i].mapEntryCount =
 			    graphicsPipelines[i]
@@ -982,8 +960,31 @@ private:
 			specializationInfos[i].pData =
 			    graphicsPipelines[i].specializationConstants.data.data();
 
+			vertShaderStageInfos[i] = {};
+			vertShaderStageInfos[i].sType =
+			    VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			vertShaderStageInfos[i].stage = VK_SHADER_STAGE_VERTEX_BIT;
+			vertShaderStageInfos[i].module =
+			    graphicsPipelines[i].vertShaderModule;
+			vertShaderStageInfos[i].pName = "main";
+			vertShaderStageInfos[i].pSpecializationInfo =
+			    &specializationInfos[i];
+
+			fragShaderStageInfos[i] = {};
+			fragShaderStageInfos[i].sType =
+			    VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			fragShaderStageInfos[i].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			fragShaderStageInfos[i].module =
+			    graphicsPipelines[i].fragShaderModule;
+			fragShaderStageInfos[i].pName =
+			    graphicsPipelines[i].moduleName.c_str();
 			fragShaderStageInfos[i].pSpecializationInfo =
 			    &specializationInfos[i];
+
+			graphicsPipelines[i].specializationConstants.data[2] =
+			    swapChainExtent.width;
+			graphicsPipelines[i].specializationConstants.data[3] =
+			    swapChainExtent.height;
 
 			shaderStages[i][0] = vertShaderStageInfos[i];
 			shaderStages[i][1] = fragShaderStageInfos[i];
