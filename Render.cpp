@@ -1230,15 +1230,21 @@ private:
 	}
 
 	void createBackgroundImage() {
+		createTextureImage(settings.backgroundImage, backgroundImage,
+		                   backgroundImageMemory);
+	}
+
+	void createTextureImage(const std::filesystem::path& imagePath,
+	                        VkImage& image, VkDeviceMemory& imageMemory) {
 		size_t width, height, size;
 		unsigned char** imgData;
-		if (settings.backgroundImage.empty()) {
+		if (imagePath.empty()) {
 			width = 1;
 			height = 1;
 			imgData = new unsigned char*[1];
 			imgData[0] = new unsigned char[4]{0, 0, 0, 0};
 		} else {
-			imgData = readImg(settings.backgroundImage, width, height);
+			imgData = readImg(imagePath, width, height);
 		}
 		size = width * height * 4;
 
@@ -1264,16 +1270,13 @@ private:
 		    width, height, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 		    VK_IMAGE_TILING_OPTIMAL,
 		    VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, backgroundImage,
-		    backgroundImageMemory);
+		    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, imageMemory);
 
-		transitionImageLayout(backgroundImage, VK_IMAGE_LAYOUT_UNDEFINED,
+		transitionImageLayout(image, VK_IMAGE_LAYOUT_UNDEFINED,
 		                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer, backgroundImage,
-		                  static_cast<uint32_t>(width),
+		copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(width),
 		                  static_cast<uint32_t>(height));
-		transitionImageLayout(backgroundImage,
-		                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		transitionImageLayout(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
