@@ -12,9 +12,8 @@
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <vector>
-
 #include <variant>
+#include <vector>
 
 #include "Data.hpp"
 #include "Image.hpp"

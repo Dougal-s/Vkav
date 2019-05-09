@@ -1,6 +1,5 @@
 #include <csetjmp>
 #include <cstdio>
-
 #include <iostream>
 
 // For png files
