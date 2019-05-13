@@ -58,19 +58,24 @@ public:
 	}
 
 private:
-	// used to handle exceptions
-	std::exception_ptr exceptionPtr = nullptr;
-
+	// data
 	float** ppAudioBuffer;
 	float* pSampleBuffer;
 
+	// multithreading
+
 	std::mutex audioMutexLock;
 
-	pa_simple* s;
-
-	AudioSettings settings;
+	// used to handle exceptions
+	std::exception_ptr exceptionPtr = nullptr;
 
 	std::thread audioThread;
+
+	// settings
+	AudioSettings settings;
+
+	// pulseaudio
+	pa_simple* s;
 
 	pa_mainloop* mainloop;
 
