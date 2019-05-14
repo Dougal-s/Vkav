@@ -38,7 +38,7 @@ namespace {
 	constexpr bool enableValidationLayers = true;
 #endif
 
-	static VkResult createDebugUtilsMessengerEXT(
+	VkResult createDebugUtilsMessengerEXT(
 	    VkInstance instance,
 	    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 	    const VkAllocationCallbacks* pAllocator,
@@ -49,7 +49,7 @@ namespace {
 		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 	}
 
-	static void DestroyDebugUtilsMessengerEXT(
+	void DestroyDebugUtilsMessengerEXT(
 	    VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
 	    const VkAllocationCallbacks* pAllocator) {
 		auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
