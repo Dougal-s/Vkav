@@ -77,37 +77,37 @@ private:
 	}
 
 	void magnitudes(AudioData& audioData) {
+		std::complex<float>* input =
+		    reinterpret_cast<std::complex<float>*>(audioData.buffer);
 		if (channels == 1) {
-			// Y has range [0, inputSize/2)
-			std::complex<float>* Y =
-			    reinterpret_cast<std::complex<float>*>(audioData.buffer);
-			size_t N = inputSize;
-			fft(Y, N / 2);
-			for (size_t r = 1; r < N / 2; ++r) {
-				std::complex<float> F = 0.5f * (Y[r] + std::conj(Y[N / 2 - r]));
-				std::complex<float> G = std::complex<float>(0, 0.5f) *
-				                        (std::conj(Y[N / 2 - r]) - Y[r]);
+			// input has range [0, inputSize/2)
+			fft(input, inputSize / 2);
+
+			for (size_t r = 1; r < inputSize / 2; ++r) {
+				std::complex<float> F =
+				    0.5f * (input[r] + std::conj(input[inputSize / 2 - r]));
+				std::complex<float> G =
+				    std::complex<float>(0, 0.5f) *
+				    (std::conj(input[inputSize / 2 - r]) - input[r]);
 
 				std::complex<float> w =
-				    exp(std::complex<float>(0.f, -2.f * M_PI * r / N));
+				    exp(std::complex<float>(0.f, -2.f * M_PI * r / inputSize));
 				std::complex<float> X = F + w * G;
 
 				audioData.lBuffer[r] = std::abs(X);
 				audioData.rBuffer[r] = audioData.lBuffer[r];
 			}
 		} else {
-			// fftBuffer has range [0, inputSize)
-			std::complex<float>* fftBuffer =
-			    reinterpret_cast<std::complex<float>*>(audioData.buffer);
-			fft(fftBuffer, inputSize);
+			// input has range [0, inputSize)
+			fft(input, inputSize);
 
 			for (size_t i = 1; i < inputSize / 2; ++i) {
 				std::complex<float> val =
-				    (fftBuffer[i] + std::conj(fftBuffer[inputSize - i])) * 0.5f;
+				    (input[i] + std::conj(input[inputSize - i])) * 0.5f;
 				audioData.lBuffer[i] = std::abs(val);
 
 				val = std::complex<float>(0, 0.5f) *
-				      (std::conj(fftBuffer[inputSize - i]) - fftBuffer[i]);
+				      (std::conj(input[inputSize - i]) - input[i]);
 				audioData.rBuffer[i] = std::abs(val);
 			}
 		}
