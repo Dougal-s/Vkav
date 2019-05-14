@@ -40,7 +40,14 @@ public:
 	~AudioSamplerImpl() {
 		stopped = true;
 		audioThread.join();
-		cleanup();
+
+		for (uint32_t i = 0; i < settings.bufferSize / settings.sampleSize; ++i)
+			delete[] ppAudioBuffer[i];
+
+		delete[] ppAudioBuffer;
+		delete[] pSampleBuffer;
+
+		pa_simple_free(s);
 	}
 
 	void copyData(AudioData& audioData) {
@@ -140,16 +147,6 @@ private:
 				lastFrame = currentTime;
 			}
 		}
-	}
-
-	void cleanup() {
-		for (uint32_t i = 0; i < settings.bufferSize / settings.sampleSize; ++i)
-			delete[] ppAudioBuffer[i];
-
-		delete[] ppAudioBuffer;
-		delete[] pSampleBuffer;
-
-		pa_simple_free(s);
 	}
 
 	void getDefaultSink() {
