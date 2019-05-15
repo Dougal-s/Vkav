@@ -375,9 +375,9 @@ namespace {
 }  // namespace
 
 int main(int argc, const char* argv[]) {
-	Vkav app(argc, argv);
 
 	try {
+		Vkav app(argc, argv);
 		app.run();
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
