@@ -48,12 +48,6 @@ namespace {
 	class Vkav {
 	public:
 		Vkav(int argc, const char* argv[]) {
-			// Temporary variables
-			float trebleCut = 0.09f;
-			float smoothingLevel = 16.0f;
-			size_t smoothedSize = 320;
-			Device smoothingDevice = GPU;
-
 			std::chrono::high_resolution_clock::time_point initStart =
 			    std::chrono::high_resolution_clock::now();
 
@@ -84,12 +78,14 @@ namespace {
 			const std::unordered_map<std::string, std::string> configSettings =
 			    readConfigFile(configFilePath);
 
+			float trebleCut = 0.09f;
 			if (const auto confSetting = configSettings.find("trebleCut");
 			    confSetting != configSettings.end())
 				trebleCut = std::stof(confSetting->second);
 			else
 				PRINT_UNDEFINED(trebleCut);
 
+			Device smoothingDevice = GPU;
 			if (const auto confSetting = configSettings.find("smoothingDevice");
 			    confSetting != configSettings.end()) {
 				std::string deviceStr = confSetting->second;
@@ -104,6 +100,7 @@ namespace {
 				PRINT_UNDEFINED(smoothingDevice);
 			}
 
+			size_t smoothedSize = 320;
 			if (const auto confSetting = configSettings.find("smoothedSize");
 			    confSetting != configSettings.end())
 				smoothedSize = std::stoi(confSetting->second);
@@ -246,6 +243,7 @@ namespace {
 			else
 				PRINT_UNDEFINED(resizable);
 
+			float smoothingLevel = 16.0f;
 			if (const auto confSetting = configSettings.find("smoothingLevel");
 			    confSetting != configSettings.end()) {
 				smoothingLevel = std::stof(confSetting->second);
