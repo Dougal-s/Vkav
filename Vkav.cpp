@@ -375,7 +375,6 @@ namespace {
 }  // namespace
 
 int main(int argc, const char* argv[]) {
-
 	try {
 		Vkav app(argc, argv);
 		app.run();
