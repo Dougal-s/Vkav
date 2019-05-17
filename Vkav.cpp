@@ -63,7 +63,7 @@ namespace {
 			std::chrono::high_resolution_clock::time_point initStart =
 			    std::chrono::high_resolution_clock::now();
 
-			std::unordered_map<char, std::string> cmdLineArgs =
+			const std::unordered_map<char, std::string> cmdLineArgs =
 			    readCmdLineArgs(argc, argv);
 
 			if (cmdLineArgs.find('h') != cmdLineArgs.end()) {
@@ -87,7 +87,7 @@ namespace {
 				configFilePath = cmdLineArg->second;
 
 			std::clog << "Parsing configuration file.\n";
-			std::unordered_map<std::string, std::string> configSettings =
+			const std::unordered_map<std::string, std::string> configSettings =
 			    readConfigFile(configFilePath);
 
 			if (const auto confSetting = configSettings.find("trebleCut");
