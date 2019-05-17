@@ -45,7 +45,8 @@ namespace {
 	    "output.\n"
 	    "\t-h, --help                    Display this help and exit.\n"
 	    "\t-V, --version                 Output version information and "
-	    "exit.\n";
+	    "exit.\n"
+	    "\n";
 
 #define PRINT_UNDEFINED(name) \
 	std::clog << #name << " not defined!" << std::endl;
