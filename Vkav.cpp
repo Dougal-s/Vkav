@@ -78,6 +78,88 @@ namespace {
 			const std::unordered_map<std::string, std::string> configSettings =
 			    readConfigFile(configFilePath);
 
+			AudioSettings audioSettings = {};
+			RenderSettings renderSettings = {};
+			ProccessSettings proccessSettings = {};
+
+			fillStructs(argv[0], cmdLineArgs, configSettings, audioSettings,
+			            renderSettings, proccessSettings);
+
+			std::clog << "Initialising audio.\n";
+			audioSampler.start(audioSettings);
+			std::clog << "Initialising renderer.\n";
+			renderer.init(renderSettings);
+			proccess.init(proccessSettings);
+
+			audioData.allocate(
+			    audioSettings.channels * audioSettings.bufferSize,
+			    std::max(proccessSettings.outputSize,
+			             audioSettings.bufferSize / 2));
+
+			std::chrono::high_resolution_clock::time_point initEnd =
+			    std::chrono::high_resolution_clock::now();
+			std::clog << "Initialisation took: "
+			          << std::chrono::duration_cast<std::chrono::milliseconds>(
+			                 initEnd - initStart)
+			                 .count()
+			          << " milliseconds\n";
+		}
+
+		void run() {
+			mainLoop();
+			cleanup();
+		}
+
+	private:
+		AudioData audioData;
+
+		AudioSampler audioSampler;
+		Renderer renderer;
+		Proccess proccess;
+
+		void mainLoop() {
+			int numFrames = 0;
+			std::chrono::steady_clock::time_point lastFrame =
+			    std::chrono::steady_clock::now();
+
+			while (!audioSampler.stopped()) {
+				if (audioSampler.modified()) {
+					audioSampler.copyData(audioData);
+					proccess.proccessSignal(audioData);
+					if (!renderer.drawFrame(audioData)) break;
+					++numFrames;
+				}
+				std::this_thread::sleep_for(std::chrono::microseconds(100));
+
+				std::chrono::steady_clock::time_point currentTime =
+				    std::chrono::steady_clock::now();
+				if (std::chrono::duration_cast<std::chrono::seconds>(
+				        currentTime - lastFrame)
+				        .count() >= 1) {
+					std::clog << "FPS: " << std::setw(3) << std::right
+					          << numFrames << " | UPS: " << std::setw(3)
+					          << std::right << audioSampler.ups() << std::endl;
+					numFrames = 0;
+					lastFrame = currentTime;
+				}
+			}
+
+			// rethrow any exceptions the audio thread may have thrown
+			audioSampler.rethrowExceptions();
+		}
+
+		void cleanup() {
+			audioSampler.stop();
+			renderer.cleanup();
+			proccess.cleanup();
+		}
+
+		static void fillStructs(
+		    const char* execPath,
+		    const std::unordered_map<char, std::string> cmdLineArgs,
+		    const std::unordered_map<std::string, std::string> configSettings,
+		    AudioSettings& audioSettings, RenderSettings& renderSettings,
+		    ProccessSettings& proccessSettings) {
 			float trebleCut = 0.09f;
 			if (const auto confSetting = configSettings.find("trebleCut");
 			    confSetting != configSettings.end())
@@ -106,8 +188,6 @@ namespace {
 				smoothedSize = std::stoi(confSetting->second);
 			else
 				PRINT_UNDEFINED(smoothedSize);
-
-			AudioSettings audioSettings = {};
 
 			if (const auto confSetting = configSettings.find("channels");
 			    confSetting != configSettings.end())
@@ -146,11 +226,6 @@ namespace {
 					PRINT_UNDEFINED(sinkName);
 				}
 			}
-
-			std::clog << "Initialising audio.\n";
-			audioSampler.start(audioSettings);
-
-			RenderSettings renderSettings = {};
 
 			if (const auto confSetting =
 			        configSettings.find("shaderDirectories");
@@ -212,7 +287,7 @@ namespace {
 				renderSettings.windowTitle = confSetting->second;
 				if (renderSettings.windowTitle.find("executable") !=
 				    std::string::npos)
-					renderSettings.windowTitle = argv[0];
+					renderSettings.windowTitle = execPath;
 			} else {
 				PRINT_UNDEFINED(windowTitle);
 			}
@@ -281,10 +356,6 @@ namespace {
 				}
 			}
 
-			std::clog << "Initialising renderer.\n";
-			renderer.init(renderSettings);
-
-			ProccessSettings proccessSettings = {};
 			proccessSettings.channels = audioSettings.channels;
 			proccessSettings.inputSize = audioSettings.bufferSize;
 			proccessSettings.outputSize = smoothedSize;
@@ -300,69 +371,6 @@ namespace {
 				else
 					PRINT_UNDEFINED(amplitude);
 			}
-
-			proccess.init(proccessSettings);
-
-			audioData.allocate(
-			    audioSettings.channels * audioSettings.bufferSize,
-			    std::max(smoothedSize, audioSettings.bufferSize / 2));
-
-			std::chrono::high_resolution_clock::time_point initEnd =
-			    std::chrono::high_resolution_clock::now();
-			std::clog << "Initialisation took: "
-			          << std::chrono::duration_cast<std::chrono::milliseconds>(
-			                 initEnd - initStart)
-			                 .count()
-			          << " milliseconds\n";
-		}
-
-		void run() {
-			mainLoop();
-			cleanup();
-		}
-
-	private:
-		AudioData audioData;
-
-		AudioSampler audioSampler;
-		Renderer renderer;
-		Proccess proccess;
-
-		void mainLoop() {
-			int numFrames = 0;
-			std::chrono::steady_clock::time_point lastFrame =
-			    std::chrono::steady_clock::now();
-
-			while (!audioSampler.stopped()) {
-				if (audioSampler.modified()) {
-					audioSampler.copyData(audioData);
-					proccess.proccessSignal(audioData);
-					if (!renderer.drawFrame(audioData)) break;
-					++numFrames;
-				}
-				std::this_thread::sleep_for(std::chrono::microseconds(100));
-
-				std::chrono::steady_clock::time_point currentTime =
-				    std::chrono::steady_clock::now();
-				if (std::chrono::duration_cast<std::chrono::seconds>(
-				        currentTime - lastFrame)
-				        .count() >= 1) {
-					std::clog << "FPS: " << std::setw(3) << std::right
-					          << numFrames << " | UPS: " << std::setw(3)
-					          << std::right << audioSampler.ups() << std::endl;
-					numFrames = 0;
-					lastFrame = currentTime;
-				}
-			}
-
-			// rethrow any exceptions the audio thread may have thrown
-			audioSampler.rethrowExceptions();
-		}
-
-		void cleanup() {
-			audioSampler.stop();
-			renderer.cleanup();
-			proccess.cleanup();
 		}
 	};
 }  // namespace
