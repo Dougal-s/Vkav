@@ -36,7 +36,7 @@ namespace {
 	    "                                sink. Overrides config file.\n"
 	    "-d, --device=DEVICE_NUMBER    Use Device number DEVICE_NUMBER. "
 	    "                                Overrides config file.\n"
-	    "-c, --config-file=CONFIG_PATH Specifies config file path.\n"
+	    "-c, --config=CONFIG_PATH Specifies config file path.\n"
 	    "-a, --amplitude=AMPLITUDE     Multiplies audio with AMPLITUDE.\n"
 	    "-h, --help                    Display this help and exit.\n"
 	    "-V, --version                 Output version information and exit.\n"

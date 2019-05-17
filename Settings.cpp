@@ -84,11 +84,10 @@ std::unordered_map<char, std::string> readCmdLineArgs(int argc,
 			char charKey = 0;
 
 			static const std::unordered_map<std::string, char>
-			    cmdLineArgKeyMap = {
-			        {"--verbose", 'v'},   {"--sink-name", 's'},
-			        {"--device", 'd'},    {"--config-file", 'c'},
-			        {"--amplitude", 'a'}, {"--help", 'h'},
-			        {"--version", 'V'}};
+			    cmdLineArgKeyMap = {{"--verbose", 'v'},   {"--sink-name", 's'},
+			                        {"--device", 'd'},    {"--config", 'c'},
+			                        {"--amplitude", 'a'}, {"--help", 'h'},
+			                        {"--version", 'V'}};
 
 			if (const auto it = cmdLineArgKeyMap.find(argName);
 			    it != cmdLineArgKeyMap.end()) {
