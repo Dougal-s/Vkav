@@ -101,15 +101,13 @@ namespace {
 
 			if (colorType == PNG_COLOR_TYPE_RGB ||
 			    colorType == PNG_COLOR_TYPE_GRAY ||
-			    colorType == PNG_COLOR_TYPE_PALETTE) {
+			    colorType == PNG_COLOR_TYPE_PALETTE)
 				png_set_filler(pPng, 0xff, PNG_FILLER_AFTER);
-			}
 
 			// if the image is grayscale then convert it to rgb
 			if (colorType == PNG_COLOR_TYPE_GRAY ||
-			    colorType == PNG_COLOR_TYPE_GRAY_ALPHA) {
+			    colorType == PNG_COLOR_TYPE_GRAY_ALPHA)
 				png_set_gray_to_rgb(pPng);
-			}
 
 			// Apply transformations
 			png_read_update_info(pPng, pInfo);

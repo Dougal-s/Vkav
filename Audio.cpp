@@ -119,12 +119,10 @@ private:
 
 		while (!this->stopped) {
 			if (pa_simple_read(s, pSampleBuffer,
-			                   sizeof(float) * settings.sampleSize,
-			                   &error) < 0) {
+			                   sizeof(float) * settings.sampleSize, &error) < 0)
 				throw std::runtime_error(
 				    std::string(__FILE__ ": pa_simple_read() failed: ") +
 				    pa_strerror(error));
-			}
 
 			audioMutexLock.lock();
 			for (size_t i = 1; i < settings.bufferSize / settings.sampleSize;

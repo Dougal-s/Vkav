@@ -71,9 +71,8 @@ private:
 
 	template <class T>
 	void windowFunction(T* audio) {
-		for (size_t n = 0; n < inputSize; ++n) {
+		for (size_t n = 0; n < inputSize; ++n)
 			audio[n] *= pow(sinf(wfCoeff * n), 2);
-		}
 	}
 
 	void magnitudes(AudioData& audioData) {
@@ -167,11 +166,8 @@ private:
 
 	// Static member functions
 	static void fft(std::complex<float>* a, size_t n) {
-		for (size_t i = n; i > 1; i /= 2) {
-			for (size_t j = 0; j < n; j += i) {
-				separate(a + j, i);
-			}
-		}
+		for (size_t i = n; i > 1; i /= 2)
+			for (size_t j = 0; j < n; j += i) separate(a + j, i);
 
 		for (size_t i = 2; i <= n; i *= 2) {
 			for (size_t j = 0; j < n; j += i) {
