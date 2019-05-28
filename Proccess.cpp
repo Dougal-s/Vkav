@@ -20,7 +20,6 @@ public:
 
 		wfCoeff = M_PI / (settings.inputSize - 1);
 
-		smoothData = (settings.smoothingLevel != 0.f);
 		smoothedSize = settings.outputSize;
 		smoothingFactor = inputSize * inputSize * 0.125f /
 		                  (settings.smoothingLevel * smoothedSize *
@@ -32,7 +31,7 @@ public:
 		magnitudes(audioData);
 		equalise(audioData);
 		calculateVolume(audioData);
-		if (smoothData) smooth(audioData);
+		if (!std::isnan(smoothingFactor)) smooth(audioData);
 	}
 
 	~ProccessImpl() {
@@ -54,7 +53,6 @@ private:
 	float wfCoeff;
 
 	// smooth
-	bool smoothData;
 	size_t smoothedSize;
 	float smoothingFactor;
 
