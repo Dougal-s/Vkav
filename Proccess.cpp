@@ -161,31 +161,45 @@ private:
 	}
 
 	// Static member functions
-	static void fft(std::complex<float>* a, size_t n) {
-		for (size_t i = n; i > 1; i /= 2)
-			for (size_t j = 0; j < n; j += i) separate(a + j, i);
 
-		for (size_t i = 2; i <= n; i *= 2) {
-			for (size_t j = 0; j < n; j += i) {
-				for (size_t k = j; k < j + i / 2; ++k) {
-					std::complex<float> even = a[k];
-					std::complex<float> odd = a[k + i / 2];
+	// Bit Reverse Radix-2 fft
 
-					std::complex<float> w =
-					    exp(std::complex<float>(0.f, -2.f * M_PI * k / i));
+	static void fft(std::complex<float>* first, size_t size) {
+		std::complex<float> reversed[size];
+		bit_reverse_copy(first, size, reversed);
 
-					a[k] = even + w * odd;
-					a[k + i / 2] = even - w * odd;
+		for (size_t s = 1; s < log2(size) + 1; ++s) {
+			size_t m = 1 << s;
+			std::complex<float> wm =
+			    std::exp(std::complex<float>(0.0, -2.0 * M_PI / m));
+			for (size_t k = 0; k < size; k += m) {
+				std::complex<float> w = 1;
+				for (size_t j = 0; j < m / 2; ++j) {
+					std::complex<float> t = w * reversed[k + j + m / 2];
+					std::complex<float> u = reversed[k + j];
+					reversed[k + j] = u + t;
+					reversed[k + j + m / 2] = u - t;
+					w *= wm;
 				}
 			}
 		}
+
+		for (size_t i = 0; i < size; ++i) first[i] = reversed[i];
 	}
 
-	static void separate(std::complex<float>* a, size_t n) {
-		std::complex<float> tmp[n / 2];
-		for (size_t i = 0; i < n / 2; ++i) tmp[i] = a[i * 2 + 1];
-		for (size_t i = 0; i < n / 2; ++i) a[i] = a[i * 2];
-		for (size_t i = 0; i < n / 2; ++i) a[i + n / 2] = tmp[i];
+	static void bit_reverse_copy(std::complex<float>* in, size_t size,
+	                             std::complex<float>* out) {
+		for (size_t i = 0; i < size; ++i)
+			out[reverse_bits(i, log2(size))] = in[i];
+	}
+
+	static size_t reverse_bits(size_t val, uint8_t exp) {
+		size_t reversed = 0;
+		for (uint8_t i = 0; i < exp; ++i) {
+			reversed <<= 1;
+			reversed += (val & (1 << i)) != 0;
+		}
+		return reversed;
 	}
 };
 
