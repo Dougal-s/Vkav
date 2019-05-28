@@ -1,8 +1,6 @@
-#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <numeric>
-#include <utility>
 
 #include "Data.hpp"
 #include "Proccess.hpp"

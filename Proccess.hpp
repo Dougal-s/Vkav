@@ -2,7 +2,6 @@
 #ifndef SIGNAL_FUNCTIONS_HPP
 #define SIGNAL_FUNCTIONS_HPP
 
-#include <complex>
 struct AudioData;
 
 struct ProccessSettings {
