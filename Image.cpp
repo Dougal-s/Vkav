@@ -1,6 +1,8 @@
 #include <csetjmp>
 #include <cstdio>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
 
 // For png files
 #ifndef DISABLE_PNG
@@ -16,7 +18,7 @@
 namespace {
 	class Image {
 	public:
-		virtual int init(const std::filesystem::path& filepath) = 0;
+		virtual void init(const std::filesystem::path& filepath) = 0;
 		virtual void readImage() = 0;
 		virtual unsigned char** getBuffer() = 0;
 		virtual size_t getWidth() const = 0;
@@ -36,42 +38,32 @@ namespace {
 #ifndef DISABLE_PNG
 	class PNG : public Image {
 	public:
-		int init(const std::filesystem::path& filePath) override {
+		void init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
-			if (!file) {
-				std::cerr << "failed to open image!" << std::endl;
-				return 1;
-			}
+			if (!file) throw std::runtime_error("failed to open image!");
 
 			unsigned char sig[8];
 			if (fread(reinterpret_cast<void*>(sig), 1, 8, file) != 8) {
-				std::cerr << "failed to read png signature!" << std::endl;
 				fclose(file);
-				return 1;
+				throw std::runtime_error("failed to read png signature!");
 			}
 
-			if (!png_check_sig(sig, 8)) {
-				std::cerr << "invalid png file!" << std::endl;
-				return 1;
-			}
+			if (!png_check_sig(sig, 8))
+				throw std::runtime_error("invalid png file!");
 
 			pPng = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr,
 			                              nullptr, nullptr);
-			if (!pPng) {
-				std::cerr << "failed to create png struct!" << std::endl;
-				return 4;
-			}
+			if (!pPng) throw std::runtime_error("failed to create png struct!");
 
 			pInfo = png_create_info_struct(pPng);
 			if (!pInfo) {
-				std::cerr << "failed to create png info struct!" << std::endl;
 				png_destroy_read_struct(&pPng, nullptr, nullptr);
-				return 4;
+				throw std::runtime_error("failed to create png info struct!");
 			}
 
 			if (setjmp(png_jmpbuf(pPng))) {
 				png_destroy_read_struct(&pPng, &pInfo, nullptr);
-				return 2;
+				throw std::runtime_error("failed to read PNG!");
 			}
 
 			png_init_io(pPng, file);
@@ -80,8 +72,6 @@ namespace {
 
 			png_get_IHDR(pPng, pInfo, &imgWidth, &imgHeight, &bitDepth,
 			             &colorType, nullptr, nullptr, nullptr);
-
-			return 0;
 		}
 
 		void readImage() override {
@@ -150,12 +140,9 @@ namespace {
 #ifndef DISABLE_JPEG
 	class JPEG : public Image {
 	public:
-		int init(const std::filesystem::path& filePath) override {
+		void init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
-			if (!file) {
-				std::cerr << "failed to open image!" << std::endl;
-				return 1;
-			}
+			if (!file) throw std::runtime_error("failed to open image!");
 
 			cInfo.err = jpeg_std_error(&error.pub);
 			error.pub.error_exit = errorExit;
@@ -163,14 +150,12 @@ namespace {
 			if (setjmp(error.setjmpBuffer)) {
 				jpeg_destroy_decompress(&cInfo);
 				fclose(file);
-				return 2;
+				throw std::runtime_error("failed to read JPEG!");
 			}
 
 			jpeg_create_decompress(&cInfo);
 
 			jpeg_stdio_src(&cInfo, file);
-
-			return 0;
 		}
 
 		void readImage() override {
@@ -238,39 +223,26 @@ namespace {
 			return new JPEG();
 #endif
 
-		return nullptr;
-	}
-
-	void Image::destroy(Image* image) {
-		if (image) delete image;
+		throw std::runtime_error("unrecognized image type!");
 	}
 }  // namespace
 
 unsigned char** readImg(const std::filesystem::path& filePath, size_t& width,
                         size_t& height) {
-	Image* img = Image::create(filePath);
-	unsigned char** buffer;
-	int error;
+	try {
+		std::unique_ptr<Image> img(Image::create(filePath));
+		unsigned char** buffer;
 
-	if (!img) {
-		std::cerr << "unrecognized image type!" << std::endl;
+		img->init(filePath);
+		img->readImage();
+		width = img->getWidth();
+		height = img->getHeight();
+		buffer = img->getBuffer();
+		return buffer;
+	} catch (const std::exception& e) {
+		std::cerr << e.what() << std::endl;
 		width = 1;
 		height = 1;
 		return Image::emptyBuffer();
 	}
-
-	if ((error = img->init(filePath))) {
-		if (error == 2) std::cerr << "failed to read image!" << std::endl;
-		width = 1;
-		height = 1;
-		Image::destroy(img);
-		return Image::emptyBuffer();
-	}
-
-	img->readImage();
-	width = img->getWidth();
-	height = img->getHeight();
-	buffer = img->getBuffer();
-	Image::destroy(img);
-	return buffer;
 }
