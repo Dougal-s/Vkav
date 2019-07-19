@@ -87,6 +87,7 @@ namespace {
 		VkShaderModule fragShaderModule;
 		// Name of the fragment shader function to call
 		std::string moduleName = "main";
+		size_t vertexCount = 6;
 
 		VkShaderModule vertShaderModule;
 	};
@@ -838,7 +839,8 @@ private:
 			configFilePath /= "config";
 			graphicsPipelines[i].specializationConstants =
 			    readSpecializationConstants(configFilePath,
-			                                graphicsPipelines[i].moduleName);
+			                                graphicsPipelines[i].moduleName,
+			                                graphicsPipelines[i].vertexCount);
 			graphicsPipelines[i].specializationConstants.data[0] =
 			    static_cast<uint32_t>(settings.audioSize);
 			graphicsPipelines[i].specializationConstants.data[1] =
@@ -1157,7 +1159,8 @@ private:
 				vkCmdBindDescriptorSets(
 				    commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 				    pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
-				vkCmdDraw(commandBuffers[i], 6, 1, 0, 0);
+				vkCmdDraw(commandBuffers[i], graphicsPipeline.vertexCount, 1, 0,
+				          0);
 			}
 
 			vkCmdEndRenderPass(commandBuffers[i]);
@@ -1771,7 +1774,8 @@ private:
 	}
 
 	static SpecializationConstants readSpecializationConstants(
-	    const std::filesystem::path& configFilePath, std::string& moduleName) {
+	    const std::filesystem::path& configFilePath, std::string& moduleName,
+	    size_t& vertexCount) {
 		SpecializationConstants specializationConstants;
 
 		specializationConstants.data.resize(4);
@@ -1806,6 +1810,11 @@ private:
 
 			if (line.substr(0, 6) == "module") {
 				moduleName = line.substr(8, line.size() - 8 - 1);
+				continue;
+			}
+
+			if (line.substr(0, 11) == "vertexCount") {
+				vertexCount = std::stoul(line.substr(12));
 				continue;
 			}
 
