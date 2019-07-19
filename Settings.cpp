@@ -26,7 +26,8 @@ std::unordered_map<std::string, std::string> readConfigFile(
 
 	while (std::getline(configFile, line).good()) {
 		// Check for comments
-		if (const auto& position = line.find("//"); position != std::string::npos)
+		if (const auto& position = line.find("//");
+		    position != std::string::npos)
 			line.erase(position);
 
 		std::istringstream isLine(line);
