@@ -11,14 +11,17 @@
 
 #include "Settings.hpp"
 
+#define S1(x) #x
+#define S2(x) S1(x)
+#define LOCATION __FILE__ ":" S2(__LINE__) ": "
+
 std::unordered_map<std::string, std::string> readConfigFile(
     const std::filesystem::path& filePath) {
 	std::unordered_map<std::string, std::string> variables;
 
 	std::ifstream configFile(filePath);
 	if (!configFile.is_open())
-		throw std::runtime_error(__FILE__
-		                         ": Failed to open configuration file!");
+		throw std::runtime_error(LOCATION "Failed to open configuration file!");
 
 	std::string line;
 	std::string varName;

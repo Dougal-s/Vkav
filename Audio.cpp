@@ -18,6 +18,10 @@
 #include "Audio.hpp"
 #include "Data.hpp"
 
+#define S1(x) #x
+#define S2(x) S1(x)
+#define LOCATION __FILE__ ":" S2(__LINE__) ": "
+
 class AudioSampler::AudioSamplerImpl {
 public:
 	std::atomic<bool> stopped;
@@ -121,7 +125,7 @@ private:
 			if (pa_simple_read(s, pSampleBuffer,
 			                   sizeof(float) * settings.sampleSize, &error) < 0)
 				throw std::runtime_error(
-				    std::string(__FILE__ ": pa_simple_read() failed: ") +
+				    std::string(LOCATION "pa_simple_read() failed: ") +
 				    pa_strerror(error));
 
 			audioMutexLock.lock();
@@ -184,7 +188,7 @@ private:
 
 		if (!s)
 			throw std::runtime_error(
-			    std::string(__FILE__ ": pa_simple_new() failed: ") +
+			    std::string(LOCATION "pa_simple_new() failed: ") +
 			    pa_strerror(error));
 	}
 

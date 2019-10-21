@@ -15,6 +15,10 @@
 
 #include "Image.hpp"
 
+#define S1(x) #x
+#define S2(x) S1(x)
+#define LOCATION __FILE__ ":" S2(__LINE__) ": "
+
 namespace {
 	class Image {
 	public:
@@ -40,30 +44,35 @@ namespace {
 	public:
 		void init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
-			if (!file) throw std::runtime_error("failed to open image!");
+			if (!file)
+				throw std::runtime_error(LOCATION "failed to open image!");
 
 			unsigned char sig[8];
 			if (fread(reinterpret_cast<void*>(sig), 1, 8, file) != 8) {
 				fclose(file);
-				throw std::runtime_error("failed to read png signature!");
+				throw std::runtime_error(LOCATION
+				                         "failed to read png signature!");
 			}
 
 			if (!png_check_sig(sig, 8))
-				throw std::runtime_error("invalid png file!");
+				throw std::runtime_error(LOCATION "invalid png file!");
 
 			pPng = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr,
 			                              nullptr, nullptr);
-			if (!pPng) throw std::runtime_error("failed to create png struct!");
+			if (!pPng)
+				throw std::runtime_error(LOCATION
+				                         "failed to create png struct!");
 
 			pInfo = png_create_info_struct(pPng);
 			if (!pInfo) {
 				png_destroy_read_struct(&pPng, nullptr, nullptr);
-				throw std::runtime_error("failed to create png info struct!");
+				throw std::runtime_error(LOCATION
+				                         "failed to create png info struct!");
 			}
 
 			if (setjmp(png_jmpbuf(pPng))) {
 				png_destroy_read_struct(&pPng, &pInfo, nullptr);
-				throw std::runtime_error("failed to read PNG!");
+				throw std::runtime_error(LOCATION "failed to read PNG!");
 			}
 
 			png_init_io(pPng, file);
@@ -142,7 +151,8 @@ namespace {
 	public:
 		void init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
-			if (!file) throw std::runtime_error("failed to open image!");
+			if (!file)
+				throw std::runtime_error(LOCATION "failed to open image!");
 
 			cInfo.err = jpeg_std_error(&error.pub);
 			error.pub.error_exit = errorExit;
@@ -150,7 +160,7 @@ namespace {
 			if (setjmp(error.setjmpBuffer)) {
 				jpeg_destroy_decompress(&cInfo);
 				fclose(file);
-				throw std::runtime_error("failed to read JPEG!");
+				throw std::runtime_error(LOCATION "failed to read JPEG!");
 			}
 
 			jpeg_create_decompress(&cInfo);
@@ -223,7 +233,7 @@ namespace {
 			return new JPEG();
 #endif
 
-		throw std::runtime_error("unrecognized image type!");
+		throw std::runtime_error(LOCATION "unrecognized image type!");
 	}
 }  // namespace
 
