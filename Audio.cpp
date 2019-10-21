@@ -57,8 +57,7 @@ public:
 	void copyData(AudioData& audioData) {
 		audioMutexLock.lock();
 		for (size_t i = 0; i < settings.bufferSize; ++i)
-			audioData.buffer[i] =
-			    ppAudioBuffer[i / settings.sampleSize][i % settings.sampleSize];
+			audioData.buffer[i] = ppAudioBuffer[i / settings.sampleSize][i % settings.sampleSize];
 		audioMutexLock.unlock();
 
 		modified = false;
@@ -117,33 +116,25 @@ private:
 	}
 
 	void run() {
-		std::chrono::steady_clock::time_point lastFrame =
-		    std::chrono::steady_clock::now();
+		std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
 		int numUpdates = 0;
 
 		while (!this->stopped) {
-			if (pa_simple_read(s, pSampleBuffer,
-			                   sizeof(float) * settings.sampleSize, &error) < 0)
-				throw std::runtime_error(
-				    std::string(LOCATION "pa_simple_read() failed: ") +
-				    pa_strerror(error));
+			if (pa_simple_read(s, pSampleBuffer, sizeof(float) * settings.sampleSize, &error) < 0)
+				throw std::runtime_error(std::string(LOCATION "pa_simple_read() failed: ") +
+				                         pa_strerror(error));
 
 			audioMutexLock.lock();
-			for (size_t i = 1; i < settings.bufferSize / settings.sampleSize;
-			     ++i)
+			for (size_t i = 1; i < settings.bufferSize / settings.sampleSize; ++i)
 				std::swap(ppAudioBuffer[i - 1], ppAudioBuffer[i]);
-			std::swap(
-			    ppAudioBuffer[settings.bufferSize / settings.sampleSize - 1],
-			    pSampleBuffer);
+			std::swap(ppAudioBuffer[settings.bufferSize / settings.sampleSize - 1], pSampleBuffer);
 			audioMutexLock.unlock();
 			this->modified = true;
 
 			++numUpdates;
-			std::chrono::steady_clock::time_point currentTime =
-			    std::chrono::steady_clock::now();
-			if (std::chrono::duration_cast<std::chrono::seconds>(currentTime -
-			                                                     lastFrame)
-			        .count() >= 1) {
+			std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+			if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastFrame).count() >=
+			    1) {
 				ups = numUpdates;
 				numUpdates = 0;
 				lastFrame = currentTime;
@@ -161,8 +152,7 @@ private:
 
 		pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL);
 
-		pa_context_set_state_callback(context, contextStateCallback,
-		                              reinterpret_cast<void*>(this));
+		pa_context_set_state_callback(context, contextStateCallback, reinterpret_cast<void*>(this));
 
 		pa_mainloop_run(mainloop, nullptr);
 
@@ -182,18 +172,15 @@ private:
 		attr.maxlength = (uint32_t)-1;
 		attr.fragsize = settings.sampleSize;
 
-		s = pa_simple_new(NULL, "Vkav", PA_STREAM_RECORD,
-		                  settings.sinkName.c_str(), "recorder for Vkav", &ss,
-		                  NULL, &attr, &error);
+		s = pa_simple_new(NULL, "Vkav", PA_STREAM_RECORD, settings.sinkName.c_str(),
+		                  "recorder for Vkav", &ss, NULL, &attr, &error);
 
 		if (!s)
-			throw std::runtime_error(
-			    std::string(LOCATION "pa_simple_new() failed: ") +
-			    pa_strerror(error));
+			throw std::runtime_error(std::string(LOCATION "pa_simple_new() failed: ") +
+			                         pa_strerror(error));
 	}
 
-	static void callback(pa_context* c, const pa_server_info* i,
-	                     void* userdata) {
+	static void callback(pa_context* c, const pa_server_info* i, void* userdata) {
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(userdata);
 		audio->settings.sinkName = i->default_sink_name;
 		audio->settings.sinkName += ".monitor";
@@ -206,8 +193,7 @@ private:
 
 		switch (pa_context_get_state(c)) {
 			case PA_CONTEXT_READY:
-				pa_operation_unref(
-				    pa_context_get_server_info(c, callback, userdata));
+				pa_operation_unref(pa_context_get_server_info(c, callback, userdata));
 				break;
 			case PA_CONTEXT_FAILED:
 				pa_mainloop_quit(audio->mainloop, 0);
@@ -234,10 +220,6 @@ void AudioSampler::start(const AudioSettings& audioSettings) {
 
 void AudioSampler::stop() { delete audioSamplerImpl; }
 
-void AudioSampler::copyData(AudioData& audioData) {
-	audioSamplerImpl->copyData(audioData);
-}
+void AudioSampler::copyData(AudioData& audioData) { audioSamplerImpl->copyData(audioData); }
 
-void AudioSampler::rethrowExceptions() {
-	return audioSamplerImpl->rethrowExceptions();
-}
+void AudioSampler::rethrowExceptions() { return audioSamplerImpl->rethrowExceptions(); }

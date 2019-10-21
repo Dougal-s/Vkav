@@ -4,7 +4,6 @@
 
 #include <filesystem>
 
-unsigned char** readImg(const std::filesystem::path& filePath, size_t& imgWidth,
-                        size_t& imgHeight);
+unsigned char** readImg(const std::filesystem::path& filePath, size_t& imgWidth, size_t& imgHeight);
 
 #endif

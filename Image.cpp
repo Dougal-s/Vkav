@@ -44,30 +44,23 @@ namespace {
 	public:
 		void init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
-			if (!file)
-				throw std::runtime_error(LOCATION "failed to open image!");
+			if (!file) throw std::runtime_error(LOCATION "failed to open image!");
 
 			unsigned char sig[8];
 			if (fread(reinterpret_cast<void*>(sig), 1, 8, file) != 8) {
 				fclose(file);
-				throw std::runtime_error(LOCATION
-				                         "failed to read png signature!");
+				throw std::runtime_error(LOCATION "failed to read png signature!");
 			}
 
-			if (!png_check_sig(sig, 8))
-				throw std::runtime_error(LOCATION "invalid png file!");
+			if (!png_check_sig(sig, 8)) throw std::runtime_error(LOCATION "invalid png file!");
 
-			pPng = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr,
-			                              nullptr, nullptr);
-			if (!pPng)
-				throw std::runtime_error(LOCATION
-				                         "failed to create png struct!");
+			pPng = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+			if (!pPng) throw std::runtime_error(LOCATION "failed to create png struct!");
 
 			pInfo = png_create_info_struct(pPng);
 			if (!pInfo) {
 				png_destroy_read_struct(&pPng, nullptr, nullptr);
-				throw std::runtime_error(LOCATION
-				                         "failed to create png info struct!");
+				throw std::runtime_error(LOCATION "failed to create png info struct!");
 			}
 
 			if (setjmp(png_jmpbuf(pPng))) {
@@ -79,33 +72,29 @@ namespace {
 			png_set_sig_bytes(pPng, 8);
 			png_read_info(pPng, pInfo);
 
-			png_get_IHDR(pPng, pInfo, &imgWidth, &imgHeight, &bitDepth,
-			             &colorType, nullptr, nullptr, nullptr);
+			png_get_IHDR(pPng, pInfo, &imgWidth, &imgHeight, &bitDepth, &colorType, nullptr,
+			             nullptr, nullptr);
 		}
 
 		void readImage() override {
 			// if the image has a bit depth of 16, reduce it to a bit depth of 8
 			if (bitDepth == 16) png_set_strip_16(pPng);
 
-			if (colorType == PNG_COLOR_TYPE_PALETTE)
-				png_set_palette_to_rgb(pPng);
+			if (colorType == PNG_COLOR_TYPE_PALETTE) png_set_palette_to_rgb(pPng);
 
 			if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8)
 				png_set_expand_gray_1_2_4_to_8(pPng);
 
-			if (png_get_valid(pPng, pInfo, PNG_INFO_tRNS))
-				png_set_tRNS_to_alpha(pPng);
+			if (png_get_valid(pPng, pInfo, PNG_INFO_tRNS)) png_set_tRNS_to_alpha(pPng);
 
 			// If the image is missing an alpha channel then fill it with 0xff
 
-			if (colorType == PNG_COLOR_TYPE_RGB ||
-			    colorType == PNG_COLOR_TYPE_GRAY ||
+			if (colorType == PNG_COLOR_TYPE_RGB || colorType == PNG_COLOR_TYPE_GRAY ||
 			    colorType == PNG_COLOR_TYPE_PALETTE)
 				png_set_filler(pPng, 0xff, PNG_FILLER_AFTER);
 
 			// if the image is grayscale then convert it to rgb
-			if (colorType == PNG_COLOR_TYPE_GRAY ||
-			    colorType == PNG_COLOR_TYPE_GRAY_ALPHA)
+			if (colorType == PNG_COLOR_TYPE_GRAY || colorType == PNG_COLOR_TYPE_GRAY_ALPHA)
 				png_set_gray_to_rgb(pPng);
 
 			// Apply transformations
@@ -123,9 +112,7 @@ namespace {
 			png_destroy_read_struct(&pPng, &pInfo, nullptr);
 		}
 
-		unsigned char** getBuffer() override {
-			return reinterpret_cast<unsigned char**>(image);
-		}
+		unsigned char** getBuffer() override { return reinterpret_cast<unsigned char**>(image); }
 
 		size_t getHeight() const override { return imgHeight; }
 
@@ -151,8 +138,7 @@ namespace {
 	public:
 		void init(const std::filesystem::path& filePath) override {
 			file = fopen(filePath.c_str(), "rb");
-			if (!file)
-				throw std::runtime_error(LOCATION "failed to open image!");
+			if (!file) throw std::runtime_error(LOCATION "failed to open image!");
 
 			cInfo.err = jpeg_std_error(&error.pub);
 			error.pub.error_exit = errorExit;
@@ -229,16 +215,14 @@ namespace {
 #endif
 
 #ifndef DISABLE_JPEG
-		if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg")
-			return new JPEG();
+		if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg") return new JPEG();
 #endif
 
 		throw std::runtime_error(LOCATION "unrecognized image type!");
 	}
 }  // namespace
 
-unsigned char** readImg(const std::filesystem::path& filePath, size_t& width,
-                        size_t& height) {
+unsigned char** readImg(const std::filesystem::path& filePath, size_t& width, size_t& height) {
 	try {
 		std::unique_ptr<Image> img(Image::create(filePath));
 		unsigned char** buffer;

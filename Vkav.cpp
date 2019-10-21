@@ -42,8 +42,7 @@ namespace {
 	    "-V, --version                 Output version information and exit.\n"
 	    "\n";
 
-#define PRINT_UNDEFINED(name) \
-	std::clog << #name << " not defined!" << std::endl;
+#define PRINT_UNDEFINED(name) std::clog << #name << " not defined!" << std::endl;
 
 	class Vkav {
 	public:
@@ -51,12 +50,10 @@ namespace {
 			std::chrono::high_resolution_clock::time_point initStart =
 			    std::chrono::high_resolution_clock::now();
 
-			const std::unordered_map<char, std::string> cmdLineArgs =
-			    readCmdLineArgs(argc, argv);
+			const std::unordered_map<char, std::string> cmdLineArgs = readCmdLineArgs(argc, argv);
 
 			if (cmdLineArgs.find('h') != cmdLineArgs.end()) {
-				std::cout << "Usage: " << argv[0] << " [OPTIONS]...\n"
-				          << helpStr << versionStr;
+				std::cout << "Usage: " << argv[0] << " [OPTIONS]...\n" << helpStr << versionStr;
 				std::exit(0);
 			}
 
@@ -65,13 +62,11 @@ namespace {
 				std::exit(0);
 			}
 
-			if (cmdLineArgs.find('v') == cmdLineArgs.end())
-				std::clog.setstate(std::ios::failbit);
+			if (cmdLineArgs.find('v') == cmdLineArgs.end()) std::clog.setstate(std::ios::failbit);
 
 			std::filesystem::path configFilePath = argv[0];
 			configFilePath.replace_filename("config");
-			if (const auto cmdLineArg = cmdLineArgs.find('c');
-			    cmdLineArg != cmdLineArgs.end())
+			if (const auto cmdLineArg = cmdLineArgs.find('c'); cmdLineArg != cmdLineArgs.end())
 				configFilePath = cmdLineArg->second;
 
 			std::clog << "Parsing configuration file.\n";
@@ -82,8 +77,8 @@ namespace {
 			RenderSettings renderSettings = {};
 			ProccessSettings proccessSettings = {};
 
-			fillStructs(argv[0], cmdLineArgs, configSettings, audioSettings,
-			            renderSettings, proccessSettings);
+			fillStructs(argv[0], cmdLineArgs, configSettings, audioSettings, renderSettings,
+			            proccessSettings);
 
 			std::clog << "Initialising audio.\n";
 			audioSampler.start(audioSettings);
@@ -91,16 +86,13 @@ namespace {
 			renderer.init(renderSettings);
 			proccess.init(proccessSettings);
 
-			audioData.allocate(
-			    audioSettings.channels * audioSettings.bufferSize,
-			    std::max(proccessSettings.outputSize,
-			             audioSettings.bufferSize / 2));
+			audioData.allocate(audioSettings.channels * audioSettings.bufferSize,
+			                   std::max(proccessSettings.outputSize, audioSettings.bufferSize / 2));
 
 			std::chrono::high_resolution_clock::time_point initEnd =
 			    std::chrono::high_resolution_clock::now();
 			std::clog << "Initialisation took: "
-			          << std::chrono::duration_cast<std::chrono::milliseconds>(
-			                 initEnd - initStart)
+			          << std::chrono::duration_cast<std::chrono::milliseconds>(initEnd - initStart)
 			                 .count()
 			          << " milliseconds\n";
 		}
@@ -119,8 +111,7 @@ namespace {
 
 		void mainLoop() {
 			int numFrames = 0;
-			std::chrono::steady_clock::time_point lastFrame =
-			    std::chrono::steady_clock::now();
+			std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
 
 			while (!audioSampler.stopped()) {
 				if (audioSampler.modified()) {
@@ -133,12 +124,11 @@ namespace {
 
 				std::chrono::steady_clock::time_point currentTime =
 				    std::chrono::steady_clock::now();
-				if (std::chrono::duration_cast<std::chrono::seconds>(
-				        currentTime - lastFrame)
+				if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastFrame)
 				        .count() >= 1) {
-					std::clog << "FPS: " << std::setw(3) << std::right
-					          << numFrames << " | UPS: " << std::setw(3)
-					          << std::right << audioSampler.ups() << std::endl;
+					std::clog << "FPS: " << std::setw(3) << std::right << numFrames
+					          << " | UPS: " << std::setw(3) << std::right << audioSampler.ups()
+					          << std::endl;
 					numFrames = 0;
 					lastFrame = currentTime;
 				}
@@ -154,12 +144,11 @@ namespace {
 			proccess.cleanup();
 		}
 
-		static void fillStructs(
-		    const char* execPath,
-		    const std::unordered_map<char, std::string> cmdLineArgs,
-		    const std::unordered_map<std::string, std::string> configSettings,
-		    AudioSettings& audioSettings, RenderSettings& renderSettings,
-		    ProccessSettings& proccessSettings) {
+		static void fillStructs(const char* execPath,
+		                        const std::unordered_map<char, std::string> cmdLineArgs,
+		                        const std::unordered_map<std::string, std::string> configSettings,
+		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
+		                        ProccessSettings& proccessSettings) {
 			float trebleCut = 0.09f;
 			if (const auto confSetting = configSettings.find("trebleCut");
 			    confSetting != configSettings.end())
@@ -213,33 +202,29 @@ namespace {
 			else
 				PRINT_UNDEFINED(sampleRate);
 
-			if (const auto cmdLineArg = cmdLineArgs.find('s');
-			    cmdLineArg != cmdLineArgs.end()) {
+			if (const auto cmdLineArg = cmdLineArgs.find('s'); cmdLineArg != cmdLineArgs.end()) {
 				audioSettings.sinkName = cmdLineArg->second;
 			} else {
 				if (const auto confSetting = configSettings.find("sinkName");
 				    confSetting != configSettings.end()) {
 					audioSettings.sinkName = confSetting->second;
-					if (audioSettings.sinkName == "auto")
-						audioSettings.sinkName.clear();
+					if (audioSettings.sinkName == "auto") audioSettings.sinkName.clear();
 				} else {
 					PRINT_UNDEFINED(sinkName);
 				}
 			}
 
-			if (const auto confSetting =
-			        configSettings.find("shaderDirectories");
+			if (const auto confSetting = configSettings.find("shaderDirectories");
 			    confSetting != configSettings.end()) {
 				renderSettings.shaderDirectories.clear();
 				std::stringstream ss(confSetting->second);
 				std::string directory;
 				while (std::getline(ss, directory, '\"').good()) {
 					if (!std::getline(ss, directory, '\"').good())
-						throw std::invalid_argument(
-						    __FILE__
-						    ": Missing terminating \" character in "
-						    "configuration "
-						    "file");
+						throw std::invalid_argument(__FILE__
+						                            ": Missing terminating \" character in "
+						                            "configuration "
+						                            "file");
 					renderSettings.shaderDirectories.push_back(directory);
 				}
 			} else {
@@ -285,8 +270,7 @@ namespace {
 			if (const auto confSetting = configSettings.find("windowTitle");
 			    confSetting != configSettings.end()) {
 				renderSettings.windowTitle = confSetting->second;
-				if (renderSettings.windowTitle.find("executable") !=
-				    std::string::npos)
+				if (renderSettings.windowTitle.find("executable") != std::string::npos)
 					renderSettings.windowTitle = execPath;
 			} else {
 				PRINT_UNDEFINED(windowTitle);
@@ -298,23 +282,20 @@ namespace {
 				size_t gapPosition = position.find(',');
 				renderSettings.windowPosition = {
 				    std::stoi(position.substr(1, gapPosition - 1)),
-				    std::stoi(position.substr(gapPosition + 1,
-				                              position.size() - gapPosition))};
+				    std::stoi(position.substr(gapPosition + 1, position.size() - gapPosition))};
 			} else {
 				PRINT_UNDEFINED(windowPosition);
 			}
 
 			if (const auto confSetting = configSettings.find("decorated");
 			    confSetting != configSettings.end())
-				renderSettings.windowHints.decorated =
-				    (confSetting->second == "true");
+				renderSettings.windowHints.decorated = (confSetting->second == "true");
 			else
 				PRINT_UNDEFINED(decorated);
 
 			if (const auto confSetting = configSettings.find("resizable");
 			    confSetting != configSettings.end())
-				renderSettings.windowHints.resizable =
-				    (confSetting->second == "true");
+				renderSettings.windowHints.resizable = (confSetting->second == "true");
 			else
 				PRINT_UNDEFINED(resizable);
 
@@ -329,8 +310,7 @@ namespace {
 
 			switch (smoothingDevice) {
 				case GPU:
-					renderSettings.audioSize =
-					    (audioSettings.bufferSize / 2) * (1.f - trebleCut);
+					renderSettings.audioSize = (audioSettings.bufferSize / 2) * (1.f - trebleCut);
 					smoothingLevel = 0.f;
 					smoothedSize = 0;
 					break;
@@ -340,17 +320,13 @@ namespace {
 					break;
 			}
 
-			if (const auto cmdLineArg = cmdLineArgs.find('d');
-			    cmdLineArg != cmdLineArgs.end()) {
-				renderSettings.physicalDevice.value() =
-				    std::stoi(cmdLineArg->second);
+			if (const auto cmdLineArg = cmdLineArgs.find('d'); cmdLineArg != cmdLineArgs.end()) {
+				renderSettings.physicalDevice.value() = std::stoi(cmdLineArg->second);
 			} else {
-				if (const auto confSetting =
-				        configSettings.find("physicalDevice");
+				if (const auto confSetting = configSettings.find("physicalDevice");
 				    confSetting != configSettings.end()) {
 					if (confSetting->second != "auto")
-						renderSettings.physicalDevice.value() =
-						    std::stoi(confSetting->second);
+						renderSettings.physicalDevice.value() = std::stoi(confSetting->second);
 				} else {
 					PRINT_UNDEFINED(physicalDevice);
 				}
@@ -361,8 +337,7 @@ namespace {
 			proccessSettings.outputSize = smoothedSize;
 			proccessSettings.smoothingLevel = smoothingLevel;
 
-			if (const auto cmdLineArg = cmdLineArgs.find('a');
-			    cmdLineArg != cmdLineArgs.end()) {
+			if (const auto cmdLineArg = cmdLineArgs.find('a'); cmdLineArg != cmdLineArgs.end()) {
 				proccessSettings.amplitude = std::stof(cmdLineArg->second);
 			} else {
 				if (const auto confSetting = configSettings.find("amplitude");
