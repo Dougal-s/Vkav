@@ -2,9 +2,12 @@ src = $(wildcard *.cpp)
 hdr = $(wildcard *.hpp)
 obj = $(src:.cpp=.o)
 
-VULKAN_SDK_PATH =
+VULKAN_SDK_PATH = 
+VULKAN_SDK_INCLUDE = $(VULKAN_SDK_PATH)/include
+VULKAN_SDK_LIB_PATH = $(VULKAN_SDK_PATH)/lib
+VULKAN_SDK_LAYER_PATH = $(VULKAN_SDK_PATH)/etc/explicit_layer.d
 
-CFLAGS = -std=c++17 -I$(VULKAN_SDK_PATH)/include
+CFLAGS = -std=c++17 -I$(VULKAN_SDK_INCLUDE)
 LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs
 
 ifdef DISABLE_PNG
@@ -39,7 +42,7 @@ compile: $(obj)
 	$(STRIP)
 
 run:
-	LD_LIBRARY_PATH=$(VULKAN_SDK_PATH)/lib VK_LAYER_PATH=$(VULKAN_SDK_PATH)/etc/explicit_layer.d ./Vkav -v
+	LD_LIBRARY_PATH=$(VULKAN_SDK_LIB_PATH) VK_LAYER_PATH=$(VULKAN_SDK_LAYER_PATH) ./Vkav -v
 
 clean:
 	rm -f Vkav $(obj)
