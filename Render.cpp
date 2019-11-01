@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -88,6 +89,12 @@ namespace {
 		size_t vertexCount = 6;
 
 		VkShaderModule vertShaderModule;
+	};
+
+	struct UniformBufferObject {
+		float lVolume;
+		float rVolume;
+		uint32_t time;
 	};
 }  // namespace
 
@@ -179,9 +186,9 @@ public:
 
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		for (size_t i = 0; i < volumeBuffers.size(); ++i) {
-			vkDestroyBuffer(device, volumeBuffers[i], nullptr);
-			vkFreeMemory(device, volumeBufferMemory[i], nullptr);
+		for (size_t i = 0; i < dataBuffers.size(); ++i) {
+			vkDestroyBuffer(device, dataBuffers[i], nullptr);
+			vkFreeMemory(device, dataBufferMemory[i], nullptr);
 			vkDestroyBufferView(device, lAudioBufferViews[i], nullptr);
 			vkDestroyBuffer(device, lAudioBuffers[i], nullptr);
 			vkFreeMemory(device, lAudioBufferMemory[i], nullptr);
@@ -253,8 +260,8 @@ private:
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
 
-	std::vector<VkBuffer> volumeBuffers;
-	std::vector<VkDeviceMemory> volumeBufferMemory;
+	std::vector<VkBuffer> dataBuffers;
+	std::vector<VkDeviceMemory> dataBufferMemory;
 
 	std::vector<VkBuffer> lAudioBuffers;
 	std::vector<VkDeviceMemory> lAudioBufferMemory;
@@ -1424,8 +1431,8 @@ private:
 	void createAudioBuffers() {
 		VkDeviceSize bufferSize = settings.audioSize * sizeof(float);
 
-		volumeBuffers.resize(swapChainImages.size());
-		volumeBufferMemory.resize(swapChainImages.size());
+		dataBuffers.resize(swapChainImages.size());
+		dataBufferMemory.resize(swapChainImages.size());
 
 		lAudioBuffers.resize(swapChainImages.size());
 		lAudioBufferMemory.resize(swapChainImages.size());
@@ -1435,10 +1442,10 @@ private:
 		rAudioBufferMemory.resize(swapChainImages.size());
 		rAudioBufferViews.resize(swapChainImages.size());
 
-		for (size_t i = 0; i < volumeBuffers.size(); ++i) {
-			createBuffer(2 * sizeof(float), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		for (size_t i = 0; i < dataBuffers.size(); ++i) {
+			createBuffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			             volumeBuffers[i], volumeBufferMemory[i]);
+			             dataBuffers[i], dataBufferMemory[i]);
 
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1457,12 +1464,17 @@ private:
 	}
 
 	void updateAudioBuffers(const AudioData& audioData, uint32_t currentFrame) {
+		static const auto startTime = std::chrono::high_resolution_clock::now();
+		const auto currentTime = std::chrono::high_resolution_clock::now();
 		void* data;
 
-		vkMapMemory(device, volumeBufferMemory[currentFrame], 0, 2 * sizeof(float), 0, &data);
-		reinterpret_cast<float*>(data)[0] = audioData.lVolume;
-		reinterpret_cast<float*>(data)[1] = audioData.rVolume;
-		vkUnmapMemory(device, volumeBufferMemory[currentFrame]);
+		vkMapMemory(device, dataBufferMemory[currentFrame], 0, sizeof(UniformBufferObject), 0,
+		            &data);
+		reinterpret_cast<UniformBufferObject*>(data)->lVolume = audioData.lVolume;
+		reinterpret_cast<UniformBufferObject*>(data)->rVolume = audioData.rVolume;
+		reinterpret_cast<UniformBufferObject*>(data)->time =
+		    std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
+		vkUnmapMemory(device, dataBufferMemory[currentFrame]);
 
 		vkMapMemory(device, lAudioBufferMemory[currentFrame], 0, settings.audioSize * sizeof(float),
 		            0, &data);
@@ -1509,10 +1521,10 @@ private:
 			throw std::runtime_error(LOCATION "failed to allocate descriptor sets!");
 
 		for (size_t i = 0; i < swapChainImages.size(); ++i) {
-			VkDescriptorBufferInfo volumeBufferInfo = {};
-			volumeBufferInfo.buffer = volumeBuffers[i];
-			volumeBufferInfo.offset = 0;
-			volumeBufferInfo.range = 2 * sizeof(float);
+			VkDescriptorBufferInfo dataBufferInfo = {};
+			dataBufferInfo.buffer = dataBuffers[i];
+			dataBufferInfo.offset = 0;
+			dataBufferInfo.range = sizeof(UniformBufferObject);
 
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1526,7 +1538,7 @@ private:
 			descriptorWrites[0].dstArrayElement = 0;
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &volumeBufferInfo;
+			descriptorWrites[0].pBufferInfo = &dataBufferInfo;
 
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[1].dstSet = descriptorSets[i];

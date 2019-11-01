@@ -11,9 +11,10 @@ layout(constant_id = 4) const int barWidth = 4;
 layout(constant_id = 5) const int barGap = 2;
 layout(constant_id = 6) const float amplitude = 2.f;
 
-layout(binding = 0) uniform audioVolume {
+layout(binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
+	uint time;
 };
 
 layout(binding = 1) uniform samplerBuffer lBuffer;
