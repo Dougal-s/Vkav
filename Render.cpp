@@ -1048,9 +1048,7 @@ private:
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			for (const auto& module : modules) {
-				int x = 0;
 				for (const auto& layer : module.layers) {
-					std::cout << x++ << std::endl;
 					vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 					                  layer.graphicsPipeline);
 
