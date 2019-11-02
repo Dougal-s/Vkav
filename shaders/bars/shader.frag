@@ -24,9 +24,7 @@ layout(binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) out vec4 outColor;
 
-#define kernel
 #include "../smoothing/smoothing.glsl"
-#undef kernel
 
 const vec4 color = vec4(50, 50, 52, 255)/255.0;
 
@@ -41,13 +39,13 @@ void main() {
 		float y = 1.0f-gl_FragCoord.y/height;
 		float barCenter = x-pos+0.5f;
 		if (x < 0.0) {
-			float v = smoothTexture(lBuffer, -2.0*barCenter/width);
+			float v = kernelSmoothTexture(lBuffer, -2.0*barCenter/width);
 			if (y < amplitude*v) {
 				outColor = (color * (((height-gl_FragCoord.y) / 40) + 1));
 				return;
 			}
 		} else {
-			float v = smoothTexture(rBuffer, 2.0*barCenter/width);
+			float v = kernelSmoothTexture(rBuffer, 2.0*barCenter/width);
 			if (y < amplitude*v) {
 				outColor = (color * (((height-gl_FragCoord.y) / 40) + 1));
 				return;

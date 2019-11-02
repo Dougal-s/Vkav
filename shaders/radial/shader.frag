@@ -26,9 +26,7 @@ layout(binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) out vec4 outColor;
 
-#define kernel
 #include "../smoothing/smoothing.glsl"
-#undef kernel
 
 const vec4 color = vec4(50, 50, 52, 255)/255;
 
@@ -62,9 +60,9 @@ void main() {
 
 			float v = 0;
 			if (idx > 0)
-				v = smoothTexture(rBuffer, texCoord);
+				v = kernelSmoothTexture(rBuffer, texCoord);
 			else
-				v = smoothTexture(lBuffer, texCoord);
+				v = kernelSmoothTexture(lBuffer, texCoord);
 
 			v *= amplitude;
 
