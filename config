@@ -5,7 +5,7 @@
 /**
  * Paths to the folders containing the fragment shaders to use.
  */
-shaderDirectories = {"shaders/background (blur)", "shaders/radial", "shaders/bars"}
+moduleDirectories = {"shaders/background (blur)", "shaders/radial", "shaders/bars"}
 
 /**
  * Path to an image, which is sent to the fragment shaders. Set to none to disable background images.

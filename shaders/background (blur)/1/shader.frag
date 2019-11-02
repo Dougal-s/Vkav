@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#include "../smoothing/textureBlur.glsl"
+#include "../../smoothing/textureBlur.glsl"
 
 layout(constant_id = 0) const int audioSize        = 1;
 layout(constant_id = 1) const float smoothingLevel = 0.f;

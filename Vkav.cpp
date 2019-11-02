@@ -214,9 +214,9 @@ namespace {
 				}
 			}
 
-			if (const auto confSetting = configSettings.find("shaderDirectories");
+			if (const auto confSetting = configSettings.find("moduleDirectories");
 			    confSetting != configSettings.end()) {
-				renderSettings.shaderDirectories.clear();
+				renderSettings.moduleDirectories.clear();
 				std::stringstream ss(confSetting->second);
 				std::string directory;
 				while (std::getline(ss, directory, '\"').good()) {
@@ -225,10 +225,10 @@ namespace {
 						                            ": Missing terminating \" character in "
 						                            "configuration "
 						                            "file");
-					renderSettings.shaderDirectories.push_back(directory);
+					renderSettings.moduleDirectories.push_back(directory);
 				}
 			} else {
-				PRINT_UNDEFINED(shaderDirectories);
+				PRINT_UNDEFINED(moduleDirectories);
 			}
 
 			if (const auto confSetting = configSettings.find("backgroundImage");

@@ -24,7 +24,7 @@ layout(binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) out vec4 outColor;
 
-#include "../smoothing/smoothing.glsl"
+#include "../../smoothing/smoothing.glsl"
 
 const vec4 color = vec4(50, 50, 52, 255)/255.0;
 
