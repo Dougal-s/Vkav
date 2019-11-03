@@ -1403,12 +1403,12 @@ private:
 	}
 
 	void createDescriptorSetLayout() {
-		VkDescriptorSetLayoutBinding volumeLayoutBinding = {};
-		volumeLayoutBinding.binding = 0;
-		volumeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		volumeLayoutBinding.descriptorCount = 1;
-		volumeLayoutBinding.pImmutableSamplers = nullptr;
-		volumeLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		VkDescriptorSetLayoutBinding dataLayoutBinding = {};
+		dataLayoutBinding.binding = 0;
+		dataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		dataLayoutBinding.descriptorCount = 1;
+		dataLayoutBinding.pImmutableSamplers = nullptr;
+		dataLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		VkDescriptorSetLayoutBinding lAudioBufferLayoutBinding = {};
 		lAudioBufferLayoutBinding.binding = 1;
@@ -1432,7 +1432,7 @@ private:
 		backgroundSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		std::array<VkDescriptorSetLayoutBinding, 4> bindings = {
-		    volumeLayoutBinding, lAudioBufferLayoutBinding, rAudioBufferLayoutBinding,
+		    dataLayoutBinding, lAudioBufferLayoutBinding, rAudioBufferLayoutBinding,
 		    backgroundSamplerLayoutBinding};
 
 		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
