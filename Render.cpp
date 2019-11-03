@@ -491,8 +491,8 @@ private:
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
 		// Size of audio buffers + volume <= maximum capacity
-		bool uniformBufferSizeAdequate = 2 * (settings.audioSize + 1) * sizeof(float) <=
-		                                 deviceProperties.limits.maxUniformBufferRange;
+		bool uniformBufferSizeAdequate =
+		    2 * settings.audioSize * sizeof(float) <= deviceProperties.limits.maxUniformBufferRange;
 
 		return indices.isComplete() && extensionsSupported && swapChainAdequate &&
 		       uniformBufferSizeAdequate;
