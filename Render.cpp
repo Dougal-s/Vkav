@@ -754,27 +754,29 @@ private:
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
 			std::filesystem::path layerDirectory = settings.moduleDirectories[i];
-			for (uint32_t layer = 1; std::filesystem::exists(layerDirectory/std::to_string(layer)); ++layer) {
+			for (uint32_t layer = 1;
+			     std::filesystem::exists(layerDirectory / std::to_string(layer)); ++layer) {
 				modules[i].layers.resize(layer);
-				std::filesystem::path vertexShaderPath = layerDirectory/std::to_string(layer);
-				if (!std::filesystem::exists(vertexShaderPath/"vert.spv")) vertexShaderPath = settings.moduleDirectories[i];
+				std::filesystem::path vertexShaderPath = layerDirectory / std::to_string(layer);
+				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
+					vertexShaderPath = settings.moduleDirectories[i];
 
-				if (!std::filesystem::exists(vertexShaderPath/"vert.spv")) vertexShaderPath = VERTEX_SHADER_PATH;
+				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
+					vertexShaderPath = VERTEX_SHADER_PATH;
 
-				auto vertShaderCode = readFile(vertexShaderPath/"vert.spv");
-				modules[i].layers[layer-1].vertShaderModule = createShaderModule(vertShaderCode);
+				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
+				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
 
-				std::filesystem::path fragmentShaderPath = layerDirectory/std::to_string(layer);
-				auto fragShaderCode = readFile(fragmentShaderPath/"frag.spv");
-				modules[i].layers[layer-1].fragShaderModule = createShaderModule(fragShaderCode);
+				std::filesystem::path fragmentShaderPath = layerDirectory / std::to_string(layer);
+				auto fragShaderCode = readFile(fragmentShaderPath / "frag.spv");
+				modules[i].layers[layer - 1].fragShaderModule = createShaderModule(fragShaderCode);
 			}
 
 			std::filesystem::path configFilePath = settings.moduleDirectories[i];
 			configFilePath /= "config";
 			modules[i].specializationConstants = readSpecializationConstants(
 			    configFilePath, modules[i].moduleName, modules[i].vertexCount);
-			modules[i].specializationConstants.data[0] =
-			    static_cast<uint32_t>(settings.audioSize);
+			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
 		}
 	}
@@ -853,8 +855,7 @@ private:
 			throw std::runtime_error(LOCATION "failed to create pipeline layout!");
 
 		size_t pipelineCount = 0;
-		for (const auto& module : modules)
-			pipelineCount += module.layers.size();
+		for (const auto& module : modules) pipelineCount += module.layers.size();
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfos[pipelineCount];
 		VkPipelineShaderStageCreateInfo fragShaderStageInfos[pipelineCount];
@@ -917,14 +918,13 @@ private:
 			}
 		}
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, pipelines.size(),
-		                              pipelineInfos, nullptr, pipelines.data()))
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, pipelines.size(), pipelineInfos,
+		                              nullptr, pipelines.data()))
 			throw std::runtime_error(LOCATION "failed to create graphics pipeline!");
 
 		for (uint32_t i = 0, module = 0; i < pipelineCount; ++module)
 			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer, ++i)
 				modules[module].layers[layer].graphicsPipeline = pipelines[i];
-
 	}
 
 	VkShaderModule createShaderModule(const std::vector<char>& shaderCode) {
