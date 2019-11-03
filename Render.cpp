@@ -742,9 +742,9 @@ private:
 
 	void destroyGraphicsPipelines() {
 		for (auto& module : modules) {
-			for (auto& graphicsPipeline : module.layers) {
-				vkDestroyShaderModule(device, graphicsPipeline.fragShaderModule, nullptr);
-				vkDestroyShaderModule(device, graphicsPipeline.vertShaderModule, nullptr);
+			for (auto& layer : module.layers) {
+				vkDestroyShaderModule(device, layer.fragShaderModule, nullptr);
+				vkDestroyShaderModule(device, layer.vertShaderModule, nullptr);
 			}
 		}
 	}
