@@ -56,7 +56,7 @@ private:
 	float smoothingFactor;
 
 	// Member functions
-	void windowFunction(AudioData& audioData) {
+	void windowFunction(AudioData& audioData) const {
 		if (channels == 1)
 			windowFunction(reinterpret_cast<float*>(audioData.buffer));
 		else
@@ -64,7 +64,7 @@ private:
 	}
 
 	template <class T>
-	void windowFunction(T* audio) {
+	void windowFunction(T* audio) const {
 		for (size_t n = 0; n < inputSize; ++n) audio[n] *= pow(sinf(wfCoeff * n), 2);
 	}
 
@@ -101,7 +101,7 @@ private:
 		audioData.rBuffer[0] = audioData.lBuffer[1];
 	}
 
-	void equalise(AudioData& audioData) {
+	void equalise(AudioData& audioData) const {
 		for (size_t n = 0; n < inputSize / 2; ++n) {
 			float weight = 0.08f * amplitude * log10f(2.f * n / inputSize + 1.05f);
 			audioData.lBuffer[n] *= weight;
