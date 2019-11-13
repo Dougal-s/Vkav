@@ -14,10 +14,11 @@ layout(constant_id = 7) const int numBars = 180;
 layout(constant_id = 8) const float amplitude = 6000.0;
 
 layout(constant_id = 9) const float brightnessSensitivity = 1.f;
+layout(constant_id = 10) const float radiusSensitivity = 1.f;
 
-layout(constant_id = 10) const float red = 0.196;
-layout(constant_id = 11) const float green = 0.196;
-layout(constant_id = 12) const float blue = 0.204;
+layout(constant_id = 11) const float red = 0.196;
+layout(constant_id = 12) const float green = 0.196;
+layout(constant_id = 13) const float blue = 0.204;
 
 vec3 color = vec3(red, green, blue);
 
@@ -40,8 +41,7 @@ const float PI = 3.14159265359;
 
 void main() {
 	float brightness = pow(2, 20.f*brightnessSensitivity*(lVolume+rVolume));
-
-	int radius = originalRadius+int(amplitude*(lVolume+rVolume)/12);
+	float radius = originalRadius+pow(2, radiusSensitivity*(lVolume+rVolume))-1.f;
 	float x = gl_FragCoord.x - (width/2.f);
 	float y = (height/2.f) - gl_FragCoord.y;
 
@@ -64,7 +64,7 @@ void main() {
             if (dir > PI)
                 idx = -sign(idx) * (2.f*PI - dir);
 
-			float texCoord = int(abs(idx)/section) / float(numBars/2.f);
+			float texCoord = floor(abs(idx)/section) / float(numBars/2.f);
 
 			float v = 0;
 			if (idx > 0)
