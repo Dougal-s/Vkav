@@ -6,3 +6,9 @@ module = "main"
 (id=5) int barGap = 2
 
 (id=6) float amplitude = 3
+
+(id=7) float brightnessSensitivity = 1
+
+(id=8) float red = 0.196
+(id=9) float green = 0.196
+(id=10) float blue = 0.204

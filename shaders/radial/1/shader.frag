@@ -13,6 +13,14 @@ layout(constant_id = 6) const float barWidth = 3.5;
 layout(constant_id = 7) const int numBars = 180;
 layout(constant_id = 8) const float amplitude = 6000.0;
 
+layout(constant_id = 9) const float brightnessSensitivity = 1.f;
+
+layout(constant_id = 10) const float red = 0.196;
+layout(constant_id = 11) const float green = 0.196;
+layout(constant_id = 12) const float blue = 0.204;
+
+vec3 color = vec3(red, green, blue);
+
 layout(binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
@@ -28,11 +36,11 @@ layout(location = 0) out vec4 outColor;
 
 #include "../../smoothing/smoothing.glsl"
 
-const vec4 color = vec4(50, 50, 52, 255)/255;
-
 const float PI = 3.14159265359;
 
 void main() {
+	float brightness = pow(2, 20.f*brightnessSensitivity*(lVolume+rVolume));
+
 	int radius = originalRadius+int(amplitude*(lVolume+rVolume)/12);
 	float x = gl_FragCoord.x - (width/2.f);
 	float y = (height/2.f) - gl_FragCoord.y;
@@ -69,11 +77,11 @@ void main() {
 			distance -= radius;
 
 			if (distance <= v) {
-				outColor = (color * ((distance / 40) + 1));
+				outColor = vec4(color * brightness * ((distance / 40) + 1), 1.f);
 				return;
 			}
 		}
 	}
 
-	outColor = vec4(38.45/255.0f, 40.6/255.0f, 41.2/255.0f, 0.0);
+	outColor = vec4(38.45, 40.6, 41.2, 0.0)/255.f;
 }

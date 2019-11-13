@@ -10,3 +10,9 @@ module = "main"
 (id=7) int numBars = 180
 
 (id=8) float amplitude = 3000.0
+
+(id=9) float brightnessSensitivity = 1
+
+(id=10) float red = 0.196
+(id=11) float green = 0.196
+(id=12) float blue = 0.204
