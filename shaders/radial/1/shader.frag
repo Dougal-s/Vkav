@@ -41,7 +41,7 @@ const float PI = 3.14159265359;
 
 void main() {
 	float brightness = pow(2, 20.f*brightnessSensitivity*(lVolume+rVolume));
-	float radius = originalRadius+pow(2, radiusSensitivity*(lVolume+rVolume))-1.f;
+	float radius = min(pow(2.f, radiusSensitivity*(lVolume+rVolume)), 2.f)*originalRadius;
 	float x = gl_FragCoord.x - (width/2.f);
 	float y = (height/2.f) - gl_FragCoord.y;
 
