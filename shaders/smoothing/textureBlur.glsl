@@ -1,7 +1,7 @@
 
 // bokeh blur
 vec4 blurredTexture(in sampler2D image, in vec2 position, float volume) {
-	vec4 pixel = vec4(0.f, 0.f, 0.f, 0.f);
+	vec4 pixel = vec4(0);
 
 	const float stepSize = 1.f/max(textureSize(image, 0).x, textureSize(image, 0).y);
 	const float radius = volume;
@@ -9,18 +9,16 @@ vec4 blurredTexture(in sampler2D image, in vec2 position, float volume) {
 	float sum = 0;
 
 	// start at centre pixel and go outwards.
-	for (float yOff = 0; yOff <= radius; yOff += stepSize) {
-		float y1 = position.y+yOff;
-		float y2 = position.y-yOff;
-		for (float xOff = 0; xOff <= radius; xOff += stepSize) {
-			float x1 = position.x+xOff;
-			float x2 = position.x-xOff;
+	for (vec2 off = {0,0}; off.y <= radius; off.y += stepSize) {
+		for (off.x = 0; off.x <= radius; off.x += stepSize) {
+			vec2 pos1 = position+off;
+			vec2 pos2 = position-off;
 
-			if (distance(position, vec2(x1, y1)) <= volume) {
-				pixel += texture(image, vec2(x1, y1));
-				pixel += texture(image, vec2(x1, y2));
-				pixel += texture(image, vec2(x2, y1));
-				pixel += texture(image, vec2(x2, y2));
+			if (dot(off*off, vec2(1)) <= volume*volume) {
+				pixel += texture(image, pos1);
+				pixel += texture(image, vec2(pos1.x, pos2.y));
+				pixel += texture(image, vec2(pos2.x, pos1.y));
+				pixel += texture(image, pos2);
 
 				sum += 4;
 			}
