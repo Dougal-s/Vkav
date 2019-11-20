@@ -40,31 +40,32 @@ layout(location = 0) out vec4 outColor;
 const float PI = 3.14159265359;
 
 void main() {
-	float brightness = pow(2, 20.f*brightnessSensitivity*(lVolume+rVolume));
-	float radius = min(pow(2.f, radiusSensitivity*(lVolume+rVolume)), 2.f)*originalRadius;
-	float x = gl_FragCoord.x - (width/2.f);
-	float y = (height/2.f) - gl_FragCoord.y;
+	const float brightness = exp2(20.f*brightnessSensitivity*(lVolume+rVolume));
+	const float radius = min(exp2(radiusSensitivity*(lVolume+rVolume)), 2.f)*originalRadius;
+	const vec2 xy = vec2(gl_FragCoord.x - (0.5*width), (0.5*height) - gl_FragCoord.y);
 
-	float angle = atan(y, x);
-	float distance = sqrt(x*x + y*y);
+	float angle = atan(xy.y, xy.x);
+	float distance = length(xy);
 
-	if (radius - centerLineWidth/2.f < distance && distance < radius + centerLineWidth/2.f) {
+	if (abs(distance-radius) < 0.5*centerLineWidth) {
 		outColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;
 	}
 
 	if (distance > radius) {
 		const float section = (2.f*PI/numBars);
-		const float centerLineAngle = section/2.f;
+		const float centerLineAngle = 0.5*section;
 		const float anglePos = mod(angle, section);
 		const float pos = distance * sin(centerLineAngle - anglePos);
-		if (abs(pos) < barWidth/2.f) {
-			float idx = angle + PI/2.f;
+		const float delta = fwidth(pos*pos);
+		const float alpha = 1.0-smoothstep(0.5*barWidth-delta, 0.5*barWidth+delta, pos*pos);
+		if (alpha > 0.0) {
+			float idx = angle + 0.5*PI;
             float dir = mod(abs(idx), 2.f*PI);
             if (dir > PI)
                 idx = -sign(idx) * (2.f*PI - dir);
 
-			float texCoord = floor(abs(idx)/section) / float(numBars/2.f);
+			float texCoord = 2.0*floor(abs(idx)/section) / numBars;
 
 			float v = 0;
 			if (idx > 0)
@@ -77,11 +78,11 @@ void main() {
 			distance -= radius;
 
 			if (distance <= v) {
-				outColor = vec4(color * brightness * ((distance / 40) + 1), 1.f);
+				outColor = vec4(color * brightness * ((distance / 40) + 1), alpha);
 				return;
 			}
 		}
 	}
 
-	outColor = vec4(38.45, 40.6, 41.2, 0.0)/255.f;
+	outColor = vec4(0);
 }
