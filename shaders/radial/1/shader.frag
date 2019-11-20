@@ -20,6 +20,8 @@ layout(constant_id = 11) const float red = 0.196;
 layout(constant_id = 12) const float green = 0.196;
 layout(constant_id = 13) const float blue = 0.204;
 
+layout(constant_id = 14) const float limit = 0.5;
+
 vec3 color = vec3(red, green, blue);
 
 layout(binding = 0) uniform data {
@@ -49,6 +51,11 @@ void main() {
 
 	if (abs(distance-radius) < 0.5*centerLineWidth) {
 		outColor = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
+
+	if (distance > amplitude*limit+radius) {
+		outColor = vec4(0);
 		return;
 	}
 

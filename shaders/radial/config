@@ -17,3 +17,5 @@ module = "main"
 (id=11) float red = 0.196
 (id=12) float green = 0.196
 (id=13) float blue = 0.204
+
+(id=14) float limit = 0.1
