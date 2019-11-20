@@ -14,7 +14,7 @@ vec4 blurredTexture(in sampler2D image, in vec2 position, float volume) {
 			vec2 pos1 = position+off;
 			vec2 pos2 = position-off;
 
-			if (dot(off*off, vec2(1)) <= volume*volume) {
+			if (dot(off, off) <= volume*volume) {
 				pixel += texture(image, pos1);
 				pixel += texture(image, vec2(pos1.x, pos2.y));
 				pixel += texture(image, vec2(pos2.x, pos1.y));
