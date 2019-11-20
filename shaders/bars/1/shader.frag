@@ -35,31 +35,28 @@ layout(location = 0) out vec4 outColor;
 #include "../../smoothing/smoothing.glsl"
 
 void main() {
-	float brightness = pow(2, 20.f*brightnessSensitivity*(lVolume+rVolume));
+	float brightness = exp2(20.f*brightnessSensitivity*(lVolume+rVolume));
 
-	float x = gl_FragCoord.x - (width/2.0);
+	float x = gl_FragCoord.x - (0.5*width);
 
 	float totalBarSize = barWidth + barGap;
 	float center = totalBarSize/2;
 	float pos = mod(x, totalBarSize);
 
-	if ( center-barWidth/2.0f <= pos && pos <= center + barWidth/2.0f) {
+	if (abs(pos-center) <= 0.5*barWidth) {
 		float y = 1.0f-gl_FragCoord.y/height;
 		float barCenter = x-pos+0.5f;
-		if (x < 0.0) {
-			float v = kernelSmoothTexture(lBuffer, -2.0*barCenter/width);
-			if (y < amplitude*v) {
-				outColor = vec4(color * brightness * (((height-gl_FragCoord.y) / 40) + 1), 1.f);
-				return;
-			}
-		} else {
-			float v = kernelSmoothTexture(rBuffer, 2.0*barCenter/width);
-			if (y < amplitude*v) {
-				outColor = vec4(color * brightness * (((height-gl_FragCoord.y) / 40) + 1), 1.f);
-				return;
-			}
+		float v = 0.f;
+		if (x < 0.0)
+			v = kernelSmoothTexture(lBuffer, -2.0*barCenter/width);
+		else
+			v = kernelSmoothTexture(rBuffer, 2.0*barCenter/width);
+
+		if (y < amplitude*v) {
+			outColor = vec4(color * brightness * (((height-gl_FragCoord.y) / 40) + 1), 1.f);
+			return;
 		}
 	}
 
-	outColor = vec4(0.f, 0.f, 0.f, 0.f);
+	outColor = vec4(0);
 }
