@@ -41,7 +41,7 @@ const float PI = 3.14159265359;
 
 void main() {
 	const float brightness = exp2(20.f*brightnessSensitivity*(lVolume+rVolume));
-	const float radius = min(exp2(radiusSensitivity*(lVolume+rVolume)), 2.f)*originalRadius;
+	const float radius = min(exp2(radiusSensitivity*(lVolume+rVolume)), 2.0)*originalRadius;
 	const vec2 xy = vec2(gl_FragCoord.x - (0.5*width), (0.5*height) - gl_FragCoord.y);
 
 	float angle = atan(xy.y, xy.x);
@@ -53,7 +53,7 @@ void main() {
 	}
 
 	if (distance > radius) {
-		const float section = (2.f*PI/numBars);
+		const float section = (2.0*PI/numBars);
 		const float centerLineAngle = 0.5*section;
 		const float anglePos = mod(angle, section);
 		const float pos = distance * sin(centerLineAngle - anglePos);
@@ -65,7 +65,7 @@ void main() {
             if (dir > PI)
                 idx = -sign(idx) * (2.f*PI - dir);
 
-			float texCoord = 2.0*floor(abs(idx)/section) / numBars;
+			float texCoord = 2.0*floor(idx/section) / numBars;
 
 			float v = 0;
 			if (idx > 0)
@@ -73,11 +73,9 @@ void main() {
 			else
 				v = kernelSmoothTexture(lBuffer, texCoord);
 
-			v *= amplitude;
-
 			distance -= radius;
 
-			if (distance <= v) {
+			if (distance <= amplitude*v) {
 				outColor = vec4(color * brightness * ((distance / 40) + 1), alpha);
 				return;
 			}
