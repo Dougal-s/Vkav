@@ -1,0 +1,14 @@
+
+module = "main"
+
+(id=4) int originalRadius = 128
+
+(id=5) int lineWidth = 2
+
+(id=6) float amplitude = 3000.0
+
+(id=8) float radiusSensitivity = 20
+
+(id=9) float red = 0.196
+(id=10) float green = 0.196
+(id=11) float blue = 0.204
