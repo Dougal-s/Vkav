@@ -12,9 +12,6 @@ float textureExp(in samplerBuffer s, in float index) {
 }
 
 float kernelSmoothTexture(in samplerBuffer s, in float index) {
-	// clamp input between 0 and 1
-	index = wrapIndex(index);
-
 	if (smoothingLevel == 0.f)
 		return texture(s, index);
 
@@ -38,9 +35,6 @@ float kernelSmoothTexture(in samplerBuffer s, in float index) {
 }
 
 float mcatSmoothTexture(in samplerBuffer s, in float index) {
-	// clamp input between 0 and 1
-	index = wrapIndex(index);
-
 	if (smoothingLevel == 0.f)
 		return texture(s, index);
 
