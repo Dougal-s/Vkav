@@ -111,26 +111,31 @@ namespace {
 
 		void mainLoop() {
 			int numFrames = 0;
-			std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
+			std::chrono::microseconds targetFrameTime(1000000/88);
+			std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
+			std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
 
 			while (!audioSampler.stopped()) {
 				if (audioSampler.modified()) {
+					lastFrame = std::chrono::high_resolution_clock::now();
 					audioSampler.copyData(audioData);
 					proccess.proccessSignal(audioData);
 					if (!renderer.drawFrame(audioData)) break;
 					++numFrames;
+					std::this_thread::sleep_until(lastFrame+targetFrameTime/2);
 				}
-				std::this_thread::sleep_for(std::chrono::microseconds(100));
+				std::this_thread::sleep_for(targetFrameTime/4);
 
 				std::chrono::steady_clock::time_point currentTime =
-				    std::chrono::steady_clock::now();
-				if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastFrame)
-				        .count() >= 1) {
+					std::chrono::steady_clock::now();
+				if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastUpdate)
+							.count() >= 1) {
 					std::clog << "FPS: " << std::setw(3) << std::right << numFrames
 					          << " | UPS: " << std::setw(3) << std::right << audioSampler.ups()
 					          << std::endl;
 					numFrames = 0;
-					lastFrame = currentTime;
+					lastUpdate = currentTime;
+					targetFrameTime = std::chrono::microseconds(1000000/audioSampler.ups());
 				}
 			}
 

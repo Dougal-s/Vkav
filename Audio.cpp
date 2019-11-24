@@ -100,7 +100,7 @@ private:
 
 		stopped = false;
 		modified = false;
-		ups = 0;
+		ups = 60;
 
 		pSampleBuffer = new float[settings.sampleSize];
 
