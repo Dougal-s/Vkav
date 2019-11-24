@@ -111,8 +111,8 @@ public:
 	}
 
 	bool drawFrame(const AudioData& audioData) {
-		if (glfwWindowShouldClose(window)) return false;
 		glfwPollEvents();
+		if (glfwWindowShouldClose(window)) return false;
 
 		vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE,
 		                std::numeric_limits<uint64_t>::max());
