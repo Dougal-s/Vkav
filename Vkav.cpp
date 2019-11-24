@@ -171,7 +171,7 @@ namespace {
 				} else if (deviceStr == "GPU") {
 					smoothingDevice = GPU;
 				} else {
-					std::cerr << "Smoothing device set to an invalid value!\n";
+					std::cerr << LOCATION "Smoothing device set to an invalid value!\n";
 				}
 			} else {
 				PRINT_UNDEFINED(smoothingDevice);
@@ -268,7 +268,7 @@ namespace {
 				else if (transparency == "Opaque")
 					renderSettings.transparency = OPAQUE;
 				else
-					std::cerr << "Transparency set to an invalid value!\n";
+					std::cerr << LOCATION "Transparency set to an invalid value!\n";
 			} else {
 				PRINT_UNDEFINED(transparency);
 			}

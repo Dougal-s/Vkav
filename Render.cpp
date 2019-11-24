@@ -307,7 +307,8 @@ private:
 		               settings.transparency == NATIVE ? GLFW_TRUE : GLFW_FALSE);
 #else
 		if (settings.transparency == NATIVE) {
-			std::cerr << "Native transaprency unsupported by current configuration!" << std::endl;
+			std::cerr << LOCATION "Native transaprency unsupported by current configuration!"
+			          << std::endl;
 			settings.transparency = OPAQUE;
 		}
 #endif
@@ -627,7 +628,7 @@ private:
 				    VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) {
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 				} else {
-					std::cerr << "native transparency not supported!\n";
+					std::cerr << LOCATION "native transparency not supported!\n";
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 					settings.transparency = OPAQUE;
 				}
@@ -637,7 +638,7 @@ private:
 				    VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR) {
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 				} else {
-					std::cerr << "vulkan transparency not supported!\n";
+					std::cerr << LOCATION "vulkan transparency not supported!\n";
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 					settings.transparency = OPAQUE;
 				}
