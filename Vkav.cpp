@@ -18,6 +18,10 @@
 #include "Render.hpp"
 #include "Settings.hpp"
 
+#define S1(x) #x
+#define S2(x) S1(x)
+#define LOCATION __FILE__ ":" S2(__LINE__) ": "
+
 namespace {
 
 	enum Device { CPU, GPU };
