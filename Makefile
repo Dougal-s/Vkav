@@ -10,6 +10,20 @@ VULKAN_SDK_LAYER_PATH = $(VULKAN_SDK_PATH)/etc/explicit_layer.d
 CFLAGS = -std=c++17 -I$(VULKAN_SDK_INCLUDE)
 LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs
 
+ifeq ($(OS),Windows_NT)
+    AUDIO_BACKEND ?= WASAPI
+else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Linux)
+        AUDIO_BACKEND ?= PULSEAUDIO
+    endif
+    ifeq ($(UNAME_S),Darwin)
+        AUDIO_BACKEND ?= COREAUDIO
+    endif
+endif
+
+CFLAGS += -D $(AUDIO_BACKEND)
+
 ifdef DISABLE_PNG
 	CFLAGS += -D DISABLE_PNG
 else

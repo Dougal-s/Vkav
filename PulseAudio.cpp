@@ -1,3 +1,4 @@
+#ifdef PULSEAUDIO
 // C++ standard libraries
 #include <atomic>
 #include <chrono>
@@ -223,3 +224,4 @@ void AudioSampler::stop() { delete audioSamplerImpl; }
 void AudioSampler::copyData(AudioData& audioData) { audioSamplerImpl->copyData(audioData); }
 
 void AudioSampler::rethrowExceptions() { return audioSamplerImpl->rethrowExceptions(); }
+#endif
