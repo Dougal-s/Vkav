@@ -76,5 +76,5 @@ void main() {
 
 	const float delta = 0.5*lineWidth+fwidth(distance*distance);
 	const float alpha = smoothstep(0, 0.5*delta, abs(distance-lineCenter));
-	outColor = vec4(0,0,0, alpha);
+	outColor = vec4(red,green,blue, alpha);
 }

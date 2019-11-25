@@ -7,8 +7,8 @@ module = "main"
 
 (id=6) float amplitude = 3000.0
 
-(id=8) float radiusSensitivity = 20
+(id=7) float radiusSensitivity = 15
 
-(id=9) float red = 0.196
-(id=10) float green = 0.196
-(id=11) float blue = 0.204
+(id=8) float red = 0
+(id=9) float green = 0
+(id=10) float blue = 0
