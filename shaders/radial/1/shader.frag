@@ -27,13 +27,10 @@ vec3 color = vec3(red, green, blue);
 layout(binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
-	uint time;
 };
 
 layout(binding = 1) uniform samplerBuffer lBuffer;
 layout(binding = 2) uniform samplerBuffer rBuffer;
-
-layout(binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) out vec4 outColor;
 

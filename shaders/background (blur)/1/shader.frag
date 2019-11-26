@@ -4,8 +4,6 @@
 
 #include "../../smoothing/textureBlur.glsl"
 
-layout(constant_id = 0) const int audioSize        = 1;
-layout(constant_id = 1) const float smoothingLevel = 0.f;
 layout(constant_id = 2) const int width            = 1;
 layout(constant_id = 3) const int height           = 1;
 
@@ -25,9 +23,7 @@ layout(location = 0) in vec2 fragTexCoord;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	float volume = min(0.01*amplitude*(lVolume+rVolume), maxBlur);
-	float brightness = min(pow(2, 10.f*brightnessSensitivity*(lVolume+rVolume)), 2);
-
-	vec4 color = brightness*blurredTexture(backgroundImage, fragTexCoord, volume);
-	outColor = color;
+	float blurAmount = min(0.01*amplitude*(lVolume+rVolume), maxBlur);
+	float brightness = min(exp2(10.f*brightnessSensitivity*(lVolume+rVolume)), 2);
+	outColor = brightness*blurredTexture(backgroundImage, fragTexCoord, blurAmount);
 }
