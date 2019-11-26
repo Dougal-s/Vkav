@@ -12,3 +12,13 @@ module = "main"
 (id=8) float red = 0
 (id=9) float green = 0
 (id=10) float blue = 0
+
+(id=11) int enableBackground = 0
+
+(id=12) float backgroundRed1 = 1
+(id=13) float backgroundGreen1 = 0.549
+(id=14) float backgroundBlue1 = 0.0
+
+(id=15) float backgroundRed2 = 1
+(id=16) float backgroundGreen2 = 0.27
+(id=17) float backgroundBlue2 = 0
