@@ -120,7 +120,7 @@ namespace {
 			    std::chrono::high_resolution_clock::now();
 			std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
 
-			while (!audioSampler.stopped()) {
+			while (audioSampler.running()) {
 				if (audioSampler.modified()) {
 					lastFrame = std::chrono::high_resolution_clock::now();
 					audioSampler.copyData(audioData);

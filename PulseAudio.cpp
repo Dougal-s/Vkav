@@ -25,7 +25,7 @@
 
 class AudioSampler::AudioSamplerImpl {
 public:
-	std::atomic<bool> stopped;
+	std::atomic<bool> running;
 	std::atomic<bool> modified;
 	std::atomic<int> ups;
 
@@ -36,14 +36,14 @@ public:
 			try {
 				run();
 			} catch (const std::exception& e) {
-				stopped = true;
+				running = false;
 				exceptionPtr = std::current_exception();
 			}
 		});
 	}
 
 	~AudioSamplerImpl() {
-		stopped = true;
+		running = false;
 		audioThread.join();
 
 		for (uint32_t i = 0; i < settings.bufferSize / settings.sampleSize; ++i)
@@ -99,7 +99,7 @@ private:
 		settings.sampleRate = audioSettings.sampleRate;
 		settings.sinkName = audioSettings.sinkName;
 
-		stopped = false;
+		running = true;
 		modified = false;
 		ups = settings.sampleRate / settings.sampleSize;
 
@@ -120,7 +120,7 @@ private:
 		std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
 		int numUpdates = 0;
 
-		while (!this->stopped) {
+		while (this->running) {
 			if (pa_simple_read(s, pSampleBuffer, sizeof(float) * settings.sampleSize, &error) < 0)
 				throw std::runtime_error(std::string(LOCATION "pa_simple_read() failed: ") +
 				                         pa_strerror(error));
@@ -209,7 +209,7 @@ private:
 	}
 };
 
-bool AudioSampler::stopped() const { return audioSamplerImpl->stopped; }
+bool AudioSampler::running() const { return audioSamplerImpl->running; }
 
 bool AudioSampler::modified() const { return audioSamplerImpl->modified; }
 

@@ -15,7 +15,7 @@ struct AudioSettings {
 
 class AudioSampler {
 public:
-	bool stopped() const;
+	bool running() const;
 	bool modified() const;
 	int ups() const;
 
