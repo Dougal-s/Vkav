@@ -171,7 +171,7 @@ private:
 
 		pa_buffer_attr attr = {};
 		attr.maxlength = (uint32_t)-1;
-		attr.fragsize = settings.sampleSize;
+		attr.fragsize = sizeof(float) * settings.sampleSize;
 
 		s = pa_simple_new(NULL, "Vkav", PA_STREAM_RECORD, settings.sinkName.c_str(),
 		                  "recorder for Vkav", &ss, NULL, &attr, &error);
