@@ -126,9 +126,9 @@ private:
 				                         pa_strerror(error));
 
 			audioMutexLock.lock();
+			std::swap(ppAudioBuffer[0], pSampleBuffer);
 			for (size_t i = 1; i < settings.bufferSize / settings.sampleSize; ++i)
 				std::swap(ppAudioBuffer[i - 1], ppAudioBuffer[i]);
-			std::swap(ppAudioBuffer[settings.bufferSize / settings.sampleSize - 1], pSampleBuffer);
 			audioMutexLock.unlock();
 			this->modified = true;
 
@@ -197,8 +197,6 @@ private:
 				pa_operation_unref(pa_context_get_server_info(c, callback, userdata));
 				break;
 			case PA_CONTEXT_FAILED:
-				pa_mainloop_quit(audio->mainloop, 0);
-				break;
 			case PA_CONTEXT_TERMINATED:
 				pa_mainloop_quit(audio->mainloop, 0);
 				break;
