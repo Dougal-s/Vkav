@@ -27,7 +27,8 @@ struct RenderSettings {
 
 	size_t audioSize;
 	float smoothingLevel = 16.f;
-	std::vector<std::filesystem::path> moduleDirectories =
+	std::vector<std::filesystem::path> configLocations;
+	std::vector<std::filesystem::path> modules =
 	    std::vector<std::filesystem::path>(1, "shaders/bars");
 	std::filesystem::path backgroundImage;
 

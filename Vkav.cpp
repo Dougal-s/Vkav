@@ -70,6 +70,20 @@ namespace {
 
 			std::filesystem::path configFilePath = argv[0];
 			configFilePath.replace_filename("config");
+
+#ifdef NDEBUG
+			auto configLocations = getConfigLocations();
+			for (auto& path : configLocations) {
+				if (std::filesystem::exists(path / "config")) {
+					configFilePath = path / "config";
+					break;
+				}
+			}
+#else
+			std::vector<std::filesystem::path> configLocations = {argv[0]};
+			configLocations.front().remove_filename();
+#endif
+
 			if (const auto cmdLineArg = cmdLineArgs.find('c'); cmdLineArg != cmdLineArgs.end())
 				configFilePath = cmdLineArg->second;
 
@@ -79,6 +93,7 @@ namespace {
 
 			AudioSettings audioSettings = {};
 			RenderSettings renderSettings = {};
+			renderSettings.configLocations = configLocations;
 			ProccessSettings proccessSettings = {};
 
 			fillStructs(argv[0], cmdLineArgs, configSettings, audioSettings, renderSettings,
@@ -226,7 +241,7 @@ namespace {
 
 			if (const auto confSetting = configSettings.find("moduleDirectories");
 			    confSetting != configSettings.end()) {
-				renderSettings.moduleDirectories.clear();
+				renderSettings.modules.clear();
 				std::stringstream ss(confSetting->second);
 				std::string directory;
 				while (std::getline(ss, directory, '\"').good()) {
@@ -235,7 +250,7 @@ namespace {
 						                            ": Missing terminating \" character in "
 						                            "configuration "
 						                            "file");
-					renderSettings.moduleDirectories.push_back(directory);
+					renderSettings.modules.push_back(directory);
 				}
 			} else {
 				PRINT_UNDEFINED(moduleDirectories);

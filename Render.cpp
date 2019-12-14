@@ -29,8 +29,6 @@
 namespace {
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-	constexpr const char* VERTEX_SHADER_PATH = "./shaders";
-
 	const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
 
 	const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -751,19 +749,31 @@ private:
 	}
 
 	void prepareGraphicsPipelineCreation() {
-		modules.resize(settings.moduleDirectories.size());
+		modules.resize(settings.modules.size());
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
-			std::filesystem::path layerDirectory = settings.moduleDirectories[i];
+			std::filesystem::path layerDirectory;
+			if (std::filesystem::path(settings.modules[i]).is_absolute()) {
+				layerDirectory = settings.modules[i];
+			} else {
+				for (auto& path : settings.configLocations) {
+					if (std::filesystem::exists(path / "shaders" / settings.modules[i]))
+						layerDirectory = path / "shaders" / settings.modules[i];
+				}
+			}
+
+			if (layerDirectory.empty())
+				throw std::invalid_argument(LOCATION "Unable to locate shader!");
+
 			for (uint32_t layer = 1;
 			     std::filesystem::exists(layerDirectory / std::to_string(layer)); ++layer) {
 				modules[i].layers.resize(layer);
 				std::filesystem::path vertexShaderPath = layerDirectory / std::to_string(layer);
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = settings.moduleDirectories[i];
+					vertexShaderPath = settings.modules[i];
 
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = VERTEX_SHADER_PATH;
+					vertexShaderPath = settings.configLocations.front() / "shaders";
 
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
 				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
@@ -773,8 +783,7 @@ private:
 				modules[i].layers[layer - 1].fragShaderModule = createShaderModule(fragShaderCode);
 			}
 
-			std::filesystem::path configFilePath = settings.moduleDirectories[i];
-			configFilePath /= "config";
+			std::filesystem::path configFilePath = layerDirectory / "config";
 			modules[i].specializationConstants = readSpecializationConstants(
 			    configFilePath, modules[i].moduleName, modules[i].vertexCount);
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);

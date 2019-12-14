@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -8,6 +9,15 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+
+#ifdef LINUX
+#include <pwd.h>
+#include <sys/types.h>
+#include <unistd.h>
+#elif defined(MACOS)
+#elif defined(WINDOWS)
+#else
+#endif
 
 #include "Settings.hpp"
 
@@ -107,4 +117,30 @@ std::unordered_map<char, std::string> readCmdLineArgs(int argc, const char* argv
 		}
 	}
 	return arguments;
+}
+
+std::vector<std::filesystem::path> getConfigLocations() {
+	std::vector<std::filesystem::path> configLocations;
+#ifdef LINUX
+	configLocations.resize(2);
+	if (configLocations[0].empty()) configLocations[0] = std::getenv("HOME");
+
+	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
+
+	configLocations[0] /= ".config/Vkav";
+
+	configLocations[1] = "/etc/Vkav";
+#elif defined(MACOS)
+#elif defined(WINDOWS)
+#else
+#endif
+
+	for (auto it = configLocations.begin(); it != configLocations.end();) {
+		if (!std::filesystem::is_directory(*it))
+			it = configLocations.erase(it);
+		else
+			++it;
+	}
+
+	return configLocations;
 }
