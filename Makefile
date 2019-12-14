@@ -11,18 +11,21 @@ CFLAGS = -std=c++17 -I$(VULKAN_SDK_INCLUDE)
 LDFLAGS = -lglfw -lvulkan -lpulse -lpulse-simple -lpthread -lstdc++fs
 
 ifeq ($(OS),Windows_NT)
-    AUDIO_BACKEND ?= WASAPI
+	AUDIO_BACKEND ?= WASAPI
+	CFLAGS += -DWindows
 else
-    UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
-        AUDIO_BACKEND ?= PULSEAUDIO
-    endif
-    ifeq ($(UNAME_S),Darwin)
-        AUDIO_BACKEND ?= COREAUDIO
-    endif
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		AUDIO_BACKEND ?= PULSEAUDIO
+		CFLAGS += -DLINUX
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		AUDIO_BACKEND ?= COREAUDIO
+		CFLAGS += -DMACOS
+	endif
 endif
 
-CFLAGS += -D $(AUDIO_BACKEND)
+CFLAGS += -D$(AUDIO_BACKEND)
 
 ifdef DISABLE_PNG
 	CFLAGS += -D DISABLE_PNG
