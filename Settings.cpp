@@ -16,6 +16,8 @@
 #include <unistd.h>
 #elif defined(MACOS)
 #elif defined(WINDOWS)
+#include <Combaseapi.h>
+#include <Shlobj_api.h>
 #else
 #endif
 
@@ -124,14 +126,22 @@ std::vector<std::filesystem::path> getConfigLocations() {
 #ifdef LINUX
 	configLocations.resize(2);
 	if (configLocations[0].empty()) configLocations[0] = std::getenv("HOME");
-
 	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
-
 	configLocations[0] /= ".config/Vkav";
-
 	configLocations[1] = "/etc/Vkav";
 #elif defined(MACOS)
 #elif defined(WINDOWS)
+	configLocations.resize(2);
+	const char* path;
+	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
+	configLocations[0] = path;
+	configLocations[0] /= "Vkav";
+	CoTaskMemFree(path);
+
+	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, path);
+	configLocations[1] = path;
+	configLocations[1] /= "Vkav";
+	CoTaskMemFree(path);
 #else
 #endif
 
