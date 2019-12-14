@@ -50,19 +50,19 @@ void main() {
 	const float bassMixPoint = 0.05;
 
 	float v = 0;
-	if (abs(texCoord) > trebleMixPoint) {
+	if (abs(texCoord) > trebleMixPoint)
 		v = mix(
 				kernelSmoothTexture(lBuffer, texCoord),
 				kernelSmoothTexture(rBuffer, texCoord),
 				0.5+sign(texCoord)*0.5f/(1-trebleMixPoint)*(1.f-abs(texCoord))
 			);
-	} else if (abs(texCoord) < bassMixPoint) {
+	else if (abs(texCoord) < bassMixPoint)
 		v = mix(
 				kernelSmoothTexture(lBuffer, texCoord),
 				kernelSmoothTexture(rBuffer, texCoord),
 				0.5+sign(texCoord)*0.5f/bassMixPoint*abs(texCoord)
 			);
-	} else if (texCoord < 0)
+	else if (texCoord < 0)
 		v = kernelSmoothTexture(lBuffer, texCoord);
 	else
 		v = kernelSmoothTexture(rBuffer, texCoord);
