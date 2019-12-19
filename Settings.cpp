@@ -15,6 +15,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #elif defined(MACOS)
+#include <pwd.h>
+#include <sys/types.h>
+#include <unistd.h>
 #elif defined(WINDOWS)
 #include <Combaseapi.h>
 #include <Shlobj_api.h>
