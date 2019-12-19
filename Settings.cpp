@@ -128,13 +128,13 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	std::vector<std::filesystem::path> configLocations;
 #ifdef LINUX
 	configLocations.resize(2);
-	if (configLocations[0].empty()) configLocations[0] = std::getenv("HOME");
+	configLocations[0] = std::getenv("HOME");
 	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
 	configLocations[0] /= ".config/Vkav";
 	configLocations[1] = "/etc/Vkav";
 #elif defined(MACOS)
 	configLocations.resize(2);
-	if (configLocations[0].empty()) configLocations[0] = std::getenv("HOME");
+	configLocations[0] = std::getenv("HOME");
 	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
 	configLocations[0] /= "Library/Preferences";
 	configLocations[1] = "/Library/Preferences";
