@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -71,11 +72,11 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::filesyste
 	return variables;
 }
 
-std::unordered_map<char, std::string> readCmdLineArgs(int argc, const char* argv[]) {
-	std::unordered_map<char, std::string> arguments(argc - 1);
+std::unordered_map<std::string, std::string> readCmdLineArgs(int argc, const char* argv[]) {
+	std::unordered_map<std::string, std::string> arguments(argc - 1);
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-')
-			throw std::invalid_argument(__FILE__ ": Invalid command line argument!");
+			throw std::invalid_argument(LOCATION ": Invalid command line argument!");
 
 		std::string argValue;
 		std::string argName = argv[i];
@@ -89,28 +90,25 @@ std::unordered_map<char, std::string> readCmdLineArgs(int argc, const char* argv
 		}
 
 		if (argv[i][1] == '-') {
-			char charKey = 0;
+			static const std::unordered_set<std::string> validCmdLineFlags = {
+			    "--verbose",   "--sink-name", "--device",  "--config",
+			    "--amplitude", "--help",      "--version", "--install-config"};
 
-			static const std::unordered_map<std::string, char> cmdLineArgKeyMap = {
-			    {"--verbose", 'v'},   {"--sink-name", 's'}, {"--device", 'd'}, {"--config", 'c'},
-			    {"--amplitude", 'a'}, {"--help", 'h'},      {"--version", 'V'}};
+			if (validCmdLineFlags.find(argName) == validCmdLineFlags.end())
+				throw std::invalid_argument(LOCATION ": Invalid command line argument!");
 
-			if (const auto it = cmdLineArgKeyMap.find(argName); it != cmdLineArgKeyMap.end()) {
-				charKey = it->second;
-			}
-
-			if (charKey == 0)
-				throw std::invalid_argument(__FILE__ ": Invalid command line argument!");
-
-			arguments.insert(std::make_pair(charKey, argValue));
+			arguments.insert(std::make_pair(argv[i] + 2, argValue));
 
 		} else {
-			static const std::unordered_set<char> validCmdLineFlags = {'v', 's', 'd', 'c',
-			                                                           'a', 'h', 'V'};
-			if (validCmdLineFlags.find(argv[i][1]) == validCmdLineFlags.end())
-				throw std::invalid_argument(__FILE__ ": Invalid command line argument!");
+			std::string key;
+			static const std::unordered_map<char, std::string> cmdLineArgKeyMap = {
+			    {'v', "verbose"},   {'s', "sink-name"}, {'d', "device"}, {'c', "config"},
+			    {'a', "amplitude"}, {'h', "help"},      {'V', "version"}};
+			if (const auto it = cmdLineArgKeyMap.find(argv[i][1]); it != cmdLineArgKeyMap.end())
+				key = it->second;
+			else
+				throw std::invalid_argument(LOCATION ": Invalid command line argument!");
 
-			char key = argv[i][1];
 			const char* value;
 
 			if (!argv[i][2] && i + 1 < argc && argv[i + 1][0] != '-')
@@ -161,4 +159,41 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	}
 
 	return configLocations;
+}
+
+void installConfig() {
+	std::filesystem::path src, dst;
+#ifdef LINUX
+	src = "/etc/Vkav";
+	dst = std::getenv("HOME");
+	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
+	dst /= ".config/Vkav";
+#elif defined(MACOS)
+	src = "/Library/Preferences";
+	dst = std::getenv("HOME");
+	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
+	dst /= "Library/Preferences";
+#elif defined(WINDOWS)
+	const char* path;
+	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
+	dst = path;
+	dst /= "Vkav";
+	CoTaskMemFree(path);
+
+	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, path);
+	src = path;
+	src /= "Vkav";
+	CoTaskMemFree(path);
+#else
+	throw std::runtime_error(LOCATION "Unsupported operating system!");
+#endif
+
+	if (!std::filesystem::exists(src))
+		throw std::runtime_error(LOCATION "Source directory: " + std::string(src) +
+		                         " does not exist!");
+
+	std::cout << "Copying config files from " << src << " to " << dst << std::endl;
+	std::filesystem::copy(src, dst,
+	                      std::filesystem::copy_options::overwrite_existing |
+	                          std::filesystem::copy_options::recursive);
 }

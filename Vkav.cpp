@@ -44,6 +44,8 @@ namespace {
 	    "-a, --amplitude=AMPLITUDE     Multiplies audio with AMPLITUDE.\n"
 	    "-h, --help                    Display this help and exit.\n"
 	    "-V, --version                 Output version information and exit.\n"
+	    "    --install-config          Installs config files to a user\n"
+	    "                                specific config directory.\n"
 	    "\n";
 
 #define PRINT_UNDEFINED(name) std::clog << #name << " not defined!" << std::endl;
@@ -54,19 +56,26 @@ namespace {
 			std::chrono::high_resolution_clock::time_point initStart =
 			    std::chrono::high_resolution_clock::now();
 
-			const std::unordered_map<char, std::string> cmdLineArgs = readCmdLineArgs(argc, argv);
+			const std::unordered_map<std::string, std::string> cmdLineArgs =
+			    readCmdLineArgs(argc, argv);
 
-			if (cmdLineArgs.find('h') != cmdLineArgs.end()) {
+			if (cmdLineArgs.find("help") != cmdLineArgs.end()) {
 				std::cout << "Usage: " << argv[0] << " [OPTIONS]...\n" << helpStr << versionStr;
 				std::exit(0);
 			}
 
-			if (cmdLineArgs.find('V') != cmdLineArgs.end()) {
+			if (cmdLineArgs.find("version") != cmdLineArgs.end()) {
 				std::cout << versionStr;
 				std::exit(0);
 			}
 
-			if (cmdLineArgs.find('v') == cmdLineArgs.end()) std::clog.setstate(std::ios::failbit);
+			if (cmdLineArgs.find("install-config") != cmdLineArgs.end()) {
+				installConfig();
+				std::exit(0);
+			}
+
+			if (cmdLineArgs.find("verbose") == cmdLineArgs.end())
+				std::clog.setstate(std::ios::failbit);
 
 			std::filesystem::path configFilePath = argv[0];
 			configFilePath.replace_filename("config");
@@ -84,7 +93,7 @@ namespace {
 			configLocations.front().remove_filename();
 #endif
 
-			if (const auto cmdLineArg = cmdLineArgs.find('c'); cmdLineArg != cmdLineArgs.end())
+			if (const auto cmdLineArg = cmdLineArgs.find("config"); cmdLineArg != cmdLineArgs.end())
 				configFilePath = cmdLineArg->second;
 
 			std::clog << "Parsing configuration file.\n";
@@ -170,7 +179,7 @@ namespace {
 		}
 
 		static void fillStructs(const char* execPath,
-		                        const std::unordered_map<char, std::string> cmdLineArgs,
+		                        const std::unordered_map<std::string, std::string> cmdLineArgs,
 		                        const std::unordered_map<std::string, std::string> configSettings,
 		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
 		                        ProccessSettings& proccessSettings) {
@@ -227,7 +236,8 @@ namespace {
 			else
 				PRINT_UNDEFINED(sampleRate);
 
-			if (const auto cmdLineArg = cmdLineArgs.find('s'); cmdLineArg != cmdLineArgs.end()) {
+			if (const auto cmdLineArg = cmdLineArgs.find("sink-name");
+			    cmdLineArg != cmdLineArgs.end()) {
 				audioSettings.sinkName = cmdLineArg->second;
 			} else {
 				if (const auto confSetting = configSettings.find("sinkName");
@@ -345,7 +355,8 @@ namespace {
 					break;
 			}
 
-			if (const auto cmdLineArg = cmdLineArgs.find('d'); cmdLineArg != cmdLineArgs.end()) {
+			if (const auto cmdLineArg = cmdLineArgs.find("device");
+			    cmdLineArg != cmdLineArgs.end()) {
 				renderSettings.physicalDevice.value() = std::stoi(cmdLineArg->second);
 			} else {
 				if (const auto confSetting = configSettings.find("physicalDevice");
@@ -362,7 +373,8 @@ namespace {
 			proccessSettings.outputSize = smoothedSize;
 			proccessSettings.smoothingLevel = smoothingLevel;
 
-			if (const auto cmdLineArg = cmdLineArgs.find('a'); cmdLineArg != cmdLineArgs.end()) {
+			if (const auto cmdLineArg = cmdLineArgs.find("amplitude");
+			    cmdLineArg != cmdLineArgs.end()) {
 				proccessSettings.amplitude = std::stof(cmdLineArg->second);
 			} else {
 				if (const auto confSetting = configSettings.find("amplitude");
