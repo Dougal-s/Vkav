@@ -1599,9 +1599,10 @@ private:
 	// Static member functions
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL
-	debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	              VkDebugUtilsMessageTypeFlagsEXT messageType,
-	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* userData) {
+	debugCallback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	              [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
+	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	              [[maybe_unused]] void* userData) {
 		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 		return VK_FALSE;
 	}
@@ -1698,7 +1699,8 @@ private:
 		return specializationConstants;
 	}
 
-	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+	static void framebufferResizeCallback(GLFWwindow* window, [[maybe_unused]] int width,
+	                                      [[maybe_unused]] int height) {
 		auto renderer = reinterpret_cast<RendererImpl*>(glfwGetWindowUserPointer(window));
 		renderer->framebufferResized = true;
 	}
