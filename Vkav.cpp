@@ -27,7 +27,12 @@ namespace {
 	enum Device { CPU, GPU };
 
 	static constexpr const char* versionStr =
-	    "Vkav v1.1\n"
+	    "Vkav v1.1 "
+#ifdef NDEBUG
+	    "release\n"
+#else
+	    "debug\n"
+#endif
 	    "Written by Dougal Stewart\n";
 
 	static constexpr const char* helpStr =
