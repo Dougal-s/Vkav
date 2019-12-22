@@ -103,11 +103,11 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	install(FILES config
 			CONFIGURATIONS Release
 			TYPE SYSCONF
-			DESTINATION Vkav)
+			DESTINATION /etc/Vkav)
 	install(DIRECTORY shaders
 			CONFIGURATIONS Release
 			TYPE SYSCONF
-		RUNTIME DESTINATION Vkav)
+			DESTINATION /etc/Vkav)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 endif()
