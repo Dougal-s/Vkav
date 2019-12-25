@@ -757,8 +757,10 @@ private:
 				layerDirectory = settings.modules[i];
 			} else {
 				for (auto& path : settings.configLocations) {
-					if (std::filesystem::exists(path / "shaders" / settings.modules[i]))
+					if (std::filesystem::exists(path / "shaders" / settings.modules[i])) {
 						layerDirectory = path / "shaders" / settings.modules[i];
+						break;
+					}
 				}
 			}
 
