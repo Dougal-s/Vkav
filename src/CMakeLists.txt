@@ -34,7 +34,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 
-add_library(audioModule src/CoreAudio.cpp src/PulseAudio.cpp src/PulseAudioAsync.cpp src/WASAPI.cpp)
+add_library(audioModule CoreAudio.cpp PulseAudio.cpp PulseAudioAsync.cpp WASAPI.cpp)
 if (${AUDIO_BACKEND} MATCHES COREAUDIO)
 	add_definitions(-DCOREAUDIO)
 	find_library(coreAudio CoreAudio)
@@ -62,9 +62,9 @@ elseif (${AUDIO_BACKEND} MATCHES WASAPI)
 	target_link_libraries(audioModule ${WASAPI})
 endif()
 target_link_libraries(audioModule -lpthread)
-target_include_directories(audioModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(audioModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library(graphicsModule src/Render.cpp src/Image.cpp)
+add_library(graphicsModule Render.cpp Image.cpp)
 find_library(GLFW glfw)
 target_link_libraries(graphicsModule ${GLFW})
 find_package(Vulkan REQUIRED)
@@ -82,10 +82,10 @@ else()
 	target_link_libraries(graphicsModule JPEG::JPEG)
 endif()
 target_link_libraries(graphicsModule -lstdc++fs)
-target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(Vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Render.cpp src/Image.cpp src/Data.cpp)
-target_include_directories(Vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_executable(Vkav Vkav.cpp Proccess.cpp Settings.cpp Render.cpp Image.cpp Data.cpp)
+target_include_directories(Vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(Vkav audioModule)
 target_link_libraries(Vkav graphicsModule)
 target_link_libraries(Vkav -lstdc++fs)
@@ -100,11 +100,11 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	install(TARGETS Vkav
 			CONFIGURATIONS Release
 			RUNTIME DESTINATION bin)
-	install(FILES src/config
+	install(FILES config
 			CONFIGURATIONS Release
 			TYPE SYSCONF
 			DESTINATION /etc/Vkav)
-	install(DIRECTORY src/shaders
+	install(DIRECTORY shaders
 			CONFIGURATIONS Release
 			TYPE SYSCONF
 			DESTINATION /etc/Vkav)

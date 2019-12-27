@@ -82,24 +82,25 @@ namespace {
 			if (cmdLineArgs.find("verbose") == cmdLineArgs.end())
 				std::clog.setstate(std::ios::failbit);
 
-			std::filesystem::path configFilePath = argv[0];
-			configFilePath.replace_filename("config");
+			std::filesystem::path configFilePath;
 
 #ifdef NDEBUG
 			auto configLocations = getConfigLocations();
+#else
+			std::vector<std::filesystem::path> configLocations = {argv[0]};
+			configLocations.front().remove_filename();
+			configLocations.front() = std::filesystem::canonical(configLocations.front()).parent_path()/"src";
+#endif
 			for (auto& path : configLocations) {
 				if (std::filesystem::exists(path / "config")) {
 					configFilePath = path / "config";
 					break;
 				}
 			}
-#else
-			std::vector<std::filesystem::path> configLocations = {argv[0]};
-			configLocations.front().remove_filename();
-#endif
 
 			if (const auto cmdLineArg = cmdLineArgs.find("config"); cmdLineArg != cmdLineArgs.end())
 				configFilePath = cmdLineArg->second;
+
 
 			std::clog << "Parsing configuration file.\n";
 			const std::unordered_map<std::string, std::string> configSettings =
