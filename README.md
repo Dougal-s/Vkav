@@ -1,6 +1,6 @@
 # <img src="logo.svg" width="400">
 
-<img align="left" src="https://thumbs.gfycat.com/unconsciousalarminggreatwhiteshark-size_restricted.gif" width="160" height="160" />
+<img align="left" src="https://thumbs.gfycat.com/UnconsciousAlarmingGreatwhiteshark-size_restricted.gif" width="160" height="160" />
 
 Vkav is an audio visualizer written in C++ using Vulkan as its rendering backend.<br/>
 Shown on the left is the eclipse shader.<br/>
