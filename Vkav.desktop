@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Vkav
+GenericName=Audio Visualiser
+Comment=An audio visualiser
+Keywords=audio visualiser
+Exec=Vkav
+Icon=Vkav
+Terminal=false
+Type=Application
+Categories=Audio

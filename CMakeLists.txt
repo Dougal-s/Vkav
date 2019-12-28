@@ -97,17 +97,26 @@ endif()
 # Installer
 
 if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
-	install(TARGETS Vkav
+	install(TARGETS Vkav # executable
 			CONFIGURATIONS Release
 			RUNTIME DESTINATION bin)
-	install(FILES src/config
+	install(FILES src/config # config file
 			CONFIGURATIONS Release
 			TYPE SYSCONF
 			DESTINATION /etc/Vkav)
-	install(DIRECTORY src/shaders
+	install(DIRECTORY src/shaders # shaders
 			CONFIGURATIONS Release
 			TYPE SYSCONF
 			DESTINATION /etc/Vkav)
+	install(FILES Vkav.desktop # .desktop file
+			CONFIGURATIONS Release
+			DESTINATION /usr/share/applications)
+	install(FILES Vkav.png # icon
+			CONFIGURATIONS Release
+			DESTINATION /usr/share/icons/hicolor/48x48/apps)
+	install(FILES Vkav.svg # icon
+			CONFIGURATIONS Release
+			DESTINATION /usr/share/icons/hicolor/scalable/apps)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 endif()
