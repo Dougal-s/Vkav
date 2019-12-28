@@ -1,0 +1,10 @@
+Package: vkav
+Version: 0.1-1
+Section: base
+Priority: optional
+Architecture: amd64
+Depends: pulseaudio (>= 13.0.0)
+Maintainer: Dougal Stewart <dougal.koji@gmail.com>
+Description: Vkav
+ An audio visualiser written in c++ using
+ Vulkan for rendering.
