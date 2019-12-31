@@ -4,14 +4,20 @@ on: [push]
 
 jobs:
   build:
+    
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v1
     - name: Install Dependecies
-      run: sudo apt-get update && sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev
+      run: sudo apt-get update && sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev ${{ matrix.compiler }}
     - name: build
+      env:
+        CXX: ${{ matrix.compiler }}
       run: |
         mkdir build
         cd build
