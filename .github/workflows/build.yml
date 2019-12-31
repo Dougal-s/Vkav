@@ -4,10 +4,6 @@ on: [push]
 
 jobs:
   build:
-    
-    strategy:
-      matrix:
-        compiler: [g++]
 
     runs-on: ubuntu-latest
 
@@ -17,7 +13,7 @@ jobs:
       run: sudo apt-get update && sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev g++-9
     - name: build
       env:
-        CXX: ${{ matrix.compiler }}
+        CXX: g++-9
       run: |
         mkdir build
         cd build
