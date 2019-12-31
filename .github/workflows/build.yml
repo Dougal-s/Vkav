@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install Dependecies
-      run: sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev
+      run: sudo apt-get update && sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev
     - name: build
       run: |
         mkdir build
