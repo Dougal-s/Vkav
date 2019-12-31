@@ -1,0 +1,19 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependecies
+      run: sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev
+    - name: build
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make
