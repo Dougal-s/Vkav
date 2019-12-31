@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install Dependecies
-      run: sudo apt-get update && sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev g++ clang
+      run: sudo apt-get update && sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev g++-9 clang-9
     - name: build
       env:
         CXX: ${{ matrix.compiler }}
