@@ -36,8 +36,7 @@ Clone the repository and compile Vkav using:
 ```
 $ git clone https://github.com/Dougal-s/Vkav.git
 $ cd Vkav
-$ mkdir build
-$ cd build
+$ mkdir build && cd build
 $ cmake ..
 $ make
 ```
