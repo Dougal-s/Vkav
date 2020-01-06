@@ -23,6 +23,10 @@ Shown on the left is the eclipse shader.<br/>
 * WASAPI (Windows only)\*
 * Coreaudio (MacOS only)\*
 
+### Compilation Tools:
+* g++ >= 8 or clang++ >= 7
+* cmake >= 3
+
 \*Windows and MacOS support has not been implemented.
 
 #### Debian/Ubuntu:
