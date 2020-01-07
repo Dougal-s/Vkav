@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Vkav VERSION 0.1)
+project(Vkav VERSION 0.1.0)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
