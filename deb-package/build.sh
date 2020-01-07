@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 mkdir "vkav_0.1-1/usr"
 mkdir "vkav_0.1-1/usr/bin"
-cp "../build/Vkav" "vkav_0.1-1/usr/bin"
+cp "../build/vkav" "vkav_0.1-1/usr/bin"
 
 mkdir "vkav_0.1-1/etc"
 mkdir "vkav_0.1-1/etc/Vkav"

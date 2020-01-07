@@ -84,20 +84,20 @@ endif()
 target_link_libraries(graphicsModule -lstdc++fs)
 target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_executable(Vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Render.cpp src/Image.cpp src/Data.cpp)
-target_include_directories(Vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(Vkav audioModule)
-target_link_libraries(Vkav graphicsModule)
-target_link_libraries(Vkav -lstdc++fs)
+add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Render.cpp src/Image.cpp src/Data.cpp)
+target_include_directories(vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(vkav audioModule)
+target_link_libraries(vkav graphicsModule)
+target_link_libraries(vkav -lstdc++fs)
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows)
-	add_custom_command(TARGET Vkav POST_BUILD COMMAND strip --strip-all Vkav)
+	add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
 endif()
 
 # Installer
 
 if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
-	install(TARGETS Vkav # executable
+	install(TARGETS vkav # executable
 			CONFIGURATIONS Release
 			RUNTIME DESTINATION bin)
 	install(FILES src/config # config file
@@ -131,4 +131,4 @@ add_custom_target(format clang-format -style=file -i ${src})
 
 set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
 set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
-add_custom_target(run LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./Vkav)
+add_custom_target(run LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./vkav)
