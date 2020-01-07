@@ -13,6 +13,7 @@ Shown on the left is the eclipse shader.<br/>
 <br/>
 
 ## Getting Started
+Binaries can be found under releases.
 
 ### Prerequisites
 * GLFW
