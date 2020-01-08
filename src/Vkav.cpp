@@ -255,7 +255,7 @@ namespace {
 				}
 			}
 
-			if (const auto confSetting = configSettings.find("moduleDirectories");
+			if (const auto confSetting = configSettings.find("modules");
 			    confSetting != configSettings.end()) {
 				renderSettings.modules.clear();
 				std::stringstream ss(confSetting->second);
@@ -269,7 +269,7 @@ namespace {
 					renderSettings.modules.push_back(directory);
 				}
 			} else {
-				PRINT_UNDEFINED(moduleDirectories);
+				PRINT_UNDEFINED(modules);
 			}
 
 			if (const auto confSetting = configSettings.find("backgroundImage");
