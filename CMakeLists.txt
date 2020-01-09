@@ -123,8 +123,8 @@ endif()
 
 # For formatting source code
 file(GLOB src
-    "*.h"
-    "*.cpp"
+    "include/*.h"
+    "src/*.cpp"
 )
 
 add_custom_target(format clang-format -style=file -i ${src})
