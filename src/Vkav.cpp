@@ -89,7 +89,8 @@ namespace {
 #else
 			std::vector<std::filesystem::path> configLocations = {argv[0]};
 			configLocations.front().remove_filename();
-			configLocations.front() = std::filesystem::canonical(configLocations.front()).parent_path()/"src";
+			configLocations.front() =
+			    std::filesystem::canonical(configLocations.front()).parent_path() / "src";
 #endif
 			for (auto& path : configLocations) {
 				if (std::filesystem::exists(path / "config")) {
@@ -100,7 +101,6 @@ namespace {
 
 			if (const auto cmdLineArg = cmdLineArgs.find("config"); cmdLineArg != cmdLineArgs.end())
 				configFilePath = cmdLineArg->second;
-
 
 			std::clog << "Parsing configuration file.\n";
 			const std::unordered_map<std::string, std::string> configSettings =
@@ -199,14 +199,12 @@ namespace {
 			Device smoothingDevice = GPU;
 			if (const auto confSetting = configSettings.find("smoothingDevice");
 			    confSetting != configSettings.end()) {
-				std::string deviceStr = confSetting->second;
-				if (deviceStr == "CPU") {
+				if (confSetting->second == "CPU")
 					smoothingDevice = CPU;
-				} else if (deviceStr == "GPU") {
+				else if (confSetting->second == "GPU")
 					smoothingDevice = GPU;
-				} else {
+				else
 					std::cerr << LOCATION "Smoothing device set to an invalid value!\n";
-				}
 			} else {
 				PRINT_UNDEFINED(smoothingDevice);
 			}
