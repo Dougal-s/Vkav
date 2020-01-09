@@ -52,20 +52,20 @@ void main() {
 	float v = 0;
 	if (abs(texCoord) > trebleMixPoint)
 		v = mix(
-				kernelSmoothTexture(lBuffer, texCoord),
-				kernelSmoothTexture(rBuffer, texCoord),
+				kernelSmoothTexture(lBuffer, smoothingLevel, texCoord),
+				kernelSmoothTexture(rBuffer, smoothingLevel, texCoord),
 				0.5+sign(texCoord)*0.5f/(1-trebleMixPoint)*(1.f-abs(texCoord))
 			);
 	else if (abs(texCoord) < bassMixPoint)
 		v = mix(
-				kernelSmoothTexture(lBuffer, texCoord),
-				kernelSmoothTexture(rBuffer, texCoord),
+				kernelSmoothTexture(lBuffer, smoothingLevel, texCoord),
+				kernelSmoothTexture(rBuffer, smoothingLevel, texCoord),
 				0.5+sign(texCoord)*0.5f/bassMixPoint*abs(texCoord)
 			);
 	else if (texCoord < 0)
-		v = kernelSmoothTexture(lBuffer, texCoord);
+		v = kernelSmoothTexture(lBuffer, smoothingLevel, texCoord);
 	else
-		v = kernelSmoothTexture(rBuffer, texCoord);
+		v = kernelSmoothTexture(rBuffer, smoothingLevel, texCoord);
 
 	float lineCenter = amplitude*v;
 

@@ -45,9 +45,9 @@ void main() {
 		float barCenter = x-pos+0.5f;
 		float v = 0.f;
 		if (x < 0.0)
-			v = kernelSmoothTexture(lBuffer, -2.0*barCenter/width);
+			v = kernelSmoothTexture(lBuffer, smoothingLevel, -2.0*barCenter/width);
 		else
-			v = kernelSmoothTexture(rBuffer, 2.0*barCenter/width);
+			v = kernelSmoothTexture(rBuffer, smoothingLevel, 2.0*barCenter/width);
 
 		if (y < amplitude*v) {
 			outColor = vec4(color * brightness * (((height-gl_FragCoord.y) / 40) + 1), 1.f);

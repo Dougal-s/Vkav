@@ -11,14 +11,14 @@ float textureExp(in samplerBuffer s, in float index) {
 	return texelFetch(s, int(exp2(wrapIndex(index))*audioSize-audioSize)).r;
 }
 
-float kernelSmoothTexture(in samplerBuffer s, in float index) {
+float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float index) {
 	if (smoothingLevel == 0.f)
 		return texture(s, index);
 
 	const float pi = 3.14159265359;
 	float val = 0.f;
 
-	const float smoothingFactor = 0.5f/(smoothingLevel*smoothingLevel);
+	const float smoothingFactor = 0.5f/(smoothingAmount*smoothingAmount);
 	const float radius = sqrt(-log(0.05f)/smoothingFactor)/audioSize;
 	for (float i = index-radius; i < index+radius; i += 1.f/audioSize) {
 		const float distance = audioSize*(index - i);
