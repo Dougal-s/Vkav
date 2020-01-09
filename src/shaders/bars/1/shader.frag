@@ -27,6 +27,8 @@ layout(binding = 0) uniform data {
 layout(binding = 1) uniform samplerBuffer lBuffer;
 layout(binding = 2) uniform samplerBuffer rBuffer;
 
+layout(location = 0) in vec2 position;
+
 layout(location = 0) out vec4 outColor;
 
 #include "../../smoothing/smoothing.glsl"
@@ -34,23 +36,20 @@ layout(location = 0) out vec4 outColor;
 void main() {
 	float brightness = exp2(20.f*brightnessSensitivity*(lVolume+rVolume));
 
-	float x = gl_FragCoord.x - (0.5*width);
-
 	float totalBarSize = barWidth + barGap;
-	float center = totalBarSize/2;
-	float pos = mod(x, totalBarSize);
+	float center = 0.5*totalBarSize;
+	float pos = mod(position.x, totalBarSize);
 
-	if (abs(pos-center) <= 0.5*barWidth) {
-		float y = 1.0f-gl_FragCoord.y/height;
-		float barCenter = x-pos+0.5f;
+	if (2*abs(pos-center) <= barWidth) {
+		float barCenter = position.x-pos+0.5f;
 		float v = 0.f;
-		if (x < 0.0)
+		if (position.x < 0.0)
 			v = kernelSmoothTexture(lBuffer, smoothingLevel, -2.0*barCenter/width);
 		else
 			v = kernelSmoothTexture(rBuffer, smoothingLevel, 2.0*barCenter/width);
 
-		if (y < amplitude*v) {
-			outColor = vec4(color * brightness * (((height-gl_FragCoord.y) / 40) + 1), 1.f);
+		if (position.y < amplitude*v) {
+			outColor = vec4(color * brightness * (height*position.y/40 + 1), 1.f);
 			return;
 		}
 	}
