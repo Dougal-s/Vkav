@@ -18,12 +18,9 @@ layout(location = 0) in vec2 fragTexCoord;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-	float volume = 0.25*log(max(100*amplitude*(lVolume+rVolume), 1.05f));
-	vec2 xy = vec2(gl_FragCoord.x - 0.5 - 0.5*width, gl_FragCoord.y - 0.5 - 0.5*height);
-	// distance from centre
-	float position = dot(xy,xy) / (width*width+height*height);
-	// gaussian curve with width controlled by volume
-	float brightness = min(4*volume, 1.f)*exp(-position/(2*volume*volume));
-
-	outColor = texture(backgroundImage, fragTexCoord)*vec4(1,1,1,brightness);
+	float volume = exp2(amplitude*(lVolume+rVolume))-1;
+	vec4 rgba = texture(backgroundImage, fragTexCoord);
+    float gray = dot(rgba.rgb, vec3(0.2989, 0.5870, 0.1140));
+	rgba.rgb = -gray*volume+rgba.rgb*(1+volume);
+	outColor = rgba;
 }
