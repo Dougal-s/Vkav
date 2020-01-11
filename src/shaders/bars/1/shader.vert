@@ -29,7 +29,7 @@ layout(location = 0) out vec2 position;
 
 void main() {
 	mat2 transform = mat2(cos(rotation), sin(rotation), -sin(rotation), cos(rotation))
-	               * mat2(boxWidth/2, 0, 0, boxHeight/2);
-	gl_Position = vec4(transform*positions[gl_VertexIndex]+vec2(xOffset, yOffset), 0.0, 1.0);
-	position = vec2(width*boxWidth/4, -boxHeight/4)*(vec2(0, -1)+positions[gl_VertexIndex]);
+	               * mat2(boxWidth/2, 0, 0, limit*boxHeight/2);
+	gl_Position = vec4(transform*positions[gl_VertexIndex]+vec2(xOffset, yOffset+(1-limit)*boxHeight/2), 0.0, 1.0);
+	position = vec2(width*boxWidth/4, -limit*boxHeight/4)*(vec2(0, -1)+positions[gl_VertexIndex]);
 }

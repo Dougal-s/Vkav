@@ -13,13 +13,13 @@ module = "main"
 (id=9) float green = 0.196
 (id=10) float blue = 0.204
 
-(id=11) float limit = 0.4
+(id=11) float limit = 0.8
 
 (id=12) float width = 2
-(id=13) float height = 0.8
+(id=13) float height = 1
 
 // radians clockwise
 (id=14) float rotation = 0
 
 (id=15) float xOffset = 0
-(id=16) float yOffset = 0.6
+(id=16) float yOffset = 0.5
