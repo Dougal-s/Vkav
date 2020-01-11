@@ -32,14 +32,8 @@ void main() {
 	float blurAmount = min(0.01*blur*volume, maxBlur);
 	float brightness = min(exp2(brightnessSensitivity*volume), 2);
 
-	vec4 rgba;
-
 	// blur
-	if (blur != 0)
-		rgba = blurredTexture(backgroundImage, fragTexCoord, blurAmount);
-	else
-		rgba = texture(backgroundImage, fragTexCoord);
-
+	vec4 rgba = blurredTexture(backgroundImage, fragTexCoord, blurAmount);
 	// saturate
     float gray = dot(rgba.rgb, vec3(0.2989, 0.5870, 0.1140));
 	rgba.rgb = -gray*value+rgba.rgb*(1+value);
