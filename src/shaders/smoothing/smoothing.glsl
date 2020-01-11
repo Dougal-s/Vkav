@@ -7,10 +7,6 @@ float texture(in samplerBuffer s, in float index) {
 	return texelFetch(s, int(wrapIndex(index)*audioSize)).r;
 }
 
-float textureExp(in samplerBuffer s, in float index) {
-	return texelFetch(s, int(exp2(wrapIndex(index))*audioSize-audioSize)).r;
-}
-
 float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float index) {
 	if (smoothingLevel == 0.f)
 		return texture(s, index);
@@ -20,16 +16,12 @@ float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float
 
 	const float smoothingFactor = 0.5f/(smoothingAmount*smoothingAmount);
 	const float radius = sqrt(-log(0.05f)/smoothingFactor)/audioSize;
-	for (float i = index-radius; i < index+radius; i += 1.f/audioSize) {
-		const float distance = audioSize*(index - i);
+	for (float i = -radius; i < radius; i += 1.f/audioSize) {
+		const float distance = audioSize*i;
 		const float weight = exp(-distance*distance*smoothingFactor);
-		#ifdef exponential
-			val += textureExp(s, i)*weight;
-		#else
-			val += texture(s, i)*weight;
-		#endif
+		val += texture(s, index+i)*weight;
 	}
-	val *= sqrt(smoothingFactor/pi);
+	val *= sqrt(smoothingFactor/3.14159265359);
 
 	return val;
 }
@@ -38,19 +30,12 @@ float mcatSmoothTexture(in samplerBuffer s, in float index) {
 	if (smoothingLevel == 0.f)
 		return texture(s, index);
 
-	const float pi = 3.14159265359;
 	float val = 0.f;
 
 	const float smoothingFactor = 1.f+1.f/smoothingLevel;
 	const float radius = log(30.f)/(log(smoothingFactor)*audioSize);
-	for (float i = index-radius; i < index+radius; i += 1.f/audioSize) {
-		const float distance = audioSize*abs(i - index);
-
-		#ifdef exponential
-			val = max(textureExp(s, i) * pow(smoothingFactor, -distance), val);
-		#else
-			val = max(texture(s, i) * pow(smoothingFactor, -distance), val);
-		#endif
+	for (float i = -radius; i < radius; i += 1.f/audioSize) {
+		val = max(texture(s, index+i) * pow(smoothingFactor, -audioSize*abs(i)), val);
 	}
 	val *= 0.3;
 
