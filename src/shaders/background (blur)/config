@@ -1,6 +1,0 @@
-
-module = "main"
-
-(id=4) float amplitude = 15.0
-(id=5) float maxBlur = 0.01
-(id=6) float brightnessSensitivity = 1
