@@ -1,24 +1,24 @@
 
 module = "main"
 
-(id=4) float amplitude = 3
+(id=11) float amplitude = 3
 
-(id=5) float red = 0
-(id=6) float green = 0
-(id=7) float blue = 0
+(id=12) float red = 0
+(id=13) float green = 0
+(id=14) float blue = 0
 
-(id=8) float limit = 1
+(id=15) float limit = 1
 
-(id=9) float width = 2
-(id=10) float height = 2
+(id=16) float width = 2
+(id=17) float height = 2
 
 // radians clockwise
-(id=11) float rotation = 0
+(id=18) float rotation = 0
 
-(id=12) float xOffset = 0
-(id=13) float yOffset = 0
+(id=19) float xOffset = 0
+(id=20) float yOffset = 0
 
 // height of the pillars. Increasing this will increase the height.
-(id=14) float top = 0.8;
+(id=21) float top = 0.8;
 // height of the base. Increasing this will decrease the size of the base.
-(id=15) float bottom = 0;
+(id=22) float bottom = 0;

@@ -1,9 +1,9 @@
 
-(id=4) float amplitude = 1
+(id=11) float amplitude = 1
 
 // How reactive each filter is to volume. Set to 0 to disable.
-(id=5) float saturation = 20.f
-(id=6) float brightness = 10.f
-(id=7) float blur = 15.0
+(id=12) float saturation = 20.f
+(id=13) float brightness = 10.f
+(id=14) float blur = 15.0
 
-(id=8) float maxBlur = 0.01
+(id=15) float maxBlur = 0.01

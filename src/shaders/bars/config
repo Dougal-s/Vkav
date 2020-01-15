@@ -1,25 +1,24 @@
 
 module = "main"
 
-(id=4) int barWidth = 4
+(id=11) int barWidth = 4
+(id=12) int barGap = 2
 
-(id=5) int barGap = 2
+(id=13) float amplitude = 3
 
-(id=6) float amplitude = 3
+(id=14) float brightnessSensitivity = 1
 
-(id=7) float brightnessSensitivity = 1
+(id=15) float red = 0.196
+(id=16) float green = 0.196
+(id=17) float blue = 0.204
 
-(id=8) float red = 0.196
-(id=9) float green = 0.196
-(id=10) float blue = 0.204
+(id=18) float limit = 0.8
 
-(id=11) float limit = 0.8
-
-(id=12) float width = 2
-(id=13) float height = 1
+(id=19) float width = 2
+(id=20) float height = 1
 
 // radians clockwise
-(id=14) float rotation = 0
+(id=21) float rotation = 0
 
-(id=15) float xOffset = 0
-(id=16) float yOffset = 0.5
+(id=22) float xOffset = 0
+(id=23) float yOffset = 0.5

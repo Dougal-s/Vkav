@@ -7,14 +7,14 @@ layout(constant_id = 1) const float smoothingLevel = 0.f;
 layout(constant_id = 2) const int width            = 1;
 layout(constant_id = 3) const int height           = 1;
 
-layout(constant_id = 4) const float amplitude = 2.f;
+layout(constant_id = 11) const float amplitude = 2.f;
 
-layout(constant_id = 5) const float red = 0;
-layout(constant_id = 6) const float green = 0;
-layout(constant_id = 7) const float blue = 0;
+layout(constant_id = 12) const float red = 0;
+layout(constant_id = 13) const float green = 0;
+layout(constant_id = 14) const float blue = 0;
 
-layout(constant_id = 14) const float top = 1;
-layout(constant_id = 15) const float bottom = 0.2;
+layout(constant_id = 21) const float top = 1;
+layout(constant_id = 22) const float bottom = 0.2;
 
 vec3 color = vec3(red, green, blue);
 

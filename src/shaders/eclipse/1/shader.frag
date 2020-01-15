@@ -4,15 +4,15 @@
 layout(constant_id = 2) const int width            = 1;
 layout(constant_id = 3) const int height           = 1;
 
-layout(constant_id = 11) const int enableBackground = 1;
+layout(constant_id = 18) const int enableBackground = 1;
 
-layout(constant_id = 12) const float red1 = 0;
-layout(constant_id = 13) const float green1 = 0;
-layout(constant_id = 14) const float blue1 = 0;
+layout(constant_id = 19) const float red1 = 0;
+layout(constant_id = 20) const float green1 = 0;
+layout(constant_id = 21) const float blue1 = 0;
 
-layout(constant_id = 15) const float red2 = 0;
-layout(constant_id = 16) const float green2 = 0;
-layout(constant_id = 17) const float blue2 = 0;
+layout(constant_id = 22) const float red2 = 0;
+layout(constant_id = 23) const float green2 = 0;
+layout(constant_id = 24) const float blue2 = 0;
 
 vec3 color1 = vec3(red1, green1, blue1);
 vec3 color2 = vec3(red2, green2, blue2);

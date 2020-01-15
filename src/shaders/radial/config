@@ -1,21 +1,20 @@
 
 module = "main"
 
-(id=4) int originalRadius = 128
+(id=11) int originalRadius = 128
+(id=12) int centerLineWidth = 2
 
-(id=5) int centerLineWidth = 2
+(id=13) float barWidth = 3.5
 
-(id=6) float barWidth = 3.5
+(id=14) int numBars = 180
 
-(id=7) int numBars = 180
+(id=15) float amplitude = 3000.0
 
-(id=8) float amplitude = 3000.0
+(id=16) float brightnessSensitivity = 1
+(id=17) float radiusSensitivity = 20
 
-(id=9) float brightnessSensitivity = 1
-(id=10) float radiusSensitivity = 20
+(id=18) float red = 0.196
+(id=19) float green = 0.196
+(id=20) float blue = 0.204
 
-(id=11) float red = 0.196
-(id=12) float green = 0.196
-(id=13) float blue = 0.204
-
-(id=14) float limit = 0.1
+(id=21) float limit = 0.1

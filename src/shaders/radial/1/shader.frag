@@ -7,20 +7,20 @@ layout(constant_id = 1) const float smoothingLevel = 0.0;
 layout(constant_id = 2) const int width            = 1;
 layout(constant_id = 3) const int height           = 1;
 
-layout(constant_id = 4) const int originalRadius = 128;
-layout(constant_id = 5) const int centerLineWidth = 2;
-layout(constant_id = 6) const float barWidth = 3.5;
-layout(constant_id = 7) const int numBars = 180;
-layout(constant_id = 8) const float amplitude = 6000.0;
+layout(constant_id = 11) const int originalRadius = 128;
+layout(constant_id = 12) const int centerLineWidth = 2;
+layout(constant_id = 13) const float barWidth = 3.5;
+layout(constant_id = 14) const int numBars = 180;
+layout(constant_id = 15) const float amplitude = 6000.0;
 
-layout(constant_id = 9) const float brightnessSensitivity = 1.f;
-layout(constant_id = 10) const float radiusSensitivity = 1.f;
+layout(constant_id = 16) const float brightnessSensitivity = 1.f;
+layout(constant_id = 17) const float radiusSensitivity = 1.f;
 
-layout(constant_id = 11) const float red = 0.196;
-layout(constant_id = 12) const float green = 0.196;
-layout(constant_id = 13) const float blue = 0.204;
+layout(constant_id = 18) const float red = 0.196;
+layout(constant_id = 19) const float green = 0.196;
+layout(constant_id = 20) const float blue = 0.204;
 
-layout(constant_id = 14) const float limit = 0.5;
+layout(constant_id = 21) const float limit = 0.5;
 
 vec3 color = vec3(red, green, blue);
 

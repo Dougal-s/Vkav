@@ -4,16 +4,16 @@
 layout(constant_id = 2) const int width            = 1;
 layout(constant_id = 3) const int height           = 1;
 
-layout(constant_id = 8) const float limit = 1;
+layout(constant_id = 15) const float limit = 1;
 
-layout(constant_id=9) const float boxWidth = 2;
-layout(constant_id=10) const float boxHeight = 1;
+layout(constant_id = 16) const float boxWidth = 2;
+layout(constant_id = 17) const float boxHeight = 1;
 
 // degrees
-layout(constant_id=11) const float rotation = 0;
+layout(constant_id = 18) const float rotation = 0;
 
-layout(constant_id=12) const float xOffset = 0;
-layout(constant_id=13) const float yOffset = 0.5;
+layout(constant_id = 19) const float xOffset = 0;
+layout(constant_id = 20) const float yOffset = 0.5;
 
 vec2 positions[6] = vec2[](
 	vec2(-1.0f, -1.f), // top left

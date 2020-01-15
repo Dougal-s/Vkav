@@ -1,24 +1,24 @@
 
 module = "main"
 
-(id=4) int originalRadius = 128
+(id=11) int originalRadius = 128
 
-(id=5) int lineWidth = 2
+(id=12) int lineWidth = 2
 
-(id=6) float amplitude = 3000.0
+(id=13) float amplitude = 3000.0
 
-(id=7) float radiusSensitivity = 15
+(id=14) float radiusSensitivity = 15
 
-(id=8) float red = 0
-(id=9) float green = 0
-(id=10) float blue = 0
+(id=15) float red = 0
+(id=16) float green = 0
+(id=17) float blue = 0
 
-(id=11) int enableBackground = 0
+(id=18) int enableBackground = 0
 
-(id=12) float backgroundRed1 = 1
-(id=13) float backgroundGreen1 = 0.549
-(id=14) float backgroundBlue1 = 0.0
+(id=19) float backgroundRed1 = 1
+(id=20) float backgroundGreen1 = 0.549
+(id=21) float backgroundBlue1 = 0.0
 
-(id=15) float backgroundRed2 = 1
-(id=16) float backgroundGreen2 = 0.27
-(id=17) float backgroundBlue2 = 0
+(id=22) float backgroundRed2 = 1
+(id=23) float backgroundGreen2 = 0.27
+(id=24) float backgroundBlue2 = 0

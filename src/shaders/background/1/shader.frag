@@ -7,13 +7,13 @@
 layout(constant_id = 2) const int width  = 1;
 layout(constant_id = 3) const int height = 1;
 
-layout(constant_id = 4) const float amplitude = 1.f;
+layout(constant_id = 11) const float amplitude = 1.f;
 
-layout(constant_id = 5) const float saturation = 20.f;
-layout(constant_id = 6) const float brightnessSensitivity = 1.f;
-layout(constant_id = 7) const float blur = 15.0;
+layout(constant_id = 12) const float saturation = 20.f;
+layout(constant_id = 13) const float brightnessSensitivity = 1.f;
+layout(constant_id = 14) const float blur = 15.0;
 
-layout(constant_id = 8) const float maxBlur = 0.01;
+layout(constant_id = 15) const float maxBlur = 0.01;
 
 layout(binding = 0) uniform audioVolume {
 	float lVolume;

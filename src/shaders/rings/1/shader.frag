@@ -7,28 +7,28 @@ layout(constant_id = 1) const float smoothingLevel = 0.0;
 layout(constant_id = 2) const int width            = 1;
 layout(constant_id = 3) const int height           = 1;
 
-layout(constant_id = 4) const int ringCount        = 10;
-layout(constant_id = 5) const float ringWidth      = 20;
-layout(constant_id = 6) const float ringGap        = 10;
-layout(constant_id = 7) const float rotationSpeed  = 30;
-layout(constant_id = 8) const float rotationRatio  = 1;
+layout(constant_id = 11) const int ringCount        = 10;
+layout(constant_id = 12) const float ringWidth      = 20;
+layout(constant_id = 13) const float ringGap        = 10;
+layout(constant_id = 14) const float rotationSpeed  = 30;
+layout(constant_id = 15) const float rotationRatio  = 1;
 
-layout(constant_id = 9) const int originalRadius = 1;
-layout(constant_id = 10) const float amplitude = 1;
-layout(constant_id = 11) const float radiusSensitivity = 1;
+layout(constant_id = 16) const int originalRadius = 1;
+layout(constant_id = 17) const float amplitude = 1;
+layout(constant_id = 18) const float radiusSensitivity = 1;
 
-layout(constant_id = 12) const float frequencySensitivity = 10;
-layout(constant_id = 13) const int fixedFreq = 0;
-layout(constant_id = 14) const int scaleWithRotationRatio = 0;
-layout(constant_id = 15) const float frequency = 0;
+layout(constant_id = 19) const float frequencySensitivity = 10;
+layout(constant_id = 20) const int fixedFreq = 0;
+layout(constant_id = 21) const int scaleWithRotationRatio = 0;
+layout(constant_id = 22) const float frequency = 0;
 
-layout(constant_id = 16) const float red1 = 0.196;
-layout(constant_id = 17) const float green1 = 0.196;
-layout(constant_id = 18) const float blue1 = 0.204;
+layout(constant_id = 23) const float red1 = 0.196;
+layout(constant_id = 24) const float green1 = 0.196;
+layout(constant_id = 25) const float blue1 = 0.204;
 
-layout(constant_id = 19) const float red2 = 0.294;
-layout(constant_id = 20) const float green2 = 0.294;
-layout(constant_id = 21) const float blue2 = 0.306;
+layout(constant_id = 26) const float red2 = 0.294;
+layout(constant_id = 27) const float green2 = 0.294;
+layout(constant_id = 28) const float blue2 = 0.306;
 
 vec3 color1 = vec3(red1, green1, blue1);
 vec3 color2 = vec3(red2, green2, blue2);
