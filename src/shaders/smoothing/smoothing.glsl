@@ -16,10 +16,10 @@ float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float
 
 	const float smoothingFactor = 0.5f/(smoothingAmount*smoothingAmount);
 	const float radius = sqrt(-log(0.05f)/smoothingFactor)/audioSize;
-	for (float i = 0; i < radius; i += 1.f/audioSize) {
+	for (float i = -radius; i < radius; i += 1.f/audioSize) {
 		const float distance = audioSize*i;
 		const float weight = exp(-distance*distance*smoothingFactor);
-		val += (texture(s, index+i)+texture(s, index-i))*weight;
+		val += texture(s, index+i)*weight;
 	}
 	val *= sqrt(smoothingFactor/pi);
 
@@ -34,8 +34,9 @@ float mcatSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float i
 
 	const float smoothingFactor = 1.f+1.f/smoothingAmount;
 	const float radius = log(30.f)/(log(smoothingFactor)*audioSize);
-	for (float i = -radius; i < radius; i += 1.f/audioSize) {
-		val = max(texture(s, index+i) * pow(smoothingFactor, -audioSize*abs(i)), val);
+	for (float i = 0; i < radius; i += 1.f/audioSize) {
+		val = max(texture(s, index+i) * pow(smoothingFactor, -audioSize*i), val);
+		val = max(texture(s, index-i) * pow(smoothingFactor, -audioSize*i), val);
 	}
 	val *= 0.3;
 
