@@ -17,7 +17,7 @@ mkdir "vkav_0.2-1/usr/share/icons/hicolor"
 
 mkdir "vkav_0.2-1/usr/share/icons/hicolor/48x48"
 mkdir "vkav_0.2-1/usr/share/icons/hicolor/48x48/apps"
-cp "../kav.png" "vkav_0.2-1/usr/share/icons/hicolor/48x48/apps"
+cp "../vkav.png" "vkav_0.2-1/usr/share/icons/hicolor/48x48/apps"
 
 mkdir "vkav_0.2-1/usr/share/icons/hicolor/scalable"
 mkdir "vkav_0.2-1/usr/share/icons/hicolor/scalable/apps"
