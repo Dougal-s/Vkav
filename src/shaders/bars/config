@@ -1,6 +1,4 @@
 
-module = "main"
-
 (id=11) int barWidth = 4
 (id=12) int barGap = 2
 

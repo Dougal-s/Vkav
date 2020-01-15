@@ -1,6 +1,4 @@
 
-module = "main"
-
 (id=11) int originalRadius = 128
 
 (id=12) int lineWidth = 2

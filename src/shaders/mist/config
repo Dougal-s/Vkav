@@ -1,6 +1,4 @@
 
-module = "main"
-
 (id=11) float amplitude = 3
 
 (id=12) float red = 0
