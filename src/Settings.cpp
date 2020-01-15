@@ -134,8 +134,8 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	configLocations.resize(2);
 	configLocations[0] = std::getenv("HOME");
 	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
-	configLocations[0] /= "Library/Preferences";
-	configLocations[1] = "/Library/Preferences";
+	configLocations[0] /= "Library/Preferences/vkav";
+	configLocations[1] = "/Library/Preferences/vkav";
 #elif defined(WINDOWS)
 	configLocations.resize(2);
 	const char* path;
