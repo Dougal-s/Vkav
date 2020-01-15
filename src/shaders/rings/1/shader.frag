@@ -78,7 +78,7 @@ void main() {
 	if (fixedFreq == 1)
 		ringFrequency = frequency;
 	else
-		ringFrequency = float(ring)/ringCount;
+		ringFrequency = float(ring-1)/ringCount;
 
 	float offset = frequencySensitivity*(
 		kernelSmoothTexture(lBuffer, smoothingLevel, ringFrequency) +
