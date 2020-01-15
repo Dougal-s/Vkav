@@ -128,8 +128,8 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	configLocations.resize(2);
 	configLocations[0] = std::getenv("HOME");
 	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
-	configLocations[0] /= ".config/Vkav";
-	configLocations[1] = "/etc/Vkav";
+	configLocations[0] /= ".config/vkav";
+	configLocations[1] = "/etc/vkav";
 #elif defined(MACOS)
 	configLocations.resize(2);
 	configLocations[0] = std::getenv("HOME");
@@ -141,12 +141,12 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	const char* path;
 	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
 	configLocations[0] = path;
-	configLocations[0] /= "Vkav";
+	configLocations[0] /= "vkav";
 	CoTaskMemFree(path);
 
 	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, path);
 	configLocations[1] = path;
-	configLocations[1] /= "Vkav";
+	configLocations[1] /= "vkav";
 	CoTaskMemFree(path);
 #else
 #endif
@@ -164,10 +164,10 @@ std::vector<std::filesystem::path> getConfigLocations() {
 void installConfig() {
 	std::filesystem::path src, dst;
 #ifdef LINUX
-	src = "/etc/Vkav";
+	src = "/etc/vkav";
 	dst = std::getenv("HOME");
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
-	dst /= ".config/Vkav";
+	dst /= ".config/vkav";
 #elif defined(MACOS)
 	src = "/Library/Preferences";
 	dst = std::getenv("HOME");
@@ -177,12 +177,12 @@ void installConfig() {
 	const char* path;
 	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
 	dst = path;
-	dst /= "Vkav";
+	dst /= "vkav";
 	CoTaskMemFree(path);
 
 	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, path);
 	src = path;
-	src /= "Vkav";
+	src /= "vkav";
 	CoTaskMemFree(path);
 #else
 	throw std::runtime_error(LOCATION "Unsupported operating system!");

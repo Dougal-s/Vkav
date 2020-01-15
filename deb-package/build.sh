@@ -7,9 +7,9 @@ mkdir "vkav_0.2-1/usr/bin"
 cp "../build/vkav" "vkav_0.2-1/usr/bin"
 
 mkdir "vkav_0.2-1/etc"
-mkdir "vkav_0.2-1/etc/Vkav"
-cp "../src/config" "vkav_0.2-1/etc/Vkav"
-cp -r "../src/shaders" "vkav_0.2-1/etc/Vkav"
+mkdir "vkav_0.2-1/etc/vkav"
+cp "../src/config" "vkav_0.2-1/etc/vkav"
+cp -r "../src/shaders" "vkav_0.2-1/etc/vkav"
 
 mkdir "vkav_0.2-1/usr/share"
 mkdir "vkav_0.2-1/usr/share/icons"
