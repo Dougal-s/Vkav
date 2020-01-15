@@ -27,7 +27,7 @@ namespace {
 	enum Device { CPU, GPU };
 
 	static constexpr const char* versionStr =
-	    "Vkav v0.1.0 "
+	    "Vkav v0.2.0 "
 #ifdef NDEBUG
 	    "release\n"
 #else
