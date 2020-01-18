@@ -114,6 +114,12 @@ namespace {
 			fillStructs(argv[0], cmdLineArgs, configSettings, audioSettings, renderSettings,
 			            proccessSettings);
 
+			fpsLimit = 0;
+			if (auto it = configSettings.find("fpsLimit"); it != configSettings.end())
+				fpsLimit = std::stoi(it->second);
+			else
+				PRINT_UNDEFINED(fpsLimit);
+
 			std::clog << "Initialising audio.\n";
 			audioSampler.start(audioSettings);
 			std::clog << "Initialising renderer.\n";
@@ -143,9 +149,11 @@ namespace {
 		Renderer renderer;
 		Proccess proccess;
 
+		size_t fpsLimit;
+
 		void mainLoop() {
 			int numFrames = 0;
-			std::chrono::microseconds targetFrameTime(1000000 / 88);
+			std::chrono::microseconds targetFrameTime(1000000 / (fpsLimit ? fpsLimit : 89));
 			std::chrono::high_resolution_clock::time_point lastFrame =
 			    std::chrono::high_resolution_clock::now();
 			std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
@@ -169,7 +177,8 @@ namespace {
 					          << std::endl;
 					numFrames = 0;
 					lastUpdate = currentTime;
-					targetFrameTime = std::chrono::microseconds(1000000 / audioSampler.ups());
+					if (!fpsLimit)
+						targetFrameTime = std::chrono::microseconds(1000000 / audioSampler.ups());
 				}
 			}
 
