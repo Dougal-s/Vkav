@@ -1,7 +1,7 @@
 #include <csetjmp>
 #include <cstdio>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 
@@ -223,35 +223,34 @@ namespace {
 			imgWidth = header.width;
 			imgHeight = header.height;
 
-			size_t rowSize = ((header.width*header.bitsPerPixel+31) >> 5) << 2;
+			size_t rowSize = ((header.width * header.bitsPerPixel + 31) >> 5) << 2;
 
 			char** buffer = new char*[imgHeight];
 			image = new unsigned char*[imgHeight];
-			for (int y = imgHeight-1; y != -1; --y) {
+			for (int y = imgHeight - 1; y != -1; --y) {
 				buffer[y] = new char[rowSize];
-				image[y] = new unsigned char[4*imgWidth];
+				image[y] = new unsigned char[4 * imgWidth];
 				file.read(buffer[y], rowSize);
 				for (size_t x = 0; x < imgWidth; ++x) {
 					switch (header.bitsPerPixel) {
 						case 32:
-							image[y][4*x+0] = buffer[y][4*x+3];
-							image[y][4*x+1] = buffer[y][4*x+2];
-							image[y][4*x+2] = buffer[y][4*x+1];
-							image[y][4*x+3] = buffer[y][4*x+0];
+							image[y][4 * x + 0] = buffer[y][4 * x + 3];
+							image[y][4 * x + 1] = buffer[y][4 * x + 2];
+							image[y][4 * x + 2] = buffer[y][4 * x + 1];
+							image[y][4 * x + 3] = buffer[y][4 * x + 0];
 							break;
 						case 24:
-							image[y][4*x+0] = buffer[y][3*x+2];
-							image[y][4*x+1] = buffer[y][3*x+1];
-							image[y][4*x+2] = buffer[y][3*x+0];
-							image[y][4*x+3] = 0xff;
+							image[y][4 * x + 0] = buffer[y][3 * x + 2];
+							image[y][4 * x + 1] = buffer[y][3 * x + 1];
+							image[y][4 * x + 2] = buffer[y][3 * x + 0];
+							image[y][4 * x + 3] = 0xff;
 							break;
 					}
 				}
 			}
 			file.close();
 
-			for (size_t i = 0; i < imgHeight; ++i)
-				delete[] buffer[i];
+			for (size_t i = 0; i < imgHeight; ++i) delete[] buffer[i];
 			delete[] buffer;
 		}
 
@@ -268,22 +267,22 @@ namespace {
 
 		struct Header {
 			// header
-			uint8_t  signature[2];    // 0
-			uint32_t fileSize;        // 2
-			uint8_t  reserved[4];     // 6  // ignored
-			uint32_t dataOffset;      // 10
+			uint8_t signature[2];  // 0
+			uint32_t fileSize;     // 2
+			uint8_t reserved[4];   // 6  // ignored
+			uint32_t dataOffset;   // 10
 			// info header
-			uint32_t size;            // 14
-			int32_t  width;           // 18
-			int32_t  height;          // 22
-			uint16_t planes;          // 26
-			uint16_t bitsPerPixel;    // 28
-			uint32_t compression;     // 30
-			uint32_t imageSize;       // 34 // ignored
-			int32_t  xPixelsPerM;     // 38 // ignored
-			int32_t  yPixelsPerM;     // 42 // ignored
-			uint32_t colorsUsed;      // 46 // ignored
-			uint32_t importantColors; // 50 // ignored
+			uint32_t size;             // 14
+			int32_t width;             // 18
+			int32_t height;            // 22
+			uint16_t planes;           // 26
+			uint16_t bitsPerPixel;     // 28
+			uint32_t compression;      // 30
+			uint32_t imageSize;        // 34 // ignored
+			int32_t xPixelsPerM;       // 38 // ignored
+			int32_t yPixelsPerM;       // 42 // ignored
+			uint32_t colorsUsed;       // 46 // ignored
+			uint32_t importantColors;  // 50 // ignored
 
 			void check() {
 				if (signature[0] != 'B' || signature[1] != 'M')
@@ -293,9 +292,10 @@ namespace {
 				if (bitsPerPixel != 32 && bitsPerPixel != 24)
 					throw std::runtime_error(LOCATION "Unsupported bitPerPixel value in BMP file!");
 				if (compression != 0)
-					throw std::runtime_error(LOCATION "Compressed BMP file are unsupported as of now!");
+					throw std::runtime_error(LOCATION
+					                         "Compressed BMP file are unsupported as of now!");
 			}
-		} __attribute__ ((packed)) header;
+		} __attribute__((packed)) header;
 
 		unsigned char** image;
 		size_t imgWidth, imgHeight;
