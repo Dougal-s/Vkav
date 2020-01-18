@@ -91,7 +91,9 @@ target_link_libraries(vkav graphicsModule)
 target_link_libraries(vkav -lstdc++fs)
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows)
-	add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
+	if (${CMAKE_BUILD_TYPE} MATCHES release)
+		add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
+	endif()
 endif()
 
 # Installer
