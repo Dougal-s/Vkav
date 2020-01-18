@@ -157,9 +157,8 @@ namespace {
 					proccess.proccessSignal(audioData);
 					if (!renderer.drawFrame(audioData)) break;
 					++numFrames;
-					std::this_thread::sleep_until(lastFrame + targetFrameTime / 2);
+					std::this_thread::sleep_until(lastFrame + targetFrameTime);
 				}
-				std::this_thread::sleep_for(targetFrameTime / 4);
 
 				std::chrono::steady_clock::time_point currentTime =
 				    std::chrono::steady_clock::now();
