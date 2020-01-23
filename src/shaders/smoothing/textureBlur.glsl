@@ -10,20 +10,22 @@ vec4 blurredTexture(in sampler2D image, in vec2 position, in float blur) {
 
 	int pixelCount = 0;
 
-	// start at centre pixel and go outwards.
+	// Go through the octant from 0 rad to pi/4 rad
 	for (vec2 off = {0,0}; off.y <= radius; off.y += stepSize) {
-		for (off.x = 0; off.x <= radius; off.x += stepSize) {
-			vec2 pos1 = position+off;
-			vec2 pos2 = position-off;
+		for (off.x = off.y; dot(off, off) <= radius*radius; off.x += stepSize) {
+			vec4 offset = vec4(off, -off);
+			pixel += texture(image, position+offset.xy); // top right
+			pixel += texture(image, position+offset.xw); // bottom right
+			pixel += texture(image, position+offset.zy); // top left
+			pixel += texture(image, position+offset.zw); // bottom left
 
-			if (dot(off, off) <= radius*radius) {
-				pixel += texture(image, pos1);
-				pixel += texture(image, vec2(pos1.x, pos2.y));
-				pixel += texture(image, vec2(pos2.x, pos1.y));
-				pixel += texture(image, pos2);
+			// flip x and y axis
+			pixel += texture(image, position+offset.yx);
+			pixel += texture(image, position+offset.wx);
+			pixel += texture(image, position+offset.yz);
+			pixel += texture(image, position+offset.wz);
 
-				pixelCount += 4;
-			}
+			pixelCount += 8;
 		}
 	}
 
