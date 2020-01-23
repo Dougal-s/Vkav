@@ -104,11 +104,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 			RUNTIME DESTINATION bin)
 	install(FILES src/config # config file
 			CONFIGURATIONS Release
-			TYPE SYSCONF
 			DESTINATION /etc/vkav)
 	install(DIRECTORY src/shaders # shaders
 			CONFIGURATIONS Release
-			TYPE SYSCONF
 			DESTINATION /etc/vkav)
 	install(FILES vkav.desktop # .desktop file
 			CONFIGURATIONS Release
