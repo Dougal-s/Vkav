@@ -1,8 +1,6 @@
 
 // bokeh blur
 vec4 blurredTexture(in sampler2D image, in vec2 position, in float blur) {
-	if (blur == 0)
-		return texture(image, position);
 
 	const float stepSize = 1.f/min(textureSize(image, 0).x, textureSize(image, 0).y);
 	const float radius = blur;
