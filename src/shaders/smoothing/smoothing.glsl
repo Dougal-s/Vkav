@@ -4,7 +4,7 @@ float wrapIndex(float index) {
 }
 
 float texture(in samplerBuffer s, in float index) {
-	return texelFetch(s, int(wrapIndex(index)*audioSize)).r;
+	return texelFetch(s, int(wrapIndex(index)*textureSize(s))).r;
 }
 
 float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float index) {
