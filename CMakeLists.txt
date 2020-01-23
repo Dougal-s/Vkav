@@ -105,18 +105,18 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	install(FILES src/config # config file
 			CONFIGURATIONS Release
 			TYPE SYSCONF
-			DESTINATION /etc/Vkav)
+			DESTINATION /etc/vkav)
 	install(DIRECTORY src/shaders # shaders
 			CONFIGURATIONS Release
 			TYPE SYSCONF
-			DESTINATION /etc/Vkav)
-	install(FILES Vkav.desktop # .desktop file
+			DESTINATION /etc/vkav)
+	install(FILES vkav.desktop # .desktop file
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/applications)
-	install(FILES Vkav.png # icon
+	install(FILES vkav.png # icon
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/icons/hicolor/48x48/apps)
-	install(FILES Vkav.svg # icon
+	install(FILES vkav.svg # icon
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/icons/hicolor/scalable/apps)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
