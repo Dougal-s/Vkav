@@ -13,7 +13,7 @@ Shown on the left is the eclipse shader.<br/>
 <br/>
 
 ## Getting Started
-Binaries can be found under releases.
+Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases) or on the Vkav [website](https://dougal-s.github.io/Vkav/).
 
 ### Prerequisites
 * GLFW
