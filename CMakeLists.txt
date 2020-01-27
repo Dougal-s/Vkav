@@ -36,8 +36,6 @@ if (NOT DEFINED AUDIO_BACKEND)
 	set(AUDIO_BACKEND "LIBSOUNDIO")
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-
 add_library(audioModule src/CoreAudio.cpp src/PulseAudio.cpp src/PulseAudioAsync.cpp src/WASAPI.cpp src/libsoundio.cpp)
 if (${AUDIO_BACKEND} MATCHES COREAUDIO)
 	add_definitions(-DCOREAUDIO)
