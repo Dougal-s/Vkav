@@ -2,7 +2,7 @@
 // bokeh blur
 vec4 blurredTexture(in sampler2D image, in vec2 position, in float blur) {
 
-	const float stepSize = 1.f/min(textureSize(image, 0).x, textureSize(image, 0).y);
+	const float stepSize = 1.f/max(textureSize(image, 0).x, textureSize(image, 0).y);
 	const float radius = blur;
 
 	// go through overlapped regions
