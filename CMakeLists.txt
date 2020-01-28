@@ -97,7 +97,6 @@ add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Render.cp
 target_include_directories(vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(vkav audioModule)
 target_link_libraries(vkav graphicsModule)
-target_link_libraries(vkav -lstdc++fs)
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows)
 	if (${CMAKE_BUILD_TYPE} MATCHES release)
