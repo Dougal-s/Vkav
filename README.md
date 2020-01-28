@@ -51,14 +51,14 @@ $ sudo make install
 ```
 To install the config files to a user accessible location, run:
 ```
-$ Vkav --install-config
+$ vkav --install-config
 ```
 This will copy the config files from "/etc/Vkav" to "~/.config/Vkav".
 
 ### Usage
 To run Vkav simply execute:
 ```
-$ Vkav
+$ vkav
 ```
 
 Config files can be located in "~/.config/Vkav" once the user has executed `Vkav --install-config`.
