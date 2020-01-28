@@ -91,7 +91,7 @@ private:
 	SoundIoDevice* device = nullptr;
 	SoundIoInStream* stream;
 
-	bool halfSample = false;
+	uint32_t sampleRate;
 
 	int error;
 
@@ -135,12 +135,23 @@ private:
 			throw std::runtime_error(LOCATION
 			                         "Selected device does not support the chosen channel layout!");
 
+		if (device->probe_error)
+			throw std::runtime_error(LOCATION "Soundio probe error!:" +
+			                         std::string(soundio_strerror(device->probe_error)));
+
+		sampleRate = settings.sampleRate;
 		if (!soundio_device_supports_sample_rate(device, settings.sampleRate)) {
-			if (soundio_device_supports_sample_rate(device, 2 * settings.sampleRate))
-				halfSample = true;
+			int sampleRateID = 0;
+			while (device->sample_rates[sampleRateID].max == 0) {
+				++sampleRateID;
+				if (sampleRateID == device->sample_rate_count)
+					throw std::runtime_error(LOCATION "Unable to find non-zero sample rate!");
+			}
+
+			if (settings.sampleRate > static_cast<uint32_t>(device->sample_rates[sampleRateID].max))
+				sampleRate = device->sample_rates[sampleRateID].max;
 			else
-				throw std::runtime_error(
-				    LOCATION "Selected device does not support the chosen sample rate!");
+				sampleRate = device->sample_rates[sampleRateID].min;
 		}
 
 		if (!soundio_device_supports_format(device, SoundIoFormatFloat32NE))
@@ -151,10 +162,11 @@ private:
 		if (!stream) throw std::runtime_error(LOCATION "Out of memory!");
 
 		stream->format = SoundIoFormatFloat32LE;
-		stream->sample_rate = (1 + halfSample) * settings.sampleRate;
+		stream->sample_rate = sampleRate;
 		stream->read_callback = readCallback;
 		stream->userdata = this;
-		stream->software_latency = sizeof(float) * settings.sampleSize;
+		stream->software_latency =
+		    sizeof(float) * settings.sampleSize * sampleRate / settings.sampleRate;
 		stream->name = "Vkav";
 		stream->layout = *layout;
 
@@ -183,20 +195,15 @@ private:
 			}
 
 			if (areas) {
-				for (int frame = 0; frame < frameCount / (1 + audio->halfSample); ++frame) {
+				for (int frame = 0;
+				     frame * audio->sampleRate < frameCount * audio->settings.sampleRate; ++frame) {
 					for (int channel = 0; channel < instream->layout.channel_count; ++channel) {
-						audio->pSampleBuffer[audio->bufPos] =
-						    *reinterpret_cast<float*>(areas[channel].ptr);
-						areas[channel].ptr += areas[channel].step;
-						if (audio->halfSample) {
-							audio->pSampleBuffer[audio->bufPos] +=
-							    *reinterpret_cast<float*>(areas[channel].ptr);
-							audio->pSampleBuffer[audio->bufPos] *= 0.5;
-							areas[channel].ptr += areas[channel].step;
-						}
+						audio->pSampleBuffer[audio->bufPos] = *reinterpret_cast<float*>(
+						    areas[channel].ptr +
+						    areas[channel].step *
+						        (frame * audio->sampleRate / audio->settings.sampleRate));
 						++audio->bufPos;
 					}
-
 					if (audio->bufPos >= audio->settings.sampleSize) updateBuffers(audio);
 				}
 			}
