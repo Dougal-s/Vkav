@@ -10,8 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(
-  "-Wall" "-Wextra"
-  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb>"
+  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra>"
   "$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
 )
 
