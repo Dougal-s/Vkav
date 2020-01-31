@@ -94,7 +94,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES 
 endif()
 target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Render.cpp src/Image.cpp src/Data.cpp)
+add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Data.cpp)
 target_include_directories(vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(vkav audioModule)
 target_link_libraries(vkav graphicsModule)
