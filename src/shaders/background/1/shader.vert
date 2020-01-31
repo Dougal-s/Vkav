@@ -4,11 +4,11 @@
 layout(location = 0) out vec2 fragTexCoord;
 
 vec2 positions[6] = vec2[](
-	vec2(-1.0f, -1.0f), // top left
+	vec2(-1.0f, -1.0f),  // top left
 	vec2( 1.0f, -1.0f),  // top right
 	vec2(-1.0f,  1.0f),  // bottom left
 
-	vec2( 1.0f,  1.0f),   // bottom right
+	vec2( 1.0f,  1.0f),  // bottom right
 	vec2(-1.0f,  1.0f),  // bottom left
 	vec2( 1.0f, -1.0f)   // top right
 );

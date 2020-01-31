@@ -13,7 +13,7 @@ Shown on the left is the eclipse shader.<br/>
 <br/>
 
 ## Getting Started
-Binaries can be found under releases.
+Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases) or on the Vkav [website](https://dougal-s.github.io/Vkav/).
 
 ### Prerequisites
 * GLFW
@@ -51,14 +51,14 @@ $ sudo make install
 ```
 To install the config files to a user accessible location, run:
 ```
-$ Vkav --install-config
+$ vkav --install-config
 ```
 This will copy the config files from "/etc/Vkav" to "~/.config/Vkav".
 
 ### Usage
 To run Vkav simply execute:
 ```
-$ Vkav
+$ vkav
 ```
 
 Config files can be located in "~/.config/Vkav" once the user has executed `Vkav --install-config`.

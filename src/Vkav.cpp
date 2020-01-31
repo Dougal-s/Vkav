@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -27,7 +28,7 @@ namespace {
 	enum Device { CPU, GPU };
 
 	static constexpr const char* versionStr =
-	    "Vkav v0.2.0 "
+	    "Vkav v0.3.0 "
 #ifdef NDEBUG
 	    "release\n"
 #else
@@ -39,18 +40,21 @@ namespace {
 	    "An audio visualiser using Vulkan for rendering.\n"
 	    "\n"
 	    "Available Arguments:\n"
-	    "-v, --verbose                 Prints detailed information about\n"
-	    "                                program execution.\n"
-	    "-s, --sink-name=SINK          Use SINK instead of the default audio\n"
-	    "                                sink. Overrides config file.\n"
-	    "-d, --device=DEVICE_NUMBER    Use Device number DEVICE_NUMBER.\n"
-	    "                                Overrides config file.\n"
-	    "-c, --config=CONFIG_PATH      Specifies config file path.\n"
-	    "-a, --amplitude=AMPLITUDE     Multiplies audio with AMPLITUDE.\n"
-	    "-h, --help                    Display this help and exit.\n"
-	    "-V, --version                 Output version information and exit.\n"
-	    "    --install-config          Installs config files to a user\n"
-	    "                                specific config directory.\n"
+	    "-v, --verbose                         Prints detailed information about\n"
+	    "                                        program execution.\n"
+	    "-s, --sinkName=SINK                   Use SINK instead of the default audio\n"
+	    "                                        sink. Overrides config file.\n"
+	    "-d, --physicalDevice=DEVICE_NUMBER    Use device number DEVICE_NUMBER.\n"
+	    "                                        Overrides config file.\n"
+	    "-c, --config=CONFIG_PATH              Specifies config file path.\n"
+	    "-a, --amplitude=AMPLITUDE             Multiplies audio with AMPLITUDE.\n"
+	    "-h, --help                            Display this help and exit.\n"
+	    "-V, --version                         Output version information and exit.\n"
+	    "    --install-config                  Installs config files to a user\n"
+	    "                                        specific config directory.\n"
+	    "\n"
+	    "Any of the settings in the config file can be set using the format:\n"
+	    "--SETTINGNAME=\"VALUE\"\n"
 	    "\n";
 
 #define PRINT_UNDEFINED(name) std::clog << #name << " not defined!" << std::endl;
@@ -61,8 +65,7 @@ namespace {
 			std::chrono::high_resolution_clock::time_point initStart =
 			    std::chrono::high_resolution_clock::now();
 
-			const std::unordered_map<std::string, std::string> cmdLineArgs =
-			    readCmdLineArgs(argc, argv);
+			std::unordered_map<std::string, std::string> cmdLineArgs = readCmdLineArgs(argc, argv);
 
 			if (cmdLineArgs.find("help") != cmdLineArgs.end()) {
 				std::cout << "Usage: " << argv[0] << " [OPTIONS]...\n" << helpStr << versionStr;
@@ -103,16 +106,20 @@ namespace {
 				configFilePath = cmdLineArg->second;
 
 			std::clog << "Parsing configuration file.\n";
-			const std::unordered_map<std::string, std::string> configSettings =
-			    readConfigFile(configFilePath);
+			cmdLineArgs.merge(readConfigFile(configFilePath));
 
 			AudioSettings audioSettings = {};
 			RenderSettings renderSettings = {};
 			renderSettings.configLocations = configLocations;
 			ProccessSettings proccessSettings = {};
 
-			fillStructs(argv[0], cmdLineArgs, configSettings, audioSettings, renderSettings,
-			            proccessSettings);
+			fillStructs(argv[0], cmdLineArgs, audioSettings, renderSettings, proccessSettings);
+
+			fpsLimit = 0;
+			if (auto it = cmdLineArgs.find("fpsLimit"); it != cmdLineArgs.end())
+				fpsLimit = std::stoi(it->second);
+			else
+				PRINT_UNDEFINED(fpsLimit);
 
 			std::clog << "Initialising audio.\n";
 			audioSampler.start(audioSettings);
@@ -143,9 +150,11 @@ namespace {
 		Renderer renderer;
 		Proccess proccess;
 
+		size_t fpsLimit;
+
 		void mainLoop() {
 			int numFrames = 0;
-			std::chrono::microseconds targetFrameTime(1000000 / 88);
+			std::chrono::microseconds targetFrameTime(1000000 / (fpsLimit ? fpsLimit : 89));
 			std::chrono::high_resolution_clock::time_point lastFrame =
 			    std::chrono::high_resolution_clock::now();
 			std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
@@ -157,9 +166,8 @@ namespace {
 					proccess.proccessSignal(audioData);
 					if (!renderer.drawFrame(audioData)) break;
 					++numFrames;
-					std::this_thread::sleep_until(lastFrame + targetFrameTime / 2);
+					std::this_thread::sleep_until(lastFrame + targetFrameTime);
 				}
-				std::this_thread::sleep_for(targetFrameTime / 4);
 
 				std::chrono::steady_clock::time_point currentTime =
 				    std::chrono::steady_clock::now();
@@ -170,7 +178,8 @@ namespace {
 					          << std::endl;
 					numFrames = 0;
 					lastUpdate = currentTime;
-					targetFrameTime = std::chrono::microseconds(1000000 / audioSampler.ups());
+					if (!fpsLimit)
+						targetFrameTime = std::chrono::microseconds(1000000 / audioSampler.ups());
 				}
 			}
 
@@ -185,7 +194,6 @@ namespace {
 		}
 
 		static void fillStructs(const char* execPath,
-		                        const std::unordered_map<std::string, std::string> cmdLineArgs,
 		                        const std::unordered_map<std::string, std::string> configSettings,
 		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
 		                        ProccessSettings& proccessSettings) {
@@ -240,17 +248,12 @@ namespace {
 			else
 				PRINT_UNDEFINED(sampleRate);
 
-			if (const auto cmdLineArg = cmdLineArgs.find("sink-name");
-			    cmdLineArg != cmdLineArgs.end()) {
-				audioSettings.sinkName = cmdLineArg->second;
+			if (const auto confSetting = configSettings.find("sinkName");
+			    confSetting != configSettings.end()) {
+				audioSettings.sinkName = confSetting->second;
+				if (audioSettings.sinkName == "auto") audioSettings.sinkName.clear();
 			} else {
-				if (const auto confSetting = configSettings.find("sinkName");
-				    confSetting != configSettings.end()) {
-					audioSettings.sinkName = confSetting->second;
-					if (audioSettings.sinkName == "auto") audioSettings.sinkName.clear();
-				} else {
-					PRINT_UNDEFINED(sinkName);
-				}
+				PRINT_UNDEFINED(sinkName);
 			}
 
 			if (const auto confSetting = configSettings.find("modules");
@@ -309,7 +312,7 @@ namespace {
 			if (const auto confSetting = configSettings.find("windowTitle");
 			    confSetting != configSettings.end()) {
 				renderSettings.windowTitle = confSetting->second;
-				if (renderSettings.windowTitle.find("executable") != std::string::npos)
+				if (renderSettings.windowTitle == "executable")
 					renderSettings.windowTitle = execPath;
 			} else {
 				PRINT_UNDEFINED(windowTitle);
@@ -359,17 +362,12 @@ namespace {
 					break;
 			}
 
-			if (const auto cmdLineArg = cmdLineArgs.find("device");
-			    cmdLineArg != cmdLineArgs.end()) {
-				renderSettings.physicalDevice.value() = std::stoi(cmdLineArg->second);
+			if (const auto confSetting = configSettings.find("physicalDevice");
+			    confSetting != configSettings.end()) {
+				if (confSetting->second != "auto")
+					renderSettings.physicalDevice.value() = std::stoi(confSetting->second);
 			} else {
-				if (const auto confSetting = configSettings.find("physicalDevice");
-				    confSetting != configSettings.end()) {
-					if (confSetting->second != "auto")
-						renderSettings.physicalDevice.value() = std::stoi(confSetting->second);
-				} else {
-					PRINT_UNDEFINED(physicalDevice);
-				}
+				PRINT_UNDEFINED(physicalDevice);
 			}
 
 			proccessSettings.channels = audioSettings.channels;
@@ -377,16 +375,11 @@ namespace {
 			proccessSettings.outputSize = smoothedSize;
 			proccessSettings.smoothingLevel = smoothingLevel;
 
-			if (const auto cmdLineArg = cmdLineArgs.find("amplitude");
-			    cmdLineArg != cmdLineArgs.end()) {
-				proccessSettings.amplitude = std::stof(cmdLineArg->second);
-			} else {
-				if (const auto confSetting = configSettings.find("amplitude");
-				    confSetting != configSettings.end())
-					proccessSettings.amplitude = std::stof(confSetting->second);
-				else
-					PRINT_UNDEFINED(amplitude);
-			}
+			if (const auto confSetting = configSettings.find("amplitude");
+			    confSetting != configSettings.end())
+				proccessSettings.amplitude = std::stof(confSetting->second);
+			else
+				PRINT_UNDEFINED(amplitude);
 		}
 	};
 }  // namespace

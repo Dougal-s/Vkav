@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Vkav VERSION 0.2.0)
+project(Vkav VERSION 0.3.0)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -10,8 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(
-  "-Wall" "-Wextra"
-  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb>"
+  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra>"
   "$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
 )
 
@@ -32,9 +31,11 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 	endif()
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+if (NOT DEFINED AUDIO_BACKEND)
+	set(AUDIO_BACKEND "LIBSOUNDIO")
+endif()
 
-add_library(audioModule src/CoreAudio.cpp src/PulseAudio.cpp src/PulseAudioAsync.cpp src/WASAPI.cpp)
+add_library(audioModule src/CoreAudio.cpp src/PulseAudio.cpp src/PulseAudioAsync.cpp src/WASAPI.cpp src/libsoundio.cpp)
 if (${AUDIO_BACKEND} MATCHES COREAUDIO)
 	add_definitions(-DCOREAUDIO)
 	find_library(coreAudio CoreAudio)
@@ -60,6 +61,15 @@ elseif (${AUDIO_BACKEND} MATCHES WASAPI)
 		message(FATAL_ERROR "Unable to locate WASAPI!")
 	endif()
 	target_link_libraries(audioModule ${WASAPI})
+elseif (${AUDIO_BACKEND} MATCHES LIBSOUNDIO)
+	add_definitions(-DLIBSOUNDIO)
+	find_library(libsoundio soundio)
+	find_path(libsoundioIncludeDir NAMES soundio/soundio.h)
+	if (NOT libsoundio)
+		message(FATAL_ERROR "Unable to locate libsoundio!")
+	endif()
+	target_include_directories(audioModule PRIVATE ${libsoundioIncludeDir})
+	target_link_libraries(audioModule ${libsoundio})
 endif()
 target_link_libraries(audioModule -lpthread)
 target_include_directories(audioModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -81,17 +91,23 @@ if (NOT ${JPEG_FOUND})
 else()
 	target_link_libraries(graphicsModule JPEG::JPEG)
 endif()
-target_link_libraries(graphicsModule -lstdc++fs)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES "8..*")
+	target_link_libraries(graphicsModule -lstdc++fs)
+endif()
 target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Render.cpp src/Image.cpp src/Data.cpp)
+add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Data.cpp)
 target_include_directories(vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(vkav audioModule)
 target_link_libraries(vkav graphicsModule)
-target_link_libraries(vkav -lstdc++fs)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES "8..*")
+	target_link_libraries(vkav -lstdc++fs)
+endif()
 
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows)
-	add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
+	if (${CMAKE_BUILD_TYPE} MATCHES release)
+		add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
+	endif()
 endif()
 
 # Installer
@@ -102,19 +118,17 @@ if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 			RUNTIME DESTINATION bin)
 	install(FILES src/config # config file
 			CONFIGURATIONS Release
-			TYPE SYSCONF
-			DESTINATION /etc/Vkav)
+			DESTINATION /etc/vkav)
 	install(DIRECTORY src/shaders # shaders
 			CONFIGURATIONS Release
-			TYPE SYSCONF
-			DESTINATION /etc/Vkav)
-	install(FILES Vkav.desktop # .desktop file
+			DESTINATION /etc/vkav)
+	install(FILES vkav.desktop # .desktop file
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/applications)
-	install(FILES Vkav.png # icon
+	install(FILES vkav.png # icon
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/icons/hicolor/48x48/apps)
-	install(FILES Vkav.svg # icon
+	install(FILES vkav.svg # icon
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/icons/hicolor/scalable/apps)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)

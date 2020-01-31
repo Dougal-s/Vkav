@@ -1,5 +1,6 @@
 #include <csetjmp>
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -209,6 +210,97 @@ namespace {
 	};
 #endif
 
+	class BMP : public Image {
+	public:
+		void init(const std::filesystem::path& filePath) override {
+			file = std::ifstream(filePath, std::ios::binary | std::ios::in);
+		}
+
+		void readImage() override {
+			file.read(reinterpret_cast<char*>(&header), sizeof(header));
+			header.check();
+			file.seekg(header.dataOffset, std::ios::beg);
+			imgWidth = header.width;
+			imgHeight = header.height;
+
+			size_t rowSize = ((header.width * header.bitsPerPixel + 31) >> 5) << 2;
+
+			char** buffer = new char*[imgHeight];
+			image = new unsigned char*[imgHeight];
+			for (int y = imgHeight - 1; y != -1; --y) {
+				buffer[y] = new char[rowSize];
+				image[y] = new unsigned char[4 * imgWidth];
+				file.read(buffer[y], rowSize);
+				for (size_t x = 0; x < imgWidth; ++x) {
+					switch (header.bitsPerPixel) {
+						case 32:
+							image[y][4 * x + 0] = buffer[y][4 * x + 3];
+							image[y][4 * x + 1] = buffer[y][4 * x + 2];
+							image[y][4 * x + 2] = buffer[y][4 * x + 1];
+							image[y][4 * x + 3] = buffer[y][4 * x + 0];
+							break;
+						case 24:
+							image[y][4 * x + 0] = buffer[y][3 * x + 2];
+							image[y][4 * x + 1] = buffer[y][3 * x + 1];
+							image[y][4 * x + 2] = buffer[y][3 * x + 0];
+							image[y][4 * x + 3] = 0xff;
+							break;
+					}
+				}
+			}
+			file.close();
+
+			for (size_t i = 0; i < imgHeight; ++i) delete[] buffer[i];
+			delete[] buffer;
+		}
+
+		unsigned char** getBuffer() override { return image; }
+
+		size_t getWidth() const override { return imgWidth; }
+
+		size_t getHeight() const override { return imgHeight; }
+
+		~BMP() override = default;
+
+	private:
+		std::ifstream file;
+
+		struct Header {
+			// header
+			uint8_t signature[2];  // 0
+			uint32_t fileSize;     // 2
+			uint8_t reserved[4];   // 6  // ignored
+			uint32_t dataOffset;   // 10
+			// info header
+			uint32_t size;             // 14
+			int32_t width;             // 18
+			int32_t height;            // 22
+			uint16_t planes;           // 26
+			uint16_t bitsPerPixel;     // 28
+			uint32_t compression;      // 30
+			uint32_t imageSize;        // 34 // ignored
+			int32_t xPixelsPerM;       // 38 // ignored
+			int32_t yPixelsPerM;       // 42 // ignored
+			uint32_t colorsUsed;       // 46 // ignored
+			uint32_t importantColors;  // 50 // ignored
+
+			void check() {
+				if (signature[0] != 'B' || signature[1] != 'M')
+					throw std::runtime_error(LOCATION "Invalid BMP file!");
+				if (planes != 1)
+					throw std::runtime_error(LOCATION "Invalid plane count in BMP file!");
+				if (bitsPerPixel != 32 && bitsPerPixel != 24)
+					throw std::runtime_error(LOCATION "Unsupported bitPerPixel value in BMP file!");
+				if (compression != 0)
+					throw std::runtime_error(LOCATION
+					                         "Compressed BMP file are unsupported as of now!");
+			}
+		} __attribute__((packed)) header;
+
+		unsigned char** image;
+		size_t imgWidth, imgHeight;
+	};
+
 	Image* Image::create(const std::filesystem::path& filePath) {
 #ifndef DISABLE_PNG
 		if (filePath.extension() == ".png") return new PNG();
@@ -217,6 +309,8 @@ namespace {
 #ifndef DISABLE_JPEG
 		if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg") return new JPEG();
 #endif
+
+		if (filePath.extension() == ".bmp") return new BMP();
 
 		throw std::runtime_error(LOCATION "unrecognized image type!");
 	}

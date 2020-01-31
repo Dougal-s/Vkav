@@ -43,10 +43,21 @@ void main() {
 	if (2*abs(pos-center) <= barWidth) {
 		float barCenter = position.x-pos+0.5f;
 		float v = 0.f;
-		if (position.x < 0.0)
-			v = kernelSmoothTexture(lBuffer, smoothingLevel, -2.0*barCenter/width);
+
+		const float mixThreshold = 0.03;
+
+		float texCoord = 2.0*barCenter/width;
+
+		if (abs(texCoord) < mixThreshold)
+			v = mix(
+					kernelSmoothTexture(lBuffer, smoothingLevel, texCoord),
+					kernelSmoothTexture(rBuffer, smoothingLevel, texCoord),
+					0.5*(texCoord+mixThreshold)/mixThreshold
+				);
+		else if (position.x < 0.0)
+			v = kernelSmoothTexture(lBuffer, smoothingLevel, texCoord);
 		else
-			v = kernelSmoothTexture(rBuffer, smoothingLevel, 2.0*barCenter/width);
+			v = kernelSmoothTexture(rBuffer, smoothingLevel, texCoord);
 
 		if (position.y < amplitude*v) {
 			outColor = vec4(color * brightness * (height*position.y/40 + 1), 1.f);

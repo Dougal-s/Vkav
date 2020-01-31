@@ -19,3 +19,5 @@ jobs:
         cd build
         cmake ..
         make
+    - name: Build deb Package
+      run: cd deb-package && ./build.sh

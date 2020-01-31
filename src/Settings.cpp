@@ -90,20 +90,12 @@ std::unordered_map<std::string, std::string> readCmdLineArgs(int argc, const cha
 		}
 
 		if (argv[i][1] == '-') {
-			static const std::unordered_set<std::string> validCmdLineFlags = {
-			    "--verbose",   "--sink-name", "--device",  "--config",
-			    "--amplitude", "--help",      "--version", "--install-config"};
-
-			if (validCmdLineFlags.find(argName) == validCmdLineFlags.end())
-				throw std::invalid_argument(LOCATION ": Invalid command line argument!");
-
-			arguments.insert(std::make_pair(argv[i] + 2, argValue));
-
+			arguments.insert(std::make_pair(argName.c_str() + 2, argValue));
 		} else {
 			std::string key;
 			static const std::unordered_map<char, std::string> cmdLineArgKeyMap = {
-			    {'v', "verbose"},   {'s', "sink-name"}, {'d', "device"}, {'c', "config"},
-			    {'a', "amplitude"}, {'h', "help"},      {'V', "version"}};
+			    {'v', "verbose"},   {'s', "sinkName"}, {'d', "physicalDevice"}, {'c', "config"},
+			    {'a', "amplitude"}, {'h', "help"},     {'V', "version"}};
 			if (const auto it = cmdLineArgKeyMap.find(argv[i][1]); it != cmdLineArgKeyMap.end())
 				key = it->second;
 			else
@@ -135,7 +127,7 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	configLocations[0] = std::getenv("HOME");
 	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
 	configLocations[0] /= "Library/Preferences/vkav";
-	configLocations[1] = "/Library/Preferences/vkav";
+	configLocations[1] = "../Resources/vkav";
 #elif defined(WINDOWS)
 	configLocations.resize(2);
 	const char* path;
@@ -169,7 +161,7 @@ void installConfig() {
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
 	dst /= ".config/vkav";
 #elif defined(MACOS)
-	src = "/Library/Preferences";
+	src = "../Resources/vkav";
 	dst = std::getenv("HOME");
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
 	dst /= "Library/Preferences";

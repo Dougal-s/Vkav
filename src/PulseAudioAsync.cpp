@@ -156,7 +156,7 @@ private:
 		attr.fragsize = sizeof(float) * settings.sampleSize;
 
 		if ((error = pa_stream_connect_record(stream, settings.sinkName.c_str(), &attr,
-		                                      PA_STREAM_NOFLAGS)) != 0)
+		                                      PA_STREAM_ADJUST_LATENCY)) != 0)
 			throw std::runtime_error(
 			    std::string(LOCATION "failed to connect pulseaudio stream!: ") +
 			    pa_strerror(error));

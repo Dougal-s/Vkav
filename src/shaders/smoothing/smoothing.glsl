@@ -4,7 +4,7 @@ float wrapIndex(float index) {
 }
 
 float texture(in samplerBuffer s, in float index) {
-	return texelFetch(s, int(wrapIndex(index)*audioSize)).r;
+	return texelFetch(s, int(wrapIndex(index)*textureSize(s))).r;
 }
 
 float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float index) {
@@ -12,14 +12,18 @@ float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float
 		return texture(s, index);
 
 	const float pi = 3.14159265359;
-	float val = 0.f;
+	float val = texture(s, index);
+
+	int size = textureSize(s);
 
 	const float smoothingFactor = 0.5f/(smoothingAmount*smoothingAmount);
-	const float radius = sqrt(-log(0.05f)/smoothingFactor)/audioSize;
-	for (float i = -radius; i < radius; i += 1.f/audioSize) {
-		const float distance = audioSize*i;
+	const float radius = sqrt(-log(0.05f)/smoothingFactor)/size;
+	const float stepSize = 1.f/size;
+	// skip i = 0
+	for (float i = stepSize; i < radius; i += stepSize) {
+		const float distance = size*i;
 		const float weight = exp(-distance*distance*smoothingFactor);
-		val += texture(s, index+i)*weight;
+		val += weight*(texture(s, index+i)+texture(s, index-i));
 	}
 	val *= sqrt(smoothingFactor/pi);
 
@@ -30,13 +34,18 @@ float mcatSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float i
 	if (smoothingAmount == 0.f)
 		return texture(s, index);
 
-	float val = 0.f;
+	float val = texture(s, index);
+
+	int size = textureSize(s);
 
 	const float smoothingFactor = 1.f+1.f/smoothingAmount;
-	const float radius = log(30.f)/(log(smoothingFactor)*audioSize);
-	for (float i = 0; i < radius; i += 1.f/audioSize) {
-		val = max(texture(s, index+i) * pow(smoothingFactor, -audioSize*i), val);
-		val = max(texture(s, index-i) * pow(smoothingFactor, -audioSize*i), val);
+	const float radius = log(30.f)/(log(smoothingFactor)*size);
+	const float stepSize = 1.f/size;
+	// skip i = 0
+	for (float i = stepSize; i < radius; i += stepSize) {
+		float coeff = pow(smoothingFactor, -size*i);
+		val = max(texture(s, index+i) * coeff, val);
+		val = max(texture(s, index-i) * coeff, val);
 	}
 	val *= 0.3;
 
