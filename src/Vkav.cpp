@@ -312,7 +312,7 @@ namespace {
 			if (const auto confSetting = configSettings.find("windowTitle");
 			    confSetting != configSettings.end()) {
 				renderSettings.windowTitle = confSetting->second;
-				if (renderSettings.windowTitle.find("executable") != std::string::npos)
+				if (renderSettings.windowTitle == "executable")
 					renderSettings.windowTitle = execPath;
 			} else {
 				PRINT_UNDEFINED(windowTitle);
