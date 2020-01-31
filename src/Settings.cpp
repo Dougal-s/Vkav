@@ -127,7 +127,7 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	configLocations[0] = std::getenv("HOME");
 	if (configLocations[0].empty()) configLocations[0] = getpwuid(geteuid())->pw_dir;
 	configLocations[0] /= "Library/Preferences/vkav";
-	configLocations[1] = "/Library/Preferences/vkav";
+	configLocations[1] = "../Resources/vkav";
 #elif defined(WINDOWS)
 	configLocations.resize(2);
 	const char* path;
@@ -161,7 +161,7 @@ void installConfig() {
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
 	dst /= ".config/vkav";
 #elif defined(MACOS)
-	src = "/Library/Preferences";
+	src = "../Resources/vkav";
 	dst = std::getenv("HOME");
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
 	dst /= "Library/Preferences";
