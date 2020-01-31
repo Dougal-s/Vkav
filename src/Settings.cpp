@@ -90,20 +90,12 @@ std::unordered_map<std::string, std::string> readCmdLineArgs(int argc, const cha
 		}
 
 		if (argv[i][1] == '-') {
-			static const std::unordered_set<std::string> validCmdLineFlags = {
-			    "--verbose",   "--sink-name", "--device",  "--config",
-			    "--amplitude", "--help",      "--version", "--install-config"};
-
-			if (validCmdLineFlags.find(argName) == validCmdLineFlags.end())
-				throw std::invalid_argument(LOCATION ": Invalid command line argument!");
-
-			arguments.insert(std::make_pair(argv[i] + 2, argValue));
-
+			arguments.insert(std::make_pair(argName.c_str() + 2, argValue));
 		} else {
 			std::string key;
 			static const std::unordered_map<char, std::string> cmdLineArgKeyMap = {
-			    {'v', "verbose"},   {'s', "sink-name"}, {'d', "device"}, {'c', "config"},
-			    {'a', "amplitude"}, {'h', "help"},      {'V', "version"}};
+			    {'v', "verbose"},   {'s', "sinkName"}, {'d', "physicalDevice"}, {'c', "config"},
+			    {'a', "amplitude"}, {'h', "help"},     {'V', "version"}};
 			if (const auto it = cmdLineArgKeyMap.find(argv[i][1]); it != cmdLineArgKeyMap.end())
 				key = it->second;
 			else
