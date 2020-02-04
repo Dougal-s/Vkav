@@ -27,4 +27,4 @@ mkdir "vkav/usr/share/applications"
 cp "../vkav.desktop" "vkav/usr/share/applications"
 
 dpkg-deb --build vkav
-mv ./vkav.deb ./vkav_0.3-1.deb
+mv ./vkav.deb ./vkav_0.3.0_$(uname -m).deb
