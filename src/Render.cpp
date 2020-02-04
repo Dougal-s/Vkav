@@ -757,8 +757,8 @@ private:
 				layerDirectory = settings.modules[i];
 			} else {
 				for (auto& path : settings.configLocations) {
-					if (std::filesystem::exists(path / "shaders" / settings.modules[i])) {
-						layerDirectory = path / "shaders" / settings.modules[i];
+					if (std::filesystem::exists(path / "modules" / settings.modules[i])) {
+						layerDirectory = path / "modules" / settings.modules[i];
 						break;
 					}
 				}
@@ -775,7 +775,7 @@ private:
 					vertexShaderPath = settings.modules[i];
 
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = settings.configLocations.front() / "shaders";
+					vertexShaderPath = settings.configLocations.front() / "modules";
 
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
 				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);

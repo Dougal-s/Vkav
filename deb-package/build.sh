@@ -9,7 +9,7 @@ cp "../build/vkav" "vkav/usr/bin"
 mkdir "vkav/etc"
 mkdir "vkav/etc/vkav"
 cp "../src/config" "vkav/etc/vkav"
-cp -r "../src/shaders" "vkav/etc/vkav"
+cp -r "../src/modules" "vkav/etc/vkav"
 
 mkdir "vkav/usr/share"
 mkdir "vkav/usr/share/icons"
