@@ -752,20 +752,7 @@ private:
 		modules.resize(settings.modules.size());
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
-			std::filesystem::path layerDirectory;
-			if (std::filesystem::path(settings.modules[i]).is_absolute()) {
-				layerDirectory = settings.modules[i];
-			} else {
-				for (auto& path : settings.configLocations) {
-					if (std::filesystem::exists(path / "modules" / settings.modules[i])) {
-						layerDirectory = path / "modules" / settings.modules[i];
-						break;
-					}
-				}
-			}
-
-			if (layerDirectory.empty())
-				throw std::invalid_argument(LOCATION "Unable to locate module!");
+			std::filesystem::path layerDirectory = findModule(settings.modules[i]);
 
 			for (uint32_t layer = 1;
 			     std::filesystem::exists(layerDirectory / std::to_string(layer)); ++layer) {
@@ -791,6 +778,16 @@ private:
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
 		}
+	}
+
+	std::filesystem::path findModule(const std::string& moduleName) {
+		if (std::filesystem::path(moduleName).is_absolute()) return moduleName;
+
+		for (auto& path : settings.configLocations)
+			if (std::filesystem::exists(path / "modules" / moduleName))
+				return path / "modules" / moduleName;
+
+		throw std::invalid_argument(LOCATION "Unable to locate module!");
 	}
 
 	void createGraphicsPipelines() {
