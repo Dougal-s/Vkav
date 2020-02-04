@@ -198,7 +198,7 @@ public:
 			vkFreeMemory(device, rAudioBufferMemory[i], nullptr);
 		}
 
-		destroyGraphicsPipelines();
+		destroyModules();
 
 		vkDestroySampler(device, backgroundImageSampler, nullptr);
 		vkDestroyImageView(device, backgroundImageView, nullptr);
@@ -739,7 +739,7 @@ private:
 			swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
 	}
 
-	void destroyGraphicsPipelines() {
+	void destroyModules() {
 		for (auto& module : modules) {
 			for (auto& layer : module.layers) {
 				vkDestroyShaderModule(device, layer.fragShaderModule, nullptr);
