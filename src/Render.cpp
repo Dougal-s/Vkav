@@ -765,7 +765,7 @@ private:
 			}
 
 			if (layerDirectory.empty())
-				throw std::invalid_argument(LOCATION "Unable to locate shader!");
+				throw std::invalid_argument(LOCATION "Unable to locate module!");
 
 			for (uint32_t layer = 1;
 			     std::filesystem::exists(layerDirectory / std::to_string(layer)); ++layer) {
