@@ -3,7 +3,9 @@
  */
 
 /**
- * Paths to the folders containing the fragment shaders to use.
+ * Names of the rendering modules.
+ * They can be found in the following directories:
+ * Linux: /etc/vkav/modules, /home/user/.config/vkav/modules
  */
 modules = {"bars", "radial"}
 
@@ -21,12 +23,12 @@ backgroundImage = none
 amplitude = 0.4f
 
 /**
- * Name of the PulseAudio sink to record audio from.
+ * Name of the audio source to record audio from.
  */
 sinkName = auto
 
 /**
- * Size of the array that reads audio from the Pulseaudio sink.
+ * Size of the array that reads audio from the audio source.
  */
 sampleSize = 64
 
@@ -53,12 +55,13 @@ channels = 2
 fpsLimit = 0
 
 /**
-* Whether to perform smoothing on the CPU or GPU.
-*/
+ * Whether to perform smoothing on the CPU or GPU.
+ */
 smoothingDevice = GPU
 
 /**
- * Size of the left and right audio buffers after smoothing. Only applies if smoothingDevice is set to CPU.
+ * Size of the left and right audio buffers after smoothing.
+ * Only applies if smoothingDevice is set to CPU.
  */
 smoothedSize = 320
 
@@ -106,4 +109,4 @@ decorated = true
 /**
  * Which GPU to use.
  */
- physicalDevice = auto
+physicalDevice = auto
