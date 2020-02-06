@@ -87,6 +87,13 @@ namespace {
 		std::vector<GraphicsPipeline> layers;
 		SpecializationConstants specializationConstants;
 
+		// Image
+		std::string imagePath = "";
+		VkImage image;
+		VkDeviceMemory imageMemory;
+		VkImageView imageView;
+		VkSampler imageSampler;
+
 		// Name of the fragment shader function to call
 		std::string moduleName = "main";
 		size_t vertexCount = 6;
@@ -278,7 +285,7 @@ private:
 	VkSampler backgroundImageSampler;
 
 	VkDescriptorPool descriptorPool;
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<std::vector<VkDescriptorSet>> descriptorSets;
 
 	std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores;
 	std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderFinishedSemaphores;
@@ -336,6 +343,7 @@ private:
 		createFramebuffers();
 		createCommandPool();
 		createAudioBuffers();
+		createModuleImages();
 		createBackgroundImage();
 		createBackgroundImageView();
 		createBackgroundImageSampler();
@@ -745,6 +753,12 @@ private:
 				vkDestroyShaderModule(device, layer.fragShaderModule, nullptr);
 				vkDestroyShaderModule(device, layer.vertShaderModule, nullptr);
 			}
+
+			vkDestroySampler(device, module.imageSampler, nullptr);
+			vkDestroyImageView(device, module.imageView, nullptr);
+
+			vkDestroyImage(device, module.image, nullptr);
+			vkFreeMemory(device, module.imageMemory, nullptr);
 		}
 	}
 
@@ -773,8 +787,7 @@ private:
 			}
 
 			std::filesystem::path configFilePath = layerDirectory / "config";
-			modules[i].specializationConstants = readSpecializationConstants(
-			    configFilePath, modules[i].moduleName, modules[i].vertexCount);
+			readConfig(configFilePath, modules[i]);
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
 		}
@@ -1056,14 +1069,15 @@ private:
 
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			for (const auto& module : modules) {
-				for (const auto& layer : module.layers) {
+			for (size_t module = 0; module < modules.size(); ++module) {
+				for (const auto& layer : modules[module].layers) {
 					vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 					                  layer.graphicsPipeline);
 
 					vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-					                        pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
-					vkCmdDraw(commandBuffers[i], module.vertexCount, 1, 0, 0);
+					                        pipelineLayout, 0, 1, &descriptorSets[i][module], 0,
+					                        nullptr);
+					vkCmdDraw(commandBuffers[i], modules[module].vertexCount, 1, 0, 0);
 				}
 			}
 
@@ -1124,6 +1138,34 @@ private:
 		createGraphicsPipelines();
 		createFramebuffers();
 		createCommandBuffers();
+	}
+
+	void createModuleImages() {
+		VkSamplerCreateInfo samplerInfo = {};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.maxAnisotropy = 1;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = 0.0f;
+
+		for (auto& module : modules) {
+			createTextureImage(module.imagePath, module.image, module.imageMemory);
+			module.imageView = createImageView(module.image, VK_FORMAT_R8G8B8A8_UNORM);
+
+			if (vkCreateSampler(device, &samplerInfo, nullptr, &module.imageSampler) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to create image sampler!");
+		}
 	}
 
 	void createBackgroundImage() {
@@ -1440,9 +1482,16 @@ private:
 		backgroundSamplerLayoutBinding.pImmutableSamplers = nullptr;
 		backgroundSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		std::array<VkDescriptorSetLayoutBinding, 4> bindings = {
+		VkDescriptorSetLayoutBinding moduleImageSamplerLayoutBinding = {};
+		moduleImageSamplerLayoutBinding.binding = 4;
+		moduleImageSamplerLayoutBinding.descriptorCount = 1;
+		moduleImageSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		moduleImageSamplerLayoutBinding.pImmutableSamplers = nullptr;
+		moduleImageSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		std::array<VkDescriptorSetLayoutBinding, 5> bindings = {
 		    dataLayoutBinding, lAudioBufferLayoutBinding, rAudioBufferLayoutBinding,
-		    backgroundSamplerLayoutBinding};
+		    backgroundSamplerLayoutBinding, moduleImageSamplerLayoutBinding};
 
 		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -1514,52 +1563,65 @@ private:
 	}
 
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 4> poolSizes = {};
+		std::array<VkDescriptorPoolSize, 5> poolSizes = {};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[0].descriptorCount =
+		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[1].descriptorCount =
+		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
 		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-		poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[2].descriptorCount =
+		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
 		poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[3].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		poolSizes[3].descriptorCount =
+		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
+		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[4].descriptorCount =
+		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size() * modules.size());
 
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create descriptor pool!");
 	}
 
 	void createDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(modules.size(), descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(modules.size());
 		allocInfo.pSetLayouts = layouts.data();
 
 		descriptorSets.resize(swapChainImages.size());
-		if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
-			throw std::runtime_error(LOCATION "failed to allocate descriptor sets!");
 
 		for (size_t i = 0; i < swapChainImages.size(); ++i) {
+			descriptorSets[i].resize(modules.size());
+
+			if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets[i].data()) !=
+			    VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to allocate descriptor sets!");
+
 			VkDescriptorBufferInfo dataBufferInfo = {};
 			dataBufferInfo.buffer = dataBuffers[i];
 			dataBufferInfo.offset = 0;
 			dataBufferInfo.range = sizeof(UniformBufferObject);
 
-			VkDescriptorImageInfo imageInfo = {};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = backgroundImageView;
-			imageInfo.sampler = backgroundImageSampler;
+			VkDescriptorImageInfo backgroundImageInfo = {};
+			backgroundImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			backgroundImageInfo.imageView = backgroundImageView;
+			backgroundImageInfo.sampler = backgroundImageSampler;
 
-			std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
+			VkDescriptorImageInfo moduleImageInfo = {};
+			moduleImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+			std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets[i];
 			descriptorWrites[0].dstBinding = 0;
 			descriptorWrites[0].dstArrayElement = 0;
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1567,7 +1629,6 @@ private:
 			descriptorWrites[0].pBufferInfo = &dataBufferInfo;
 
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets[i];
 			descriptorWrites[1].dstBinding = 1;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
@@ -1575,7 +1636,6 @@ private:
 			descriptorWrites[1].pTexelBufferView = &lAudioBufferViews[i];
 
 			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstSet = descriptorSets[i];
 			descriptorWrites[2].dstBinding = 2;
 			descriptorWrites[2].dstArrayElement = 0;
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
@@ -1583,15 +1643,32 @@ private:
 			descriptorWrites[2].pTexelBufferView = &rAudioBufferViews[i];
 
 			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[3].dstSet = descriptorSets[i];
 			descriptorWrites[3].dstBinding = 3;
 			descriptorWrites[3].dstArrayElement = 0;
 			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[3].descriptorCount = 1;
-			descriptorWrites[3].pImageInfo = &imageInfo;
+			descriptorWrites[3].pImageInfo = &backgroundImageInfo;
 
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()),
-			                       descriptorWrites.data(), 0, nullptr);
+			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[4].dstBinding = 4;
+			descriptorWrites[4].dstArrayElement = 0;
+			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[4].descriptorCount = 1;
+			descriptorWrites[4].pImageInfo = &moduleImageInfo;
+
+			for (size_t module = 0; module < modules.size(); ++module) {
+				moduleImageInfo.imageView = modules[module].imageView;
+				moduleImageInfo.sampler = modules[module].imageSampler;
+
+				descriptorWrites[0].dstSet = descriptorSets[i][module];
+				descriptorWrites[1].dstSet = descriptorSets[i][module];
+				descriptorWrites[2].dstSet = descriptorSets[i][module];
+				descriptorWrites[3].dstSet = descriptorSets[i][module];
+				descriptorWrites[4].dstSet = descriptorSets[i][module];
+
+				vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()),
+				                       descriptorWrites.data(), 0, nullptr);
+			}
 		}
 	}
 
@@ -1622,11 +1699,8 @@ private:
 		return buffer;
 	}
 
-	static SpecializationConstants readSpecializationConstants(
-	    const std::filesystem::path& configFilePath, std::string& moduleName, size_t& vertexCount) {
-		SpecializationConstants specializationConstants;
-
-		specializationConstants.data.resize(4);
+	static void readConfig(const std::filesystem::path& configFilePath, Module& module) {
+		module.specializationConstants.data.resize(4);
 
 		for (uint32_t offset = 0; offset < 4; ++offset) {
 			VkSpecializationMapEntry mapEntry = {};
@@ -1634,13 +1708,13 @@ private:
 			mapEntry.offset = offset * sizeof(SpecializationConstant);
 			mapEntry.size = sizeof(SpecializationConstant);
 
-			specializationConstants.specializationInfo.push_back(mapEntry);
+			module.specializationConstants.specializationInfo.push_back(mapEntry);
 		}
 
 		std::ifstream file(configFilePath);
 		if (!file.is_open()) {
 			std::cerr << "shader configuration file not found!" << std::endl;
-			return specializationConstants;
+			return;
 		}
 
 		std::string line;
@@ -1655,12 +1729,17 @@ private:
 			line.resize(std::remove_if(line.begin(), line.end(), isspace) - line.begin());
 
 			if (line.substr(0, 6) == "module") {
-				moduleName = line.substr(8, line.size() - 8 - 1);
+				module.moduleName = line.substr(8, line.size() - 8 - 1);
+				continue;
+			}
+
+			if (line.substr(0, 5) == "image") {
+				module.imagePath = line.substr(7, line.size() - 7 - 1);
 				continue;
 			}
 
 			if (line.substr(0, 11) == "vertexCount") {
-				vertexCount = std::stoul(line.substr(12));
+				module.vertexCount = std::stoul(line.substr(12));
 				continue;
 			}
 
@@ -1683,19 +1762,18 @@ private:
 
 			VkSpecializationMapEntry mapEntry = {};
 			mapEntry.constantID = id;
-			mapEntry.offset = specializationConstants.data.size() * sizeof(SpecializationConstant);
+			mapEntry.offset =
+			    module.specializationConstants.data.size() * sizeof(SpecializationConstant);
 			mapEntry.size = sizeof(SpecializationConstant);
 
-			specializationConstants.data.push_back(value);
-			specializationConstants.specializationInfo.push_back(mapEntry);
+			module.specializationConstants.data.push_back(value);
+			module.specializationConstants.specializationInfo.push_back(mapEntry);
 		}
 
 		file.close();
 
-		specializationConstants.data.shrink_to_fit();
-		specializationConstants.specializationInfo.shrink_to_fit();
-
-		return specializationConstants;
+		module.specializationConstants.data.shrink_to_fit();
+		module.specializationConstants.specializationInfo.shrink_to_fit();
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, [[maybe_unused]] int width,
