@@ -1,0 +1,6 @@
+
+image=""
+
+(id=11) int radius = 128
+(id=12) float radiusSensitivity = 20
+(id=13) float rotationSensitivity = 30
