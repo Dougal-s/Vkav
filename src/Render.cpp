@@ -70,6 +70,18 @@ namespace {
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
+	struct Image {
+		VkImage image;
+		VkDeviceMemory memory;
+		VkImageView view;
+
+		static void destroy(VkDevice device, Image image) {
+			vkDestroyImageView(device, image.view, nullptr);
+			vkDestroyImage(device, image.image, nullptr);
+			vkFreeMemory(device, image.memory, nullptr);
+		}
+	};
+
 	typedef std::variant<uint32_t, int32_t, float> SpecializationConstant;
 
 	struct SpecializationConstants {
@@ -89,9 +101,7 @@ namespace {
 
 		// Image
 		std::string imagePath = "";
-		VkImage image;
-		VkDeviceMemory imageMemory;
-		VkImageView imageView;
+		Image image;
 		VkSampler imageSampler;
 
 		// Name of the fragment shader function to call
@@ -208,10 +218,8 @@ public:
 		destroyModules();
 
 		vkDestroySampler(device, backgroundImageSampler, nullptr);
-		vkDestroyImageView(device, backgroundImageView, nullptr);
 
-		vkDestroyImage(device, backgroundImage, nullptr);
-		vkFreeMemory(device, backgroundImageMemory, nullptr);
+		Image::destroy(device, backgroundImage);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
 			vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
@@ -235,6 +243,7 @@ public:
 	}
 
 private:
+
 	// Variables
 
 	RenderSettings settings;
@@ -279,9 +288,7 @@ private:
 	std::vector<VkDeviceMemory> rAudioBufferMemory;
 	std::vector<VkBufferView> rAudioBufferViews;
 
-	VkImage backgroundImage;
-	VkDeviceMemory backgroundImageMemory;
-	VkImageView backgroundImageView;
+	Image backgroundImage;
 	VkSampler backgroundImageSampler;
 
 	VkDescriptorPool descriptorPool;
@@ -755,10 +762,10 @@ private:
 			}
 
 			vkDestroySampler(device, module.imageSampler, nullptr);
-			vkDestroyImageView(device, module.imageView, nullptr);
+			vkDestroyImageView(device, module.image.view, nullptr);
 
-			vkDestroyImage(device, module.image, nullptr);
-			vkFreeMemory(device, module.imageMemory, nullptr);
+			vkDestroyImage(device, module.image.image, nullptr);
+			vkFreeMemory(device, module.image.memory, nullptr);
 		}
 	}
 
@@ -1160,8 +1167,8 @@ private:
 		samplerInfo.maxLod = 0.0f;
 
 		for (auto& module : modules) {
-			createTextureImage(module.imagePath, module.image, module.imageMemory);
-			module.imageView = createImageView(module.image, VK_FORMAT_R8G8B8A8_UNORM);
+			createTextureImage(module.imagePath, module.image.image, module.image.memory);
+			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
 
 			if (vkCreateSampler(device, &samplerInfo, nullptr, &module.imageSampler) != VK_SUCCESS)
 				throw std::runtime_error(LOCATION "failed to create image sampler!");
@@ -1169,7 +1176,7 @@ private:
 	}
 
 	void createBackgroundImage() {
-		createTextureImage(settings.backgroundImage, backgroundImage, backgroundImageMemory);
+		createTextureImage(settings.backgroundImage, backgroundImage.image, backgroundImage.memory);
 	}
 
 	void createTextureImage(const std::filesystem::path& imagePath, VkImage& image,
@@ -1408,7 +1415,7 @@ private:
 	}
 
 	void createBackgroundImageView() {
-		backgroundImageView = createImageView(backgroundImage, VK_FORMAT_R8G8B8A8_UNORM);
+		backgroundImage.view = createImageView(backgroundImage.image, VK_FORMAT_R8G8B8A8_UNORM);
 	}
 
 	VkImageView createImageView(VkImage image, VkFormat format) {
@@ -1614,7 +1621,7 @@ private:
 
 			VkDescriptorImageInfo backgroundImageInfo = {};
 			backgroundImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			backgroundImageInfo.imageView = backgroundImageView;
+			backgroundImageInfo.imageView = backgroundImage.view;
 			backgroundImageInfo.sampler = backgroundImageSampler;
 
 			VkDescriptorImageInfo moduleImageInfo = {};
@@ -1657,7 +1664,7 @@ private:
 			descriptorWrites[4].pImageInfo = &moduleImageInfo;
 
 			for (size_t module = 0; module < modules.size(); ++module) {
-				moduleImageInfo.imageView = modules[module].imageView;
+				moduleImageInfo.imageView = modules[module].image.view;
 				moduleImageInfo.sampler = modules[module].imageSampler;
 
 				descriptorWrites[0].dstSet = descriptorSets[i][module];
