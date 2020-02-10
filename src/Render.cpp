@@ -119,6 +119,18 @@ namespace {
 		}
 	};
 
+	struct Buffer {
+		VkBuffer buffer;
+		VkDeviceMemory memory;
+		VkBufferView view = VK_NULL_HANDLE;
+
+		static void destroy(VkDevice device, Buffer& buffer) {
+			vkDestroyBufferView(device, buffer.view, nullptr);
+			vkDestroyBuffer(device, buffer.buffer, nullptr);
+			vkFreeMemory(device, buffer.memory, nullptr);
+		}
+	};
+
 	struct UniformBufferObject {
 		float lVolume;
 		float rVolume;
@@ -215,14 +227,9 @@ public:
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
 		for (size_t i = 0; i < dataBuffers.size(); ++i) {
-			vkDestroyBuffer(device, dataBuffers[i], nullptr);
-			vkFreeMemory(device, dataBufferMemory[i], nullptr);
-			vkDestroyBufferView(device, lAudioBufferViews[i], nullptr);
-			vkDestroyBuffer(device, lAudioBuffers[i], nullptr);
-			vkFreeMemory(device, lAudioBufferMemory[i], nullptr);
-			vkDestroyBufferView(device, rAudioBufferViews[i], nullptr);
-			vkDestroyBuffer(device, rAudioBuffers[i], nullptr);
-			vkFreeMemory(device, rAudioBufferMemory[i], nullptr);
+			Buffer::destroy(device, dataBuffers[i]);
+			Buffer::destroy(device, lAudioBuffers[i]);
+			Buffer::destroy(device, rAudioBuffers[i]);
 		}
 
 		destroyModules();
@@ -251,7 +258,6 @@ public:
 	}
 
 private:
-
 	// Variables
 
 	RenderSettings settings;
@@ -286,15 +292,9 @@ private:
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
 
-	std::vector<VkBuffer> dataBuffers;
-	std::vector<VkDeviceMemory> dataBufferMemory;
-
-	std::vector<VkBuffer> lAudioBuffers;
-	std::vector<VkDeviceMemory> lAudioBufferMemory;
-	std::vector<VkBufferView> lAudioBufferViews;
-	std::vector<VkBuffer> rAudioBuffers;
-	std::vector<VkDeviceMemory> rAudioBufferMemory;
-	std::vector<VkBufferView> rAudioBufferViews;
+	std::vector<Buffer> dataBuffers;
+	std::vector<Buffer> lAudioBuffers;
+	std::vector<Buffer> rAudioBuffers;
 
 	Image backgroundImage;
 
@@ -762,8 +762,7 @@ private:
 	}
 
 	void destroyModules() {
-		for (auto& module : modules)
-			Module::destroy(device, module);
+		for (auto& module : modules) Module::destroy(device, module);
 	}
 
 	void prepareGraphicsPipelineCreation() {
@@ -1190,19 +1189,17 @@ private:
 		}
 		size = width * height * 4;
 
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-
+		Buffer stagingBuffer;
 		createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		             stagingBuffer, stagingBufferMemory);
+		             stagingBuffer);
 
 		void* data;
-		vkMapMemory(device, stagingBufferMemory, 0, size, 0, &data);
+		vkMapMemory(device, stagingBuffer.memory, 0, size, 0, &data);
 		for (size_t y = 0; y < height; ++y)
 			std::copy_n(imgData[y], width * 4,
 			            reinterpret_cast<unsigned char*>(data) + y * width * 4);
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(device, stagingBuffer.memory);
 
 		for (size_t y = 0; y < height; ++y) delete[] imgData[y];
 		delete[] imgData;
@@ -1214,13 +1211,12 @@ private:
 
 		transitionImageLayout(image, VK_IMAGE_LAYOUT_UNDEFINED,
 		                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(width),
+		copyBufferToImage(stagingBuffer.buffer, image, static_cast<uint32_t>(width),
 		                  static_cast<uint32_t>(height));
 		transitionImageLayout(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		Buffer::destroy(device, stagingBuffer);
 	}
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -1237,40 +1233,39 @@ private:
 	}
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-	                  VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+	                  Buffer& buffer) {
 		VkBufferCreateInfo bufferInfo = {};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = size;
 		bufferInfo.usage = usage;
 		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+		if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer.buffer) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create buffer!");
 
 		VkMemoryRequirements memRequirements;
-		vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+		vkGetBufferMemoryRequirements(device, buffer.buffer, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
 		allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &buffer.memory) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to allocate buffer memory!");
 
-		vkBindBufferMemory(device, buffer, bufferMemory, 0);
+		vkBindBufferMemory(device, buffer.buffer, buffer.memory, 0);
 	}
 
-	void createBufferView(VkDeviceSize size, VkFormat format, VkBuffer buffer,
-	                      VkBufferView& bufferView) {
+	void createBufferView(VkDeviceSize size, VkFormat format, Buffer& buffer) {
 		VkBufferViewCreateInfo viewInfo = {};
 		viewInfo.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
-		viewInfo.buffer = buffer;
+		viewInfo.buffer = buffer.buffer;
 		viewInfo.format = format;
 		viewInfo.offset = 0;
 		viewInfo.range = size;
 
-		if (vkCreateBufferView(device, &viewInfo, nullptr, &bufferView) != VK_SUCCESS)
+		if (vkCreateBufferView(device, &viewInfo, nullptr, &buffer.view) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create buffer view!");
 	}
 
@@ -1511,34 +1506,26 @@ private:
 		VkDeviceSize bufferSize = settings.audioSize * sizeof(float);
 
 		dataBuffers.resize(swapChainImages.size());
-		dataBufferMemory.resize(swapChainImages.size());
 
 		lAudioBuffers.resize(swapChainImages.size());
-		lAudioBufferMemory.resize(swapChainImages.size());
-		lAudioBufferViews.resize(swapChainImages.size());
-
 		rAudioBuffers.resize(swapChainImages.size());
-		rAudioBufferMemory.resize(swapChainImages.size());
-		rAudioBufferViews.resize(swapChainImages.size());
 
 		for (size_t i = 0; i < dataBuffers.size(); ++i) {
 			createBuffer(sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			             dataBuffers[i], dataBufferMemory[i]);
+			             dataBuffers[i]);
 
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			             lAudioBuffers[i], lAudioBufferMemory[i]);
+			             lAudioBuffers[i]);
 
-			createBufferView(bufferSize, VK_FORMAT_R32_SFLOAT, lAudioBuffers[i],
-			                 lAudioBufferViews[i]);
+			createBufferView(bufferSize, VK_FORMAT_R32_SFLOAT, lAudioBuffers[i]);
 
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			             rAudioBuffers[i], rAudioBufferMemory[i]);
+			             rAudioBuffers[i]);
 
-			createBufferView(bufferSize, VK_FORMAT_R32_SFLOAT, rAudioBuffers[i],
-			                 rAudioBufferViews[i]);
+			createBufferView(bufferSize, VK_FORMAT_R32_SFLOAT, rAudioBuffers[i]);
 		}
 	}
 
@@ -1547,23 +1534,23 @@ private:
 		const auto currentTime = std::chrono::high_resolution_clock::now();
 		void* data;
 
-		vkMapMemory(device, dataBufferMemory[currentFrame], 0, sizeof(UniformBufferObject), 0,
+		vkMapMemory(device, dataBuffers[currentFrame].memory, 0, sizeof(UniformBufferObject), 0,
 		            &data);
 		reinterpret_cast<UniformBufferObject*>(data)->lVolume = audioData.lVolume;
 		reinterpret_cast<UniformBufferObject*>(data)->rVolume = audioData.rVolume;
 		reinterpret_cast<UniformBufferObject*>(data)->time =
 		    std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
-		vkUnmapMemory(device, dataBufferMemory[currentFrame]);
+		vkUnmapMemory(device, dataBuffers[currentFrame].memory);
 
-		vkMapMemory(device, lAudioBufferMemory[currentFrame], 0, settings.audioSize * sizeof(float),
-		            0, &data);
+		vkMapMemory(device, lAudioBuffers[currentFrame].memory, 0,
+		            settings.audioSize * sizeof(float), 0, &data);
 		std::copy_n(audioData.lBuffer, settings.audioSize, reinterpret_cast<float*>(data));
-		vkUnmapMemory(device, lAudioBufferMemory[currentFrame]);
+		vkUnmapMemory(device, lAudioBuffers[currentFrame].memory);
 
-		vkMapMemory(device, rAudioBufferMemory[currentFrame], 0, settings.audioSize * sizeof(float),
-		            0, &data);
+		vkMapMemory(device, rAudioBuffers[currentFrame].memory, 0,
+		            settings.audioSize * sizeof(float), 0, &data);
 		std::copy_n(audioData.rBuffer, settings.audioSize, reinterpret_cast<float*>(data));
-		vkUnmapMemory(device, rAudioBufferMemory[currentFrame]);
+		vkUnmapMemory(device, rAudioBuffers[currentFrame].memory);
 	}
 
 	void createDescriptorPool() {
@@ -1612,7 +1599,7 @@ private:
 				throw std::runtime_error(LOCATION "failed to allocate descriptor sets!");
 
 			VkDescriptorBufferInfo dataBufferInfo = {};
-			dataBufferInfo.buffer = dataBuffers[i];
+			dataBufferInfo.buffer = dataBuffers[i].buffer;
 			dataBufferInfo.offset = 0;
 			dataBufferInfo.range = sizeof(UniformBufferObject);
 
@@ -1637,14 +1624,14 @@ private:
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pTexelBufferView = &lAudioBufferViews[i];
+			descriptorWrites[1].pTexelBufferView = &lAudioBuffers[i].view;
 
 			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[2].dstBinding = 2;
 			descriptorWrites[2].dstArrayElement = 0;
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 			descriptorWrites[2].descriptorCount = 1;
-			descriptorWrites[2].pTexelBufferView = &rAudioBufferViews[i];
+			descriptorWrites[2].pTexelBufferView = &rAudioBuffers[i].view;
 
 			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[3].dstBinding = 3;
