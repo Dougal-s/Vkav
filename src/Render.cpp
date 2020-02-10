@@ -107,6 +107,16 @@ namespace {
 		// Name of the fragment shader function to call
 		std::string moduleName = "main";
 		size_t vertexCount = 6;
+
+		static void destroy(VkDevice device, Module& module) {
+			for (auto& layer : module.layers) {
+				vkDestroyShaderModule(device, layer.fragShaderModule, nullptr);
+				vkDestroyShaderModule(device, layer.vertShaderModule, nullptr);
+			}
+
+			vkDestroySampler(device, module.imageSampler, nullptr);
+			Image::destroy(device, module.image);
+		}
 	};
 
 	struct UniformBufferObject {
@@ -218,7 +228,6 @@ public:
 		destroyModules();
 
 		vkDestroySampler(device, backgroundImageSampler, nullptr);
-
 		Image::destroy(device, backgroundImage);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
@@ -755,18 +764,8 @@ private:
 	}
 
 	void destroyModules() {
-		for (auto& module : modules) {
-			for (auto& layer : module.layers) {
-				vkDestroyShaderModule(device, layer.fragShaderModule, nullptr);
-				vkDestroyShaderModule(device, layer.vertShaderModule, nullptr);
-			}
-
-			vkDestroySampler(device, module.imageSampler, nullptr);
-			vkDestroyImageView(device, module.image.view, nullptr);
-
-			vkDestroyImage(device, module.image.image, nullptr);
-			vkFreeMemory(device, module.image.memory, nullptr);
-		}
+		for (auto& module : modules)
+			Module::destroy(device, module);
 	}
 
 	void prepareGraphicsPipelineCreation() {
