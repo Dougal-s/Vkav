@@ -232,7 +232,7 @@ public:
 			Buffer::destroy(device, rAudioBuffers[i]);
 		}
 
-		destroyModules();
+		for (auto& module : modules) Module::destroy(device, module);
 
 		Image::destroy(device, backgroundImage);
 
@@ -759,10 +759,6 @@ private:
 
 		for (size_t i = 0; i < swapChainImages.size(); ++i)
 			swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
-	}
-
-	void destroyModules() {
-		for (auto& module : modules) Module::destroy(device, module);
 	}
 
 	void prepareGraphicsPipelineCreation() {
