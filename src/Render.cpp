@@ -74,8 +74,10 @@ namespace {
 		VkImage image;
 		VkDeviceMemory memory;
 		VkImageView view;
+		VkSampler sampler;
 
 		static void destroy(VkDevice device, Image image) {
+			vkDestroySampler(device, image.sampler, nullptr);
 			vkDestroyImageView(device, image.view, nullptr);
 			vkDestroyImage(device, image.image, nullptr);
 			vkFreeMemory(device, image.memory, nullptr);
@@ -102,7 +104,6 @@ namespace {
 		// Image
 		std::string imagePath = "";
 		Image image;
-		VkSampler imageSampler;
 
 		// Name of the fragment shader function to call
 		std::string moduleName = "main";
@@ -114,7 +115,6 @@ namespace {
 				vkDestroyShaderModule(device, layer.vertShaderModule, nullptr);
 			}
 
-			vkDestroySampler(device, module.imageSampler, nullptr);
 			Image::destroy(device, module.image);
 		}
 	};
@@ -227,7 +227,6 @@ public:
 
 		destroyModules();
 
-		vkDestroySampler(device, backgroundImageSampler, nullptr);
 		Image::destroy(device, backgroundImage);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
@@ -298,7 +297,6 @@ private:
 	std::vector<VkBufferView> rAudioBufferViews;
 
 	Image backgroundImage;
-	VkSampler backgroundImageSampler;
 
 	VkDescriptorPool descriptorPool;
 	std::vector<std::vector<VkDescriptorSet>> descriptorSets;
@@ -1169,7 +1167,7 @@ private:
 			createTextureImage(module.imagePath, module.image.image, module.image.memory);
 			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
 
-			if (vkCreateSampler(device, &samplerInfo, nullptr, &module.imageSampler) != VK_SUCCESS)
+			if (vkCreateSampler(device, &samplerInfo, nullptr, &module.image.sampler) != VK_SUCCESS)
 				throw std::runtime_error(LOCATION "failed to create image sampler!");
 		}
 	}
@@ -1455,7 +1453,7 @@ private:
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &backgroundImageSampler) != VK_SUCCESS)
+		if (vkCreateSampler(device, &samplerInfo, nullptr, &backgroundImage.sampler) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create image sampler!");
 	}
 
@@ -1621,7 +1619,7 @@ private:
 			VkDescriptorImageInfo backgroundImageInfo = {};
 			backgroundImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			backgroundImageInfo.imageView = backgroundImage.view;
-			backgroundImageInfo.sampler = backgroundImageSampler;
+			backgroundImageInfo.sampler = backgroundImage.sampler;
 
 			VkDescriptorImageInfo moduleImageInfo = {};
 			moduleImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1664,7 +1662,7 @@ private:
 
 			for (size_t module = 0; module < modules.size(); ++module) {
 				moduleImageInfo.imageView = modules[module].image.view;
-				moduleImageInfo.sampler = modules[module].imageSampler;
+				moduleImageInfo.sampler = modules[module].image.sampler;
 
 				descriptorWrites[0].dstSet = descriptorSets[i][module];
 				descriptorWrites[1].dstSet = descriptorSets[i][module];
