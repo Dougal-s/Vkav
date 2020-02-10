@@ -1466,7 +1466,7 @@ private:
 		dataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		dataLayoutBinding.descriptorCount = 1;
 		dataLayoutBinding.pImmutableSamplers = nullptr;
-		dataLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		dataLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 		VkDescriptorSetLayoutBinding lAudioBufferLayoutBinding = {};
 		lAudioBufferLayoutBinding.binding = 1;
