@@ -1159,7 +1159,7 @@ private:
 		samplerInfo.maxLod = 0.0f;
 
 		for (auto& module : modules) {
-			createTextureImage(module.imagePath, module.image.image, module.image.memory);
+			createTextureImage(module.imagePath, module.image);
 			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
 
 			if (vkCreateSampler(device, &samplerInfo, nullptr, &module.image.sampler) != VK_SUCCESS)
@@ -1167,12 +1167,9 @@ private:
 		}
 	}
 
-	void createBackgroundImage() {
-		createTextureImage(settings.backgroundImage, backgroundImage.image, backgroundImage.memory);
-	}
+	void createBackgroundImage() { createTextureImage(settings.backgroundImage, backgroundImage); }
 
-	void createTextureImage(const std::filesystem::path& imagePath, VkImage& image,
-	                        VkDeviceMemory& imageMemory) {
+	void createTextureImage(const std::filesystem::path& imagePath, Image& image) {
 		size_t width, height, size;
 		unsigned char** imgData;
 		if (imagePath.empty()) {
@@ -1203,13 +1200,13 @@ private:
 		createImage(width, height, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 		            VK_IMAGE_TILING_OPTIMAL,
 		            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image, imageMemory);
+		            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image);
 
-		transitionImageLayout(image, VK_IMAGE_LAYOUT_UNDEFINED,
+		transitionImageLayout(image.image, VK_IMAGE_LAYOUT_UNDEFINED,
 		                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer.buffer, image, static_cast<uint32_t>(width),
+		copyBufferToImage(stagingBuffer.buffer, image.image, static_cast<uint32_t>(width),
 		                  static_cast<uint32_t>(height));
-		transitionImageLayout(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		transitionImageLayout(image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		Buffer::destroy(device, stagingBuffer);
@@ -1267,8 +1264,7 @@ private:
 
 	void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format,
 	                 VkImageTiling tiling, VkImageUsageFlags usage,
-	                 VkMemoryPropertyFlags properties, VkImage& image,
-	                 VkDeviceMemory& imageMemory) {
+	                 VkMemoryPropertyFlags properties, Image& image) {
 		VkImageCreateInfo imageInfo = {};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = imageType;
@@ -1284,21 +1280,21 @@ private:
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS)
+		if (vkCreateImage(device, &imageInfo, nullptr, &image.image) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create image!");
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, image, &memRequirements);
+		vkGetImageMemoryRequirements(device, image.image, &memRequirements);
 
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = memRequirements.size;
 		allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &image.memory) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to allocate image memory!");
 
-		vkBindImageMemory(device, image, imageMemory, 0);
+		vkBindImageMemory(device, image.image, image.memory, 0);
 	}
 
 	VkCommandBuffer beginSingleTimeCommands() {
