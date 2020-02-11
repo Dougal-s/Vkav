@@ -19,6 +19,7 @@
 #include "Data.hpp"
 #include "Image.hpp"
 #include "Render.hpp"
+#include "Version.hpp"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -374,7 +375,7 @@ private:
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.pApplicationName = "Vkav";
-		appInfo.applicationVersion = VK_MAKE_VERSION(0, 3, 0);
+		appInfo.applicationVersion = VK_MAKE_VERSION(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 		appInfo.pEngineName = "No Engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.apiVersion = VK_API_VERSION_1_0;

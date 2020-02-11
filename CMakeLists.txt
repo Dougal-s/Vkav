@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Vkav VERSION 0.3.0)
 
+configure_file(include/Version.hpp.in Version.hpp)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -73,6 +75,7 @@ elseif (${AUDIO_BACKEND} MATCHES LIBSOUNDIO)
 endif()
 target_link_libraries(audioModule -lpthread)
 target_include_directories(audioModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(audioModule PUBLIC "${PROJECT_BINARY_DIR}")
 
 add_library(graphicsModule src/Render.cpp src/Image.cpp)
 find_library(GLFW glfw)
@@ -95,9 +98,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES 
 	target_link_libraries(graphicsModule -lstdc++fs)
 endif()
 target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(graphicsModule PUBLIC "${PROJECT_BINARY_DIR}")
 
 add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Data.cpp)
 target_include_directories(vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(vkav PUBLIC "${PROJECT_BINARY_DIR}")
 target_link_libraries(vkav audioModule)
 target_link_libraries(vkav graphicsModule)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES "8..*")

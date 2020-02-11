@@ -18,6 +18,7 @@
 #include "Proccess.hpp"
 #include "Render.hpp"
 #include "Settings.hpp"
+#include "Version.hpp"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -28,7 +29,7 @@ namespace {
 	enum Device { CPU, GPU };
 
 	static constexpr const char* versionStr =
-	    "Vkav v0.3.0 "
+	    "Vkav v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_PATCH) " "
 #ifdef NDEBUG
 	    "release\n"
 #else
