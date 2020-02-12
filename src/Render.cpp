@@ -20,6 +20,7 @@
 #include "Image.hpp"
 #include "Render.hpp"
 #include "Version.hpp"
+#include "NativeWindowHints.hpp"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -351,6 +352,11 @@ private:
 		if (settings.windowPosition)
 			glfwSetWindowPos(window, settings.windowPosition.value().first,
 			                 settings.windowPosition.value().second);
+
+#ifdef NATIVE_WINDOW_HINTS_SUPPORTED
+		if (settings.windowType == "desktop")
+			setWindowType(window, WindowType::DESKTOP);
+#endif
 	}
 
 	void initVulkan() {

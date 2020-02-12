@@ -342,6 +342,12 @@ namespace {
 			else
 				PRINT_UNDEFINED(resizable);
 
+			if (const auto confSetting = configSettings.find("windowType");
+			    confSetting != configSettings.end())
+				renderSettings.windowType = confSetting->second;
+			else
+				PRINT_UNDEFINED(windowType);
+
 			float smoothingLevel = 16.0f;
 			if (const auto confSetting = configSettings.find("smoothingLevel");
 			    confSetting != configSettings.end()) {

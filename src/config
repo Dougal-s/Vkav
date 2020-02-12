@@ -107,6 +107,14 @@ resizable = true
 decorated = true
 
 /**
+ * (X11 ONLY) Specifies the X11 window type
+ * possible values:
+ *   desktop
+ *   normal
+ */
+windowType = normal
+
+/**
  * Which GPU to use.
  */
 physicalDevice = auto

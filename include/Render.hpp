@@ -33,6 +33,8 @@ struct RenderSettings {
 	std::filesystem::path backgroundImage;
 
 	std::optional<uint32_t> physicalDevice;
+
+	std::string windowType;
 };
 
 class Renderer {
