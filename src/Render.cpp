@@ -125,6 +125,16 @@ namespace {
 		VkDeviceMemory memory;
 		VkBufferView view = VK_NULL_HANDLE;
 
+		VkDeviceSize size;
+
+		void* mapMemory(VkDevice device) {
+			void* data;
+			vkMapMemory(device, memory, 0, size, 0, &data);
+			return data;
+		}
+
+		void unmapMemory(VkDevice device) { vkUnmapMemory(device, memory); }
+
 		static void destroy(VkDevice device, Buffer& buffer) {
 			vkDestroyBufferView(device, buffer.view, nullptr);
 			vkDestroyBuffer(device, buffer.buffer, nullptr);
@@ -1189,12 +1199,11 @@ private:
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		             stagingBuffer);
 
-		void* data;
-		vkMapMemory(device, stagingBuffer.memory, 0, size, 0, &data);
+		void* data = stagingBuffer.mapMemory(device);
 		for (size_t y = 0; y < height; ++y)
 			std::copy_n(imgData[y], width * 4,
 			            reinterpret_cast<unsigned char*>(data) + y * width * 4);
-		vkUnmapMemory(device, stagingBuffer.memory);
+		stagingBuffer.unmapMemory(device);
 
 		for (size_t y = 0; y < height; ++y) delete[] imgData[y];
 		delete[] imgData;
@@ -1229,6 +1238,8 @@ private:
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
 	                  Buffer& buffer) {
+		buffer.size = size;
+
 		VkBufferCreateInfo bufferInfo = {};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = size;
@@ -1459,14 +1470,16 @@ private:
 		lAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		lAudioBufferLayoutBinding.descriptorCount = 1;
 		lAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
-		lAudioBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+		lAudioBufferLayoutBinding.stageFlags =
+		    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 		VkDescriptorSetLayoutBinding rAudioBufferLayoutBinding = {};
 		rAudioBufferLayoutBinding.binding = 2;
 		rAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		rAudioBufferLayoutBinding.descriptorCount = 1;
 		rAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
-		rAudioBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+		rAudioBufferLayoutBinding.stageFlags =
+		    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 		VkDescriptorSetLayoutBinding backgroundSamplerLayoutBinding = {};
 		backgroundSamplerLayoutBinding.binding = 3;
@@ -1528,23 +1541,20 @@ private:
 		const auto currentTime = std::chrono::high_resolution_clock::now();
 		void* data;
 
-		vkMapMemory(device, dataBuffers[currentFrame].memory, 0, sizeof(UniformBufferObject), 0,
-		            &data);
+		data = dataBuffers[currentFrame].mapMemory(device);
 		reinterpret_cast<UniformBufferObject*>(data)->lVolume = audioData.lVolume;
 		reinterpret_cast<UniformBufferObject*>(data)->rVolume = audioData.rVolume;
 		reinterpret_cast<UniformBufferObject*>(data)->time =
 		    std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
-		vkUnmapMemory(device, dataBuffers[currentFrame].memory);
+		dataBuffers[currentFrame].unmapMemory(device);
 
-		vkMapMemory(device, lAudioBuffers[currentFrame].memory, 0,
-		            settings.audioSize * sizeof(float), 0, &data);
+		data = lAudioBuffers[currentFrame].mapMemory(device);
 		std::copy_n(audioData.lBuffer, settings.audioSize, reinterpret_cast<float*>(data));
-		vkUnmapMemory(device, lAudioBuffers[currentFrame].memory);
+		lAudioBuffers[currentFrame].unmapMemory(device);
 
-		vkMapMemory(device, rAudioBuffers[currentFrame].memory, 0,
-		            settings.audioSize * sizeof(float), 0, &data);
+		data = rAudioBuffers[currentFrame].mapMemory(device);
 		std::copy_n(audioData.rBuffer, settings.audioSize, reinterpret_cast<float*>(data));
-		vkUnmapMemory(device, rAudioBuffers[currentFrame].memory);
+		rAudioBuffers[currentFrame].unmapMemory(device);
 	}
 
 	void createDescriptorPool() {
