@@ -1459,14 +1459,14 @@ private:
 		lAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		lAudioBufferLayoutBinding.descriptorCount = 1;
 		lAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
-		lAudioBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		lAudioBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 		VkDescriptorSetLayoutBinding rAudioBufferLayoutBinding = {};
 		rAudioBufferLayoutBinding.binding = 2;
 		rAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		rAudioBufferLayoutBinding.descriptorCount = 1;
 		rAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
-		rAudioBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		rAudioBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 		VkDescriptorSetLayoutBinding backgroundSamplerLayoutBinding = {};
 		backgroundSamplerLayoutBinding.binding = 3;
