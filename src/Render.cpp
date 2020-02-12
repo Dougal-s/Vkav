@@ -108,7 +108,7 @@ namespace {
 
 		// Name of the fragment shader function to call
 		std::string moduleName = "main";
-		size_t vertexCount = 6;
+		uint32_t vertexCount = 6;
 
 		static void destroy(VkDevice device, Module& module) {
 			for (auto& layer : module.layers) {
@@ -790,6 +790,7 @@ private:
 			readConfig(configFilePath, modules[i]);
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
+			modules[i].specializationConstants.data[4] = modules[i].vertexCount;
 		}
 	}
 
@@ -1684,9 +1685,9 @@ private:
 	}
 
 	static void readConfig(const std::filesystem::path& configFilePath, Module& module) {
-		module.specializationConstants.data.resize(4);
+		module.specializationConstants.data.resize(5);
 
-		for (uint32_t offset = 0; offset < 4; ++offset) {
+		for (uint32_t offset = 0; offset < 5; ++offset) {
 			VkSpecializationMapEntry mapEntry = {};
 			mapEntry.constantID = offset;
 			mapEntry.offset = offset * sizeof(SpecializationConstant);
