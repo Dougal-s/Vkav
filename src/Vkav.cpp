@@ -342,6 +342,12 @@ namespace {
 			else
 				PRINT_UNDEFINED(resizable);
 
+			if (const auto confSetting = configSettings.find("sticky");
+			    confSetting != configSettings.end())
+				renderSettings.windowHints.sticky = (confSetting->second == "true");
+			else
+				PRINT_UNDEFINED(sticky);
+
 			if (const auto confSetting = configSettings.find("windowType");
 			    confSetting != configSettings.end())
 				renderSettings.windowType = confSetting->second;

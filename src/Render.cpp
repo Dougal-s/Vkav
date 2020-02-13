@@ -18,9 +18,9 @@
 
 #include "Data.hpp"
 #include "Image.hpp"
+#include "NativeWindowHints.hpp"
 #include "Render.hpp"
 #include "Version.hpp"
-#include "NativeWindowHints.hpp"
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -354,8 +354,9 @@ private:
 			                 settings.windowPosition.value().second);
 
 #ifdef NATIVE_WINDOW_HINTS_SUPPORTED
-		if (settings.windowType == "desktop")
-			setWindowType(window, WindowType::DESKTOP);
+		if (settings.windowType == "desktop") setWindowType(window, WindowType::DESKTOP);
+
+		if (settings.windowHints.sticky) setSticky(window);
 #endif
 	}
 

@@ -23,6 +23,7 @@ struct RenderSettings {
 	struct WindowHints {
 		bool decorated = true;
 		bool resizable = true;
+		bool sticky = false;
 	} windowHints;
 
 	size_t audioSize;

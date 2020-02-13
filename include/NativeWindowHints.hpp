@@ -5,4 +5,7 @@ struct GLFWwindow;
 enum WindowType { NORMAL, DESKTOP };
 
 void setWindowType(GLFWwindow* window, WindowType type);
+
+void setSticky(GLFWwindow* window);
+
 #endif
