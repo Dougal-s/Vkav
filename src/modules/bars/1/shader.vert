@@ -31,5 +31,5 @@ void main() {
 	mat2 transform = mat2(cos(rotation), sin(rotation), -sin(rotation), cos(rotation))
 	               * mat2(boxWidth, 0, 0, limit*boxHeight);
 	gl_Position = vec4(transform*positions[gl_VertexIndex]+vec2(xOffset+sin(rotation)*(1-limit)*boxHeight, yOffset+cos(rotation)*(1-limit)*boxHeight), 0.0, 1.0);
-	position = vec2(width*boxWidth/2, -limit*boxHeight/2)*(vec2(0, -1)+positions[gl_VertexIndex]);
+	position = vec2((cos(rotation)*width+sin(rotation)*height)*boxWidth/2, -limit*boxHeight/2)*(vec2(0, -1)+positions[gl_VertexIndex]);
 }
