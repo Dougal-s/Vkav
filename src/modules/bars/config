@@ -12,8 +12,8 @@
 
 (id=18) float limit = 0.8
 
-(id=19) float width = 2
-(id=20) float height = 1
+(id=19) float width = 1
+(id=20) float height = 0.5
 
 // radians clockwise
 (id=21) float rotation = 0

@@ -6,8 +6,8 @@ layout(constant_id = 3) const int height           = 1;
 
 layout(constant_id = 18) const float limit = 1;
 
-layout(constant_id=19) const float boxWidth = 2;
-layout(constant_id=20) const float boxHeight = 1;
+layout(constant_id=19) const float boxWidth = 1;
+layout(constant_id=20) const float boxHeight = 0.5;
 
 // degrees
 layout(constant_id=21) const float rotation = 0;
@@ -29,7 +29,7 @@ layout(location = 0) out vec2 position;
 
 void main() {
 	mat2 transform = mat2(cos(rotation), sin(rotation), -sin(rotation), cos(rotation))
-	               * mat2(boxWidth/2, 0, 0, limit*boxHeight/2);
-	gl_Position = vec4(transform*positions[gl_VertexIndex]+vec2(xOffset, yOffset+(1-limit)*boxHeight/2), 0.0, 1.0);
-	position = vec2(width*boxWidth/4, -limit*boxHeight/4)*(vec2(0, -1)+positions[gl_VertexIndex]);
+	               * mat2(boxWidth, 0, 0, limit*boxHeight);
+	gl_Position = vec4(transform*positions[gl_VertexIndex]+vec2(xOffset+sin(rotation)*(1-limit)*boxHeight, yOffset+cos(rotation)*(1-limit)*boxHeight), 0.0, 1.0);
+	position = vec2(width*boxWidth/2, -limit*boxHeight/2)*(vec2(0, -1)+positions[gl_VertexIndex]);
 }
