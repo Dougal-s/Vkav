@@ -23,6 +23,8 @@ Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases
 * Pulseaudio (Linux only)
 * WASAPI (Windows only)\*
 * Coreaudio (MacOS only)\*
+* Libsoundio (optional)
+* X11 (optional)
 
 ### Compilation Tools:
 * g++ >= 8 or clang++ >= 7
@@ -32,7 +34,7 @@ Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases
 
 #### Debian/Ubuntu:
 ```
-$ sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev
+$ sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev libx11-dev
 ```
 
 ### Installing
