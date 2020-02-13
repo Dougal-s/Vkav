@@ -346,18 +346,17 @@ private:
 
 		window = glfwCreateWindow(settings.width, settings.height, settings.windowTitle.c_str(),
 		                          nullptr, nullptr);
+#ifdef NATIVE_WINDOW_HINTS_SUPPORTED
+		if (settings.windowType == "desktop") setWindowType(window, WindowType::DESKTOP);
+
+		if (settings.windowHints.sticky) setSticky(window);
+#endif
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
 		if (settings.windowPosition)
 			glfwSetWindowPos(window, settings.windowPosition.value().first,
 			                 settings.windowPosition.value().second);
-
-#ifdef NATIVE_WINDOW_HINTS_SUPPORTED
-		if (settings.windowType == "desktop") setWindowType(window, WindowType::DESKTOP);
-
-		if (settings.windowHints.sticky) setSticky(window);
-#endif
 	}
 
 	void initVulkan() {
