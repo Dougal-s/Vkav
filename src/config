@@ -20,7 +20,7 @@ backgroundImage = none
 /**
  *
  */
-amplitude = 0.4f
+amplitude = 0.4
 
 /**
  * Name of the audio source to record audio from.
@@ -105,6 +105,7 @@ windowTitle = "Vkav";
  */
 resizable = true
 decorated = true
+sticky = false
 
 /**
  * (X11 ONLY) Specifies the X11 window type
