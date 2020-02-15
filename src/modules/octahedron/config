@@ -21,7 +21,7 @@ vertexCount = 24
 
 (id=20) float barWidth = 0.03
 (id=21) float barGap = 0.015
-(id=22) float amplitude = 18.f
+(id=22) float amplitude = 18
 
 (id=23) float interpolationFactor = 1
 // Bar color 1
