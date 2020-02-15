@@ -73,7 +73,7 @@ smoothingLevel = 16.0
 /**
  * Determines the amount of treble that gets cut from the fft output.
  */
-trebleCut = 0.09;
+trebleCut = 0.09
 
 /**
  * Transparency type
@@ -98,7 +98,7 @@ windowPosition = {0,0}
  * Window title
  * Setting this to executable sets the window title to the executable path.
  */
-windowTitle = "Vkav";
+windowTitle = "Vkav"
 
 /**
  * Window hints
