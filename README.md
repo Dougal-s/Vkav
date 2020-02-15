@@ -28,7 +28,7 @@ Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases
 
 ### Compilation Tools:
 * g++ >= 8 or clang++ >= 7
-* cmake >= 3
+* cmake >= 3.12
 
 \*Windows and MacOS support has not been implemented.
 
