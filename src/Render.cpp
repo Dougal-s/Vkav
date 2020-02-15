@@ -16,6 +16,7 @@
 #include <variant>
 #include <vector>
 
+#include "Calculate.hpp"
 #include "Data.hpp"
 #include "Image.hpp"
 #include "NativeWindowHints.hpp"
@@ -1763,7 +1764,7 @@ private:
 			}
 
 			if (line.substr(0, 11) == "vertexCount") {
-				module.vertexCount = std::stoul(line.substr(12));
+				module.vertexCount = calculate<size_t>(line.substr(12));
 				continue;
 			}
 
@@ -1771,15 +1772,15 @@ private:
 
 			if (position == std::string::npos) continue;
 
-			uint32_t id = std::stoi(line.substr(4, position - 4));
+			uint32_t id = calculate<int>(line.substr(4, position - 4));
 
 			size_t equalSignPos = line.find('=', position);
 
 			SpecializationConstant value;
 			if (line.substr(position + 1, 3) == "int")
-				value = std::stoi(line.substr(equalSignPos + 1));
+				value = calculate<int>(line.substr(equalSignPos + 1));
 			else if (line.substr(position + 1, 5) == "float")
-				value = std::stof(line.substr(equalSignPos + 1));
+				value = calculate<float>(line.substr(equalSignPos + 1));
 			else
 				throw std::invalid_argument(LOCATION
 				                            "invalid variable type in shader configuration file!");

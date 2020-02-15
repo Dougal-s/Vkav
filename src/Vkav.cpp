@@ -14,6 +14,7 @@
 #include <utility>
 
 #include "Audio.hpp"
+#include "Calculate.hpp"
 #include "Data.hpp"
 #include "Proccess.hpp"
 #include "Render.hpp"
@@ -118,7 +119,7 @@ namespace {
 
 			fpsLimit = 0;
 			if (auto it = cmdLineArgs.find("fpsLimit"); it != cmdLineArgs.end())
-				fpsLimit = std::stoi(it->second);
+				fpsLimit = calculate<size_t>(it->second);
 			else
 				PRINT_UNDEFINED(fpsLimit);
 
@@ -201,7 +202,7 @@ namespace {
 			float trebleCut = 0.09f;
 			if (const auto confSetting = configSettings.find("trebleCut");
 			    confSetting != configSettings.end())
-				trebleCut = std::stof(confSetting->second);
+				trebleCut = calculate<float>(confSetting->second);
 			else
 				PRINT_UNDEFINED(trebleCut);
 
@@ -221,31 +222,31 @@ namespace {
 			size_t smoothedSize = 320;
 			if (const auto confSetting = configSettings.find("smoothedSize");
 			    confSetting != configSettings.end())
-				smoothedSize = std::stoi(confSetting->second);
+				smoothedSize = calculate<size_t>(confSetting->second);
 			else
 				PRINT_UNDEFINED(smoothedSize);
 
 			if (const auto confSetting = configSettings.find("channels");
 			    confSetting != configSettings.end())
-				audioSettings.channels = std::stoi(confSetting->second);
+				audioSettings.channels = calculate<int>(confSetting->second);
 			else
 				PRINT_UNDEFINED(channels);
 
 			if (const auto confSetting = configSettings.find("sampleSize");
 			    confSetting != configSettings.end())
-				audioSettings.sampleSize = std::stoi(confSetting->second);
+				audioSettings.sampleSize = calculate<size_t>(confSetting->second);
 			else
 				PRINT_UNDEFINED(sampleSize);
 
 			if (const auto confSetting = configSettings.find("bufferSize");
 			    confSetting != configSettings.end())
-				audioSettings.bufferSize = std::stoi(confSetting->second);
+				audioSettings.bufferSize = calculate<size_t>(confSetting->second);
 			else
 				PRINT_UNDEFINED(bufferSize);
 
 			if (const auto confSetting = configSettings.find("sampleRate");
 			    confSetting != configSettings.end())
-				audioSettings.sampleRate = std::stoi(confSetting->second);
+				audioSettings.sampleRate = calculate<int>(confSetting->second);
 			else
 				PRINT_UNDEFINED(sampleRate);
 
@@ -285,13 +286,13 @@ namespace {
 
 			if (const auto confSetting = configSettings.find("width");
 			    confSetting != configSettings.end())
-				renderSettings.width = std::stoi(confSetting->second);
+				renderSettings.width = calculate<int>(confSetting->second);
 			else
 				PRINT_UNDEFINED(width);
 
 			if (const auto confSetting = configSettings.find("height");
 			    confSetting != configSettings.end())
-				renderSettings.height = std::stoi(confSetting->second);
+				renderSettings.height = calculate<int>(confSetting->second);
 			else
 				PRINT_UNDEFINED(height);
 
@@ -324,8 +325,9 @@ namespace {
 				std::string position = confSetting->second;
 				size_t gapPosition = position.find(',');
 				renderSettings.windowPosition = {
-				    std::stoi(position.substr(1, gapPosition - 1)),
-				    std::stoi(position.substr(gapPosition + 1, position.size() - gapPosition))};
+				    calculate<int>(position.substr(1, gapPosition - 1)),
+				    calculate<int>(
+				        position.substr(gapPosition + 1, position.size() - gapPosition - 2))};
 			} else {
 				PRINT_UNDEFINED(windowPosition);
 			}
@@ -357,7 +359,7 @@ namespace {
 			float smoothingLevel = 16.0f;
 			if (const auto confSetting = configSettings.find("smoothingLevel");
 			    confSetting != configSettings.end()) {
-				smoothingLevel = std::stof(confSetting->second);
+				smoothingLevel = calculate<float>(confSetting->second);
 				renderSettings.smoothingLevel = smoothingLevel;
 			} else {
 				PRINT_UNDEFINED(smoothingLevel);
@@ -378,19 +380,20 @@ namespace {
 			if (const auto confSetting = configSettings.find("physicalDevice");
 			    confSetting != configSettings.end()) {
 				if (confSetting->second != "auto")
-					renderSettings.physicalDevice.value() = std::stoi(confSetting->second);
+					renderSettings.physicalDevice.value() = calculate<int>(confSetting->second);
 			} else {
 				PRINT_UNDEFINED(physicalDevice);
 			}
 
 			proccessSettings.channels = audioSettings.channels;
+			std::cout << proccessSettings.channels << std::endl;
 			proccessSettings.inputSize = audioSettings.bufferSize;
 			proccessSettings.outputSize = smoothedSize;
 			proccessSettings.smoothingLevel = smoothingLevel;
 
 			if (const auto confSetting = configSettings.find("amplitude");
 			    confSetting != configSettings.end())
-				proccessSettings.amplitude = std::stof(confSetting->second);
+				proccessSettings.amplitude = calculate<float>(confSetting->second);
 			else
 				PRINT_UNDEFINED(amplitude);
 		}
