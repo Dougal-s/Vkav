@@ -13,7 +13,7 @@
 #define LOCATION __FILE__ ":" STR(__LINE__) ": "
 
 enum Function { SIN, COS, TAN, MAX, MIN };
-enum TokenType { NUMBER, FUNCTION, OPERATOR, PARENTHESES };
+enum TokenType { UNDEFINED, NUMBER, FUNCTION, OPERATOR, PARENTHESES };
 
 struct Token {
 	TokenType type;
@@ -23,6 +23,7 @@ struct Token {
 		char op;
 	};
 
+	Token() : type(UNDEFINED) {}
 	Token(TokenType tokenType, float number) : type(tokenType), num(number) {}
 	Token(TokenType tokenType, Function function) : type(tokenType), func(function) {}
 	Token(TokenType tokenType, char operation) : type(tokenType), op(operation) {}
@@ -60,12 +61,12 @@ float eval(char op, float op1, float op2) {
 	throw std::invalid_argument(LOCATION "Invalid operation!");
 }
 
-Token extractToken(std::string& expr) {
+Token extractToken(std::string& expr, TokenType lastTokenType) {
 	size_t index;
 	if (expr.front() == ',') expr.erase(0, 1);
 
 	char* ptr;
-	if (float value = std::strtof(expr.c_str(), &ptr); ptr != expr.c_str()) {
+	if (float value = std::strtof(expr.c_str(), &ptr); lastTokenType != NUMBER && ptr != expr.c_str()) {
 		Token rtrn(NUMBER, value);
 		expr.erase(0, ptr - expr.c_str());
 		return rtrn;
@@ -105,8 +106,9 @@ std::queue<Token> constructStack(std::string expr) {
 
 	std::stack<Token> operatorStack;
 	std::queue<Token> output;
+	Token token;
 	while (!expr.empty()) {
-		Token token = extractToken(expr);
+		token = extractToken(expr, token.type);
 
 		switch (token.type) {
 			case NUMBER:
@@ -137,6 +139,8 @@ std::queue<Token> constructStack(std::string expr) {
 						throw std::invalid_argument(LOCATION "Mismatched parentheses!");
 					operatorStack.pop();
 				}
+				break;
+			default:
 				break;
 		}
 	}
