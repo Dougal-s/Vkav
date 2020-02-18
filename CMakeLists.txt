@@ -87,6 +87,7 @@ find_package(X11)
 if (${X11_FOUND})
 	add_definitions(-DNATIVE_WINDOW_HINTS_SUPPORTED)
 	add_definitions(-DX11)
+	target_include_directories(graphicsModule PRIVATE ${X11_INCLUDE_DIR})
 	target_link_libraries(graphicsModule ${X11_LIBRARIES})
 endif()
 
