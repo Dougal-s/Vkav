@@ -29,7 +29,7 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 	add_definitions(-DMACOS)
 	if (NOT DEFINED AUDIO_BACKEND)
-		set(AUDIO_BACKEND "COREAUDIO")
+		set(AUDIO_BACKEND "LIBSOUNDIO")
 	endif()
 endif()
 
