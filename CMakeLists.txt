@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(Vkav VERSION 0.3.0)
+project(Vkav VERSION 0.4.0)
 
 configure_file(include/Version.hpp.in Version.hpp)
 
