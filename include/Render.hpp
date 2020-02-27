@@ -23,6 +23,7 @@ struct RenderSettings {
 	struct WindowHints {
 		bool decorated = true;
 		bool resizable = true;
+		bool sticky = false;
 	} windowHints;
 
 	size_t audioSize;
@@ -33,6 +34,8 @@ struct RenderSettings {
 	std::filesystem::path backgroundImage;
 
 	std::optional<uint32_t> physicalDevice;
+
+	std::string windowType;
 };
 
 class Renderer {

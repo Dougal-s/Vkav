@@ -3,7 +3,9 @@
  */
 
 /**
- * Paths to the folders containing the fragment shaders to use.
+ * Names of the rendering modules.
+ * They can be found in the following directories:
+ * Linux: /etc/vkav/modules, /home/user/.config/vkav/modules
  */
 modules = {"bars", "radial"}
 
@@ -18,15 +20,15 @@ backgroundImage = none
 /**
  *
  */
-amplitude = 0.4f
+amplitude = 0.4
 
 /**
- * Name of the PulseAudio sink to record audio from.
+ * Name of the audio source to record audio from.
  */
 sinkName = auto
 
 /**
- * Size of the array that reads audio from the Pulseaudio sink.
+ * Size of the array that reads audio from the audio source.
  */
 sampleSize = 64
 
@@ -53,12 +55,13 @@ channels = 2
 fpsLimit = 0
 
 /**
-* Whether to perform smoothing on the CPU or GPU.
-*/
+ * Whether to perform smoothing on the CPU or GPU.
+ */
 smoothingDevice = GPU
 
 /**
- * Size of the left and right audio buffers after smoothing. Only applies if smoothingDevice is set to CPU.
+ * Size of the left and right audio buffers after smoothing.
+ * Only applies if smoothingDevice is set to CPU.
  */
 smoothedSize = 320
 
@@ -70,7 +73,7 @@ smoothingLevel = 16.0
 /**
  * Determines the amount of treble that gets cut from the fft output.
  */
-trebleCut = 0.09;
+trebleCut = 0.09
 
 /**
  * Transparency type
@@ -95,15 +98,24 @@ windowPosition = {0,0}
  * Window title
  * Setting this to executable sets the window title to the executable path.
  */
-windowTitle = "Vkav";
+windowTitle = "Vkav"
 
 /**
  * Window hints
  */
 resizable = true
 decorated = true
+sticky = false
+
+/**
+ * (X11 ONLY) Specifies the X11 window type
+ * possible values:
+ *   desktop
+ *   normal
+ */
+windowType = normal
 
 /**
  * Which GPU to use.
  */
- physicalDevice = auto
+physicalDevice = auto

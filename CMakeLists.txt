@@ -1,6 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
-project(Vkav VERSION 0.3.0)
+project(Vkav VERSION 0.4.0)
+
+configure_file(include/Version.hpp.in Version.hpp)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -27,7 +29,7 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 	add_definitions(-DMACOS)
 	if (NOT DEFINED AUDIO_BACKEND)
-		set(AUDIO_BACKEND "COREAUDIO")
+		set(AUDIO_BACKEND "LIBSOUNDIO")
 	endif()
 endif()
 
@@ -35,7 +37,13 @@ if (NOT DEFINED AUDIO_BACKEND)
 	set(AUDIO_BACKEND "LIBSOUNDIO")
 endif()
 
-add_library(audioModule src/CoreAudio.cpp src/PulseAudio.cpp src/PulseAudioAsync.cpp src/WASAPI.cpp src/libsoundio.cpp)
+add_library(audioModule
+	src/CoreAudio.cpp
+	src/PulseAudio.cpp
+	src/PulseAudioAsync.cpp
+	src/WASAPI.cpp
+	src/libsoundio.cpp)
+
 if (${AUDIO_BACKEND} MATCHES COREAUDIO)
 	add_definitions(-DCOREAUDIO)
 	find_library(coreAudio CoreAudio)
@@ -73,12 +81,41 @@ elseif (${AUDIO_BACKEND} MATCHES LIBSOUNDIO)
 endif()
 target_link_libraries(audioModule -lpthread)
 target_include_directories(audioModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(audioModule PUBLIC "${PROJECT_BINARY_DIR}")
 
-add_library(graphicsModule src/Render.cpp src/Image.cpp)
+add_library(graphicsModule src/Render.cpp src/Image.cpp src/X11.cpp src/Calculate.cpp)
 find_library(GLFW glfw)
 target_link_libraries(graphicsModule ${GLFW})
-find_package(Vulkan REQUIRED)
-target_link_libraries(graphicsModule Vulkan::Vulkan)
+
+set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
+set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
+
+if (DEFINED VULKAN_SDK_PATH)
+	if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
+		target_include_directories(graphicsModule PUBLIC ${VULKAN_SDK_PATH}/x86_64/include)
+		target_link_libraries(graphicsModule -L${VULKAN_SDK_PATH}/x86_64/lib)
+		set(VULKAN_SDK_LIB_PATH ${VULKAN_SDK_PATH}/x86_64/lib)
+		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/x86_64/etc/vulkan/explicit_layer.d)
+	elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
+	elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
+		target_include_directories(graphicsModule PUBLIC ${VULKAN_SDK_PATH}/macOS/include)
+		target_link_libraries(graphicsModule ${VULKAN_SDK_PATH}/macOS/lib/libvulkan.1.dylib)
+		set(VULKAN_ICD_FILENAMES ${VULKAN_SDK_PATH}/macOS/etc/vulkan/icd.d/MoltenVK_icd.json)
+		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/macOS/etc/vulkan/explicit_layer.d)
+	endif()
+else()
+	find_package(Vulkan REQUIRED)
+	target_link_libraries(graphicsModule Vulkan::Vulkan)
+endif()
+
+find_package(X11)
+if (${X11_FOUND})
+	add_definitions(-DNATIVE_WINDOW_HINTS_SUPPORTED)
+	add_definitions(-DX11)
+	target_include_directories(graphicsModule PRIVATE ${X11_INCLUDE_DIR})
+	target_link_libraries(graphicsModule ${X11_LIBRARIES})
+endif()
+
 find_package(PNG)
 if (NOT ${PNG_FOUND})
 	add_definitions(-DDISABLE_PNG)
@@ -95,9 +132,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES 
 	target_link_libraries(graphicsModule -lstdc++fs)
 endif()
 target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(graphicsModule PUBLIC "${PROJECT_BINARY_DIR}")
 
-add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Data.cpp)
+add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Data.cpp src/Calculate.cpp)
 target_include_directories(vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(vkav PUBLIC "${PROJECT_BINARY_DIR}")
 target_link_libraries(vkav audioModule)
 target_link_libraries(vkav graphicsModule)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES "8..*")
@@ -143,6 +182,4 @@ file(GLOB src
 
 add_custom_target(format clang-format -style=file -i ${src})
 
-set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
-set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
-add_custom_target(run LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./vkav)
+add_custom_target(run VK_ICD_FILENAMES=${VULKAN_ICD_FILENAMES} LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./vkav)

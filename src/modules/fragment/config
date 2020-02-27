@@ -1,0 +1,18 @@
+
+// Must be a multiple of 3
+vertexCount = 729
+
+(id=11) float radius = 200
+(id=12) float reactivity = 50
+
+(id=13) float red = 0.314/2
+(id=14) float green = 0.314/2
+(id=15) float blue = 0.792/2
+(id=16) float alpha = 1
+
+// Light
+
+(id=17) float red = 0.666
+(id=18) float green = -0.3
+(id=19) float blue = -0.3
+(id=20) float brightness = 1000

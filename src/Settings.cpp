@@ -27,9 +27,9 @@
 
 #include "Settings.hpp"
 
-#define S1(x) #x
-#define S2(x) S1(x)
-#define LOCATION __FILE__ ":" S2(__LINE__) ": "
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+#define LOCATION __FILE__ ":" STR(__LINE__) ": "
 
 std::unordered_map<std::string, std::string> readConfigFile(const std::filesystem::path& filePath) {
 	std::unordered_map<std::string, std::string> variables;
