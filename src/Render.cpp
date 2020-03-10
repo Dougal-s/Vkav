@@ -1514,7 +1514,7 @@ private:
 		backgroundSamplerLayoutBinding.descriptorCount = 1;
 		backgroundSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		backgroundSamplerLayoutBinding.pImmutableSamplers = nullptr;
-		backgroundSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		backgroundSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		VkDescriptorSetLayoutBinding moduleImageSamplerLayoutBinding = {};
 		moduleImageSamplerLayoutBinding.binding = 4;

@@ -1,6 +1,11 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+layout(constant_id = 2) const int width  = 1;
+layout(constant_id = 3) const int height = 1;
+
+layout(binding = 3) uniform sampler2D backgroundImage;
+
 layout(location = 0) out vec2 fragTexCoord;
 
 vec2 positions[6] = vec2[](
@@ -25,5 +30,7 @@ vec2 texCoords[6] = vec2[](
 
 void main() {
 	fragTexCoord = texCoords[gl_VertexIndex];
-	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+	vec2 position = positions[gl_VertexIndex]*vec2(height, width)*textureSize(backgroundImage, 0).xy;
+	position /= min(abs(position.x), abs(position.y));
+	gl_Position = vec4(position, 0.0, 1.0);
 }
