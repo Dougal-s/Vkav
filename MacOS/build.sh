@@ -15,4 +15,4 @@ mkdir ./Vkav.app/Contents/Resources/vkav
 cp ../src/config ./Vkav.app/Contents/Resources/vkav
 
 # modules
-cp ../src/modules -r ./Vkav.app/Contents/Resources/vkav
+cp -r ../src/modules ./Vkav.app/Contents/Resources/vkav
