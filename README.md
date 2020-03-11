@@ -32,13 +32,16 @@ Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases
 
 \*Windows and MacOS support has not been implemented.
 
+
 #### Debian/Ubuntu:
+Install the required dependencies by running:
 ```
 $ sudo apt install libglfw3-dev libvulkan-dev libpulse-dev libpng-dev libjpeg-dev libx11-dev
 ```
 
 ### Installing
 
+#### Linux:
 Clone the repository and compile Vkav using:
 ```
 $ git clone https://github.com/Dougal-s/Vkav.git
@@ -57,13 +60,35 @@ $ vkav --install-config
 ```
 This will copy the config files from "/etc/Vkav" to "~/.config/Vkav".
 
+
+#### MacOS:
+This assumes you have brew installed.
+
+Install the required dependencies by running:
+```
+$ brew install glfw3 soundio libpng libjpeg-dev
+```
+Install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home#mac) to some permanent location.
+
+In order to compile vkav run:
+```
+$ git clone https://github.com/Dougal-s/Vkav.git
+$ cd Vkav
+$ mkdir build && cd build
+$ cmake .. -DVULKAN_SDK_PATH="path to vulkan sdk" -DDISABLE_X11="a"
+$ make
+```
+
+Once that is finished, head over to the [MacOS](./MacOS/README.md) directory for instructions on building a .app bundle.
+
 ### Usage
 To run Vkav simply execute:
 ```
 $ vkav
 ```
 
-Config files can be located in "~/.config/Vkav" once the user has executed `Vkav --install-config`.
+Config files can be located in "~/.config/vkav" on Linux and in ~/Library/Preferences/vkav on MacOS
+once the user has executed `Vkav --install-config`.
 
 ## License
 
