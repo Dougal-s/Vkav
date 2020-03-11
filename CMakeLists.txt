@@ -109,7 +109,7 @@ else()
 endif()
 
 find_package(X11)
-if (${X11_FOUND})
+if (${X11_FOUND} AND NOT DISABLE_X11)
 	add_definitions(-DNATIVE_WINDOW_HINTS_SUPPORTED)
 	add_definitions(-DX11)
 	target_include_directories(graphicsModule PRIVATE ${X11_INCLUDE_DIR})
