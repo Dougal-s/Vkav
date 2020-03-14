@@ -66,7 +66,7 @@ This assumes you have brew installed.
 
 Install the required dependencies by running:
 ```
-$ brew install glfw3 soundio libpng libjpeg-dev
+$ brew install glfw3 libsoundio libpng jpeg
 ```
 Install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home#mac) to some permanent location.
 
