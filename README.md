@@ -61,7 +61,7 @@ $ vkav --install-config
 This will copy the config files from "/etc/Vkav" to "~/.config/Vkav".
 
 
-#### MacOS:
+#### MacOS (>= 10.15):
 This assumes you have brew installed.
 
 Install the required dependencies by running:
