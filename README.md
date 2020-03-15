@@ -61,7 +61,7 @@ This will copy the config files from "/etc/Vkav" to "~/.config/Vkav".
 
 
 #### MacOS (>= 10.15):
-This assumes you have brew installed.
+This assumes you have [brew](https://brew.sh/) installed.
 
 Install the required dependencies by running:
 ```
