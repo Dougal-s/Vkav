@@ -22,7 +22,6 @@ Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases
 * libjpeg (optional)
 * Pulseaudio (Linux only)
 * WASAPI (Windows only)\*
-* Coreaudio (MacOS only)\*
 * Libsoundio (optional)
 * X11 (optional)
 
