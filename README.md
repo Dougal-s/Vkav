@@ -6,7 +6,7 @@
 
 Vkav is an audio visualizer written in C++ using Vulkan as its rendering backend.<br/>
 Shown on the left is the eclipse shader.<br/>
-*MacOS and Windows support has not been implemented*
+*Windows support has not been implemented*
 <br/>
 <br/>
 <br/>
@@ -29,7 +29,7 @@ Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases
 * g++ >= 8 or clang++ >= 7
 * cmake >= 3.12
 
-\*Windows and MacOS support has not been implemented.
+\*Windows support has not been implemented.
 
 
 #### Debian/Ubuntu:
