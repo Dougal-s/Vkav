@@ -3,7 +3,7 @@ name: build
 on: [push]
 
 jobs:
-  build:
+  build-ubuntu:
 
     runs-on: ubuntu-latest
 
@@ -15,9 +15,29 @@ jobs:
       env:
         CXX: g++-9
       run: |
-        mkdir build
-        cd build
+        mkdir build && cd build
         cmake ..
         make
     - name: Build deb Package
       run: cd deb-package && ./build.sh
+
+  build-macos:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: prerequisites
+      run: |
+        brew install glfw3 libsoundio libpng jpeg cmake make
+        wget https://sdk.lunarg.com/sdk/download/1.2.131.2/mac/vulkansdk-macos-1.2.131.2.tar.gz
+        tar -xf vulkansdk-macos-1.2.131.2.tar.gz
+    - name: build
+      env:
+        CXX: clang++
+      run: |
+        mkdir build && cd build
+        cmake .. -DVULKAN_SDK_PATH="../vulkansdk-macos-1.2.131.2" -DDISABLE_X11="a"
+        make
+    - name: app bundle
+      run: cd MacOS && ./build.sh ../vulkansdk-macos-1.2.131.2
