@@ -85,6 +85,7 @@ target_include_directories(audioModule PUBLIC "${PROJECT_BINARY_DIR}")
 
 add_library(graphicsModule src/Render.cpp src/Image.cpp src/X11.cpp src/Calculate.cpp)
 find_library(GLFW glfw)
+target_include_directories(graphicsModule PRIVATE ${GLFW_INCLUDE_DIRS})
 target_link_libraries(graphicsModule ${GLFW})
 
 set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
