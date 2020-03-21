@@ -45,10 +45,12 @@ vec3 positions[] = vec3[](
 	vec3(0, 2, 0),
 	vec3(1, 0, 1),
 	vec3(1, 0, -1)
-);
+); // 3-1 * 2-1
 
 layout(location = 0) out vec2 surfacePos;
 layout(location = 1) out vec3 position;
+layout(location = 2) out vec3 normal;
+layout(location = 3) out vec3 camera;
 
 layout(binding = 0) uniform data {
 	float lVolume;
@@ -74,6 +76,7 @@ void main() {
 	vec3 translate = vec3(0, verticalDistance*sin(verticalFreq*2*PI*time/(60*1000)), 0);
 
 	vec3 view = vec3(0, yPos, cameraZ);
+	camera = view;
 
 	float ratio = float(width)/float(height);
 	float tanHalf = tan(fov/2.f);
@@ -88,6 +91,10 @@ void main() {
 
 	vec3 localPos = model*positions[gl_VertexIndex]+translate;
 	position = localPos;
+	normal = model*normalize(cross(
+		positions[3*(gl_VertexIndex/3)+1]-positions[3*(gl_VertexIndex/3)],
+		positions[3*(gl_VertexIndex/3)+2]-positions[3*(gl_VertexIndex/3)]
+		))+translate;
 	gl_Position = projection*vec4(localPos-view, 1.0);
 
 	float x, y;
