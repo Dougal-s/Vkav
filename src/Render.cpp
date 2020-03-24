@@ -160,6 +160,8 @@ namespace {
 	};
 
 	struct Module {
+		std::filesystem::path location;
+
 		std::vector<GraphicsPipeline> layers;
 		SpecializationConstants specializationConstants;
 
@@ -887,12 +889,12 @@ private:
 		modules.resize(settings.modules.size());
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
-			std::filesystem::path layerDirectory = findModule(settings.modules[i]);
+			modules[i].location = findModule(settings.modules[i]);
 
 			for (uint32_t layer = 1;
-			     std::filesystem::exists(layerDirectory / std::to_string(layer)); ++layer) {
+			     std::filesystem::exists(modules[i].location / std::to_string(layer)); ++layer) {
 				modules[i].layers.resize(layer);
-				std::filesystem::path vertexShaderPath = layerDirectory / std::to_string(layer);
+				std::filesystem::path vertexShaderPath = modules[i].location / std::to_string(layer);
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
 					vertexShaderPath = settings.modules[i];
 
@@ -902,12 +904,12 @@ private:
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
 				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
 
-				std::filesystem::path fragmentShaderPath = layerDirectory / std::to_string(layer);
+				std::filesystem::path fragmentShaderPath = modules[i].location / std::to_string(layer);
 				auto fragShaderCode = readFile(fragmentShaderPath / "frag.spv");
 				modules[i].layers[layer - 1].fragShaderModule = createShaderModule(fragShaderCode);
 			}
 
-			std::filesystem::path configFilePath = layerDirectory / "config";
+			std::filesystem::path configFilePath = modules[i].location / "config";
 			readConfig(configFilePath, modules[i]);
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
@@ -1285,7 +1287,9 @@ private:
 		samplerInfo.maxLod = 0.0f;
 
 		for (auto& module : modules) {
-			createTextureImage(module.imagePath, module.image);
+			std::filesystem::path imagePath = module.imagePath;
+			if (!imagePath.empty() && imagePath.is_relative()) imagePath = module.location/imagePath;
+			createTextureImage(imagePath, module.image);
 			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
 
 			if (vkCreateSampler(device.device, &samplerInfo, nullptr, &module.image.sampler) !=
