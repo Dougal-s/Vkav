@@ -99,7 +99,7 @@ target_include_directories(graphicsModule
 		"${PROJECT_BINARY_DIR}"
 )
 
-find_library(GLFW glfw)
+find_library(GLFW glfw HINTS "/usr/local/Cellar/")
 target_include_directories(graphicsModule PRIVATE ${GLFW_INCLUDE_DIRS})
 target_link_libraries(graphicsModule PRIVATE ${GLFW})
 
