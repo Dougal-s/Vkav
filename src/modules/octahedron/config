@@ -3,10 +3,10 @@ vertexCount = 24
 
 (id=11) float size = 1
 // distance from the octahedron
-(id=12) float distance = 4
+(id=12) float distance = 8
 (id=13) float yPos = -0.0
 // field of view
-(id=14) float fov = 0.6
+(id=14) float fov = 0.1
 
 // Rotations per minute completed by the octahedron
 (id=15) float rpm = 6
