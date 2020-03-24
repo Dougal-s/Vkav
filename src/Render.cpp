@@ -894,7 +894,8 @@ private:
 			for (uint32_t layer = 1;
 			     std::filesystem::exists(modules[i].location / std::to_string(layer)); ++layer) {
 				modules[i].layers.resize(layer);
-				std::filesystem::path vertexShaderPath = modules[i].location / std::to_string(layer);
+				std::filesystem::path vertexShaderPath =
+				    modules[i].location / std::to_string(layer);
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
 					vertexShaderPath = settings.modules[i];
 
@@ -904,7 +905,8 @@ private:
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
 				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
 
-				std::filesystem::path fragmentShaderPath = modules[i].location / std::to_string(layer);
+				std::filesystem::path fragmentShaderPath =
+				    modules[i].location / std::to_string(layer);
 				auto fragShaderCode = readFile(fragmentShaderPath / "frag.spv");
 				modules[i].layers[layer - 1].fragShaderModule = createShaderModule(fragShaderCode);
 			}
@@ -1288,7 +1290,8 @@ private:
 
 		for (auto& module : modules) {
 			std::filesystem::path imagePath = module.imagePath;
-			if (!imagePath.empty() && imagePath.is_relative()) imagePath = module.location/imagePath;
+			if (!imagePath.empty() && imagePath.is_relative())
+				imagePath = module.location / imagePath;
 			createTextureImage(imagePath, module.image);
 			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
 
@@ -1518,7 +1521,8 @@ private:
 		backgroundSamplerLayoutBinding.descriptorCount = 1;
 		backgroundSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		backgroundSamplerLayoutBinding.pImmutableSamplers = nullptr;
-		backgroundSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		backgroundSamplerLayoutBinding.stageFlags =
+		    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		VkDescriptorSetLayoutBinding moduleImageSamplerLayoutBinding = {};
 		moduleImageSamplerLayoutBinding.binding = 4;

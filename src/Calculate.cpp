@@ -66,7 +66,8 @@ Token extractToken(std::string& expr, TokenType lastTokenType) {
 	if (expr.front() == ',') expr.erase(0, 1);
 
 	char* ptr;
-	if (float value = std::strtof(expr.c_str(), &ptr); lastTokenType != NUMBER && ptr != expr.c_str()) {
+	if (float value = std::strtof(expr.c_str(), &ptr);
+	    lastTokenType != NUMBER && ptr != expr.c_str()) {
 		Token rtrn(NUMBER, value);
 		expr.erase(0, ptr - expr.c_str());
 		return rtrn;
