@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(Vkav VERSION 0.4.0)
+project(Vkav VERSION 0.4.0 LANGUAGES CXX)
 
 configure_file(include/Version.hpp.in Version.hpp)
 
@@ -16,6 +16,7 @@ add_compile_options(
   "$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
 )
 
+# Platform specific flags
 if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 	add_definitions(-DLINUX)
 	if (NOT DEFINED AUDIO_BACKEND)
@@ -37,56 +38,70 @@ if (NOT DEFINED AUDIO_BACKEND)
 	set(AUDIO_BACKEND "LIBSOUNDIO")
 endif()
 
+
 add_library(audioModule
 	src/CoreAudio.cpp
 	src/PulseAudio.cpp
 	src/PulseAudioAsync.cpp
 	src/WASAPI.cpp
-	src/libsoundio.cpp)
+	src/libsoundio.cpp
+)
+target_include_directories(audioModule PRIVATE include)
 
 if (${AUDIO_BACKEND} MATCHES COREAUDIO)
-	add_definitions(-DCOREAUDIO)
+	target_compile_definitions(audioModule PRIVATE -DCOREAUDIO)
 	find_library(coreAudio CoreAudio)
 	if (NOT coreAudio)
 		message(FATAL_ERROR "Unable to locate CoreAudio!")
 	endif()
-	target_link_libraries(audioModule ${coreAudio})
+	target_link_libraries(audioModule PRIVATE ${coreAudio})
 elseif (${AUDIO_BACKEND} MATCHES PULSEAUDIO)
-	add_definitions(-DPULSEAUDIO)
 	find_library(pulseAudio pulse)
 	if (NOT pulseAudio)
 		message(FATAL_ERROR "Unable to locate pulseaudio!")
 	endif()
 	find_library(pulseAudioSimple pulse-simple)
 	if (NOT pulseAudioSimple)
-		message(FATAL_ERROR "Unable to locate pulseaudio-simple!")
+		target_compile_definitions(audioModule PRIVATE -DPULSEAUDIO_ASYNC)
+	else()
+		target_compile_definitions(audioModule PRIVATE -DPULSEAUDIO)
+		target_link_libraries(audioModule PRIVATE ${pulseAudioSimple})
 	endif()
-	target_link_libraries(audioModule ${pulseAudio} ${pulseAudioSimple})
+	target_link_libraries(audioModule PRIVATE ${pulseAudio})
 elseif (${AUDIO_BACKEND} MATCHES WASAPI)
-	add_definitions(-DWASAPI)
+	target_compile_definitions(audioModule PRIVATE -DWASAPI)
 	find_library(WASAPI wasapi)
 	if (NOT WASAPI)
 		message(FATAL_ERROR "Unable to locate WASAPI!")
 	endif()
-	target_link_libraries(audioModule ${WASAPI})
+	target_link_libraries(audioModule PRIVATE ${WASAPI})
 elseif (${AUDIO_BACKEND} MATCHES LIBSOUNDIO)
-	add_definitions(-DLIBSOUNDIO)
+	target_compile_definitions(audioModule PRIVATE -DLIBSOUNDIO)
 	find_library(libsoundio soundio)
 	find_path(libsoundioIncludeDir NAMES soundio/soundio.h)
 	if (NOT libsoundio)
 		message(FATAL_ERROR "Unable to locate libsoundio!")
 	endif()
 	target_include_directories(audioModule PRIVATE ${libsoundioIncludeDir})
-	target_link_libraries(audioModule ${libsoundio})
+	target_link_libraries(audioModule PRIVATE ${libsoundio})
 endif()
-target_link_libraries(audioModule -lpthread)
-target_include_directories(audioModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(audioModule PUBLIC "${PROJECT_BINARY_DIR}")
+target_link_libraries(audioModule PRIVATE -lpthread)
 
-add_library(graphicsModule src/Render.cpp src/Image.cpp src/X11.cpp src/Calculate.cpp)
+add_library(graphicsModule
+	src/Render.cpp
+	src/Image.cpp
+	src/X11.cpp
+	src/Calculate.cpp
+)
+target_include_directories(graphicsModule
+	PRIVATE
+		include
+		"${PROJECT_BINARY_DIR}"
+)
+
 find_library(GLFW glfw)
 target_include_directories(graphicsModule PRIVATE ${GLFW_INCLUDE_DIRS})
-target_link_libraries(graphicsModule ${GLFW})
+target_link_libraries(graphicsModule PRIVATE ${GLFW})
 
 set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
 set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
@@ -94,60 +109,64 @@ set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
 if (DEFINED VULKAN_SDK_PATH)
 	if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 		target_include_directories(graphicsModule PUBLIC ${VULKAN_SDK_PATH}/x86_64/include)
-		target_link_libraries(graphicsModule -L${VULKAN_SDK_PATH}/x86_64/lib)
+		target_link_libraries(graphicsModule PRIVATE -L${VULKAN_SDK_PATH}/x86_64/lib)
 		set(VULKAN_SDK_LIB_PATH ${VULKAN_SDK_PATH}/x86_64/lib)
 		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/x86_64/etc/vulkan/explicit_layer.d)
 	elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 	elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 		target_include_directories(graphicsModule PUBLIC ${VULKAN_SDK_PATH}/macOS/include)
-		target_link_libraries(graphicsModule ${VULKAN_SDK_PATH}/macOS/lib/libvulkan.1.dylib)
+		target_link_libraries(graphicsModule PRIVATE ${VULKAN_SDK_PATH}/macOS/lib/libvulkan.1.dylib)
 		set(VULKAN_ICD_FILENAMES ${VULKAN_SDK_PATH}/macOS/etc/vulkan/icd.d/MoltenVK_icd.json)
 		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/macOS/etc/vulkan/explicit_layer.d)
 	endif()
 else()
 	find_package(Vulkan REQUIRED)
-	target_link_libraries(graphicsModule Vulkan::Vulkan)
+	target_link_libraries(graphicsModule PRIVATE Vulkan::Vulkan)
 endif()
 
 find_package(X11)
 if (${X11_FOUND} AND NOT DISABLE_X11)
-	add_definitions(-DNATIVE_WINDOW_HINTS_SUPPORTED)
-	add_definitions(-DX11)
+	target_compile_definitions(graphicsModule PRIVATE -DNATIVE_WINDOW_HINTS_SUPPORTED -DX11)
 	target_include_directories(graphicsModule PRIVATE ${X11_INCLUDE_DIR})
-	target_link_libraries(graphicsModule ${X11_LIBRARIES})
+	target_link_libraries(graphicsModule PRIVATE ${X11_LIBRARIES})
 endif()
 
+# Image libraries
 find_package(PNG)
-if (NOT ${PNG_FOUND})
-	add_definitions(-DDISABLE_PNG)
+if (${PNG_FOUND})
+	target_link_libraries(graphicsModule PRIVATE PNG::PNG)
 else()
-	target_link_libraries(graphicsModule PNG::PNG)
+	target_compile_definitions(graphicsModule PRIVATE -DDISABLE_PNG)
 endif()
 find_package(JPEG)
-if (NOT ${JPEG_FOUND})
-	add_definitions(-DDISABLE_JPEG)
+if (${JPEG_FOUND})
+	target_link_libraries(graphicsModule PRIVATE JPEG::JPEG)
 else()
-	target_link_libraries(graphicsModule JPEG::JPEG)
+	target_compile_definitions(graphicsModule PRIVATE -DDISABLE_JPEG)
 endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES "8..*")
-	target_link_libraries(graphicsModule -lstdc++fs)
+	target_link_libraries(graphicsModule PUBLIC -lstdc++fs)
 endif()
-target_include_directories(graphicsModule PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(graphicsModule PUBLIC "${PROJECT_BINARY_DIR}")
 
-add_executable(vkav src/Vkav.cpp src/Proccess.cpp src/Settings.cpp src/Data.cpp src/Calculate.cpp)
-target_include_directories(vkav PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(vkav PUBLIC "${PROJECT_BINARY_DIR}")
-target_link_libraries(vkav audioModule)
-target_link_libraries(vkav graphicsModule)
+add_executable(vkav
+	src/Vkav.cpp
+	src/Proccess.cpp
+	src/Settings.cpp
+	src/Data.cpp
+	src/Calculate.cpp
+)
+target_include_directories(vkav
+	PRIVATE
+		include
+		"${PROJECT_BINARY_DIR}"
+)
+target_link_libraries(vkav audioModule graphicsModule)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES "8..*")
 	target_link_libraries(vkav -lstdc++fs)
 endif()
 
-if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows)
-	if (${CMAKE_BUILD_TYPE} MATCHES release)
-		add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
-	endif()
+if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows AND ${CMAKE_BUILD_TYPE} MATCHES release)
+	add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
 endif()
 
 # Installer
