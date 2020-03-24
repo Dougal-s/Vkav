@@ -184,8 +184,8 @@ void installConfig() {
 		throw std::runtime_error(LOCATION "Source directory: " + std::string(src) +
 		                         " does not exist!");
 
-	std::cout << "Copying config files from " << src << " to " << dst << std::endl;
 	std::filesystem::copy(src, dst,
 	                      std::filesystem::copy_options::overwrite_existing |
 	                          std::filesystem::copy_options::recursive);
+	std::cout << "Copied config files from " << src << " to " << dst << std::endl;
 }
