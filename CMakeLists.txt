@@ -99,9 +99,16 @@ target_include_directories(graphicsModule
 		"${PROJECT_BINARY_DIR}"
 )
 
-find_library(GLFW glfw HINTS "/usr/local/Cellar/")
-target_include_directories(graphicsModule PRIVATE ${GLFW_INCLUDE_DIRS})
-target_link_libraries(graphicsModule PRIVATE ${GLFW})
+if (DEFINED GLFW_PATH)
+	set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+	set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+	set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+	add_subdirectory(${GLFW_PATH});
+	target_link_libraries(graphicsModule PRIVATE glfw)
+else()
+	target_include_directories(graphicsModule PRIVATE ${GLFW_INCLUDE_DIRS})
+	target_link_libraries(graphicsModule PRIVATE ${GLFW})
+endif()
 
 set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
 set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
@@ -196,8 +203,8 @@ endif()
 
 # For formatting source code
 file(GLOB src
-    "include/*.h"
-    "src/*.cpp"
+	"include/*.h"
+	"src/*.cpp"
 )
 
 add_custom_target(format clang-format -style=file -i ${src})
