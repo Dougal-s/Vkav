@@ -1,6 +1,7 @@
 #include <cmath>
 #include <complex>
 #include <numeric>
+#include <utility>
 
 #include "Data.hpp"
 #include "Proccess.hpp"
@@ -145,37 +146,55 @@ private:
 
 	// Static member functions
 
-	// Bit Reverse Radix-2 fft
+	/**
+	 * Performs bit reverse fft
+	 * Requires the input buffer size to be a power of 2
+	 */
 
-	static void fft(std::complex<float>* first, size_t size) {
-		std::complex<float> reversed[size];
-		bit_reverse_copy(first, size, reversed);
-
-		for (size_t s = 1; s < log2(size) + 1; ++s) {
-			size_t m = 1 << s;
-			std::complex<float> wm = std::exp(std::complex<float>(0.0, -2.0 * M_PI / m));
+	static void fft(std::complex<float>* first, const size_t size) {
+		bitReverseShuffle(first, size);
+		for (size_t m = 2; m <= size; m <<= 1) {
+			const std::complex<float> wm = std::exp(std::complex<float>(0.f, -2.0 * M_PI / m));
 			for (size_t k = 0; k < size; k += m) {
 				std::complex<float> w = 1;
-				for (size_t j = 0; j < m / 2; ++j) {
-					std::complex<float> t = w * reversed[k + j + m / 2];
-					std::complex<float> u = reversed[k + j];
-					reversed[k + j] = u + t;
-					reversed[k + j + m / 2] = u - t;
-					w *= wm;
+				for (size_t j = 0; 2 * j < m; ++j, w *= wm) {
+					const std::complex<float> t = w * first[k + j + m / 2];
+					const std::complex<float> u = first[k + j];
+					first[k + j] = u + t;
+					first[k + j + m / 2] = u - t;
 				}
 			}
 		}
-
-		for (size_t i = 0; i < size; ++i) first[i] = reversed[i];
 	}
 
-	static void bit_reverse_copy(std::complex<float>* in, size_t size, std::complex<float>* out) {
-		for (size_t i = 0; i < size; ++i) out[reverse_bits(i, log2(size))] = in[i];
+	static void bitReverseShuffle(std::complex<float>* first, size_t size) {
+/**
+ * num_bits = log2(size).
+ * here i am assuming that the fft size is less than 2^16,
+ * that it is not 0 and that it is a power of 2
+ */
+#ifdef __builtin_ctz
+		uint8_t numBits = __builtin_ctz(size);  // count number of trailing 0s
+#else
+		uint8_t numBits = 15;
+		if (size & 0x00FF) numBits -= 8;
+		if (size & 0x0F0F) numBits -= 4;
+		if (size & 0x3333) numBits -= 2;
+		if (size & 0x5555) numBits -= 1;
+#endif
+
+		for (size_t i = 0; i < size; ++i) {
+			size_t j = reverseBits(i, numBits);
+			if (i < j) std::swap(first[i], first[j]);
+		}
 	}
 
-	static size_t reverse_bits(size_t val, uint8_t exp) {
+	/**
+	 * Reverses the first n bits in val
+	 */
+	static size_t reverseBits(size_t val, uint8_t n) {
 		size_t reversed = 0;
-		for (uint8_t i = 0; i < exp; ++i) {
+		for (uint8_t i = 0; i < n; ++i) {
 			reversed <<= 1;
 			reversed += (val & (1 << i)) != 0;
 		}
