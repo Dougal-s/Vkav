@@ -215,10 +215,9 @@ private:
 			case PA_CONTEXT_FAILED:
 			case PA_CONTEXT_TERMINATED:
 				audio->exceptionPtr = std::make_exception_ptr(
-				    std::runtime_error(std::string(LOCATION "pulseaudio context failed!")));
+				    std::runtime_error(LOCATION "pulseaudio connection terminated!"));
 				audio->running = false;
 				break;
-			case PA_CONTEXT_READY:
 			default:
 				// Do nothing
 				break;
@@ -230,8 +229,8 @@ private:
 		switch (pa_context_get_state(c)) {
 			case PA_CONTEXT_FAILED:
 			case PA_CONTEXT_TERMINATED:
-				audio->exceptionPtr = make_exception_ptr(
-				    std::runtime_error(std::string(LOCATION "pulseaudio context failed!")));
+				audio->exceptionPtr =
+				    make_exception_ptr(std::runtime_error(LOCATION "pulseaudio context failed!"));
 			case PA_CONTEXT_READY:
 				audio->running = false;
 				break;
