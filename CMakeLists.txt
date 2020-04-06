@@ -103,7 +103,7 @@ if (DEFINED GLFW_PATH)
 	set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 	set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 	set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-	add_subdirectory(${GLFW_PATH});
+	add_subdirectory(${GLFW_PATH})
 	target_link_libraries(graphicsModule PRIVATE glfw)
 else()
 	target_include_directories(graphicsModule PRIVATE ${GLFW_INCLUDE_DIRS})
