@@ -158,12 +158,16 @@ namespace {
 		void readImage() override {
 			jpeg_read_header(&cInfo, TRUE);
 
+#ifdef JCS_ALPHA_EXTENSIONS
 			cInfo.out_color_space = JCS_EXT_RGBA;
+#else
+			cInfo.out_color_space = JCS_EXT_RGB;
+#endif
 
 			jpeg_start_decompress(&cInfo);
 
 			imgWidth = cInfo.output_width;
-			rowSize = cInfo.output_width * cInfo.output_components;
+			rowSize = cInfo.output_width * 4;  // cInfo.output_components;
 			imgHeight = cInfo.output_height;
 
 			image = new unsigned char*[imgHeight];
@@ -171,6 +175,18 @@ namespace {
 			while (cInfo.output_scanline < cInfo.output_height) {
 				image[cInfo.output_scanline] = new unsigned char[rowSize];
 				jpeg_read_scanlines(&cInfo, image + cInfo.output_scanline, 1);
+#ifndef JCS_ALPHA_EXTENSIONS
+				for (int pixel = cInfo.output_width - 1; pixel >= 0; --pixel) {
+					image[cInfo.output_scanline - 1][4 * pixel] =
+					    image[cInfo.output_scanline - 1][3 * pixel];
+					image[cInfo.output_scanline - 1][4 * pixel + 1] =
+					    image[cInfo.output_scanline - 1][3 * pixel + 1];
+					image[cInfo.output_scanline - 1][4 * pixel + 2] =
+					    image[cInfo.output_scanline - 1][3 * pixel + 2];
+					image[cInfo.output_scanline - 1][4 * pixel + 3] =
+					    image[cInfo.output_scanline - 1][3 * pixel + 3];
+				}
+#endif
 			}
 
 			jpeg_finish_decompress(&cInfo);
