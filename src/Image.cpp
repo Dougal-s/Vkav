@@ -161,7 +161,7 @@ namespace {
 #ifdef JCS_ALPHA_EXTENSIONS
 			cInfo.out_color_space = JCS_EXT_RGBA;
 #else
-			cInfo.out_color_space = JCS_EXT_RGB;
+			cInfo.out_color_space = JCS_RGB;
 #endif
 
 			jpeg_start_decompress(&cInfo);
