@@ -75,6 +75,8 @@ private:
 			// input has range [0, inputSize/2)
 			fft(input, inputSize / 2);
 
+			audioData.lBuffer[0] = audioData.rBuffer[0] = input[0].imag() + input[0].real();
+
 			for (size_t r = 1; r < inputSize / 2; ++r) {
 				std::complex<float> F = 0.5f * (input[r] + std::conj(input[inputSize / 2 - r]));
 				std::complex<float> G =
@@ -83,12 +85,14 @@ private:
 				std::complex<float> w = exp(std::complex<float>(0.f, -2.f * M_PI * r / inputSize));
 				std::complex<float> X = F + w * G;
 
-				audioData.lBuffer[r] = std::abs(X);
-				audioData.rBuffer[r] = audioData.lBuffer[r];
+				audioData.lBuffer[r] = audioData.rBuffer[r] = std::abs(X);
 			}
 		} else {
 			// input has range [0, inputSize)
 			fft(input, inputSize);
+
+			audioData.lBuffer[0] = input[0].real();
+			audioData.rBuffer[0] = input[0].imag();
 
 			for (size_t i = 1; i < inputSize / 2; ++i) {
 				std::complex<float> val = (input[i] + std::conj(input[inputSize - i])) * 0.5f;
@@ -98,8 +102,6 @@ private:
 				audioData.rBuffer[i] = std::abs(val);
 			}
 		}
-		audioData.lBuffer[0] = audioData.rBuffer[1];
-		audioData.rBuffer[0] = audioData.lBuffer[1];
 	}
 
 	void equalise(AudioData& audioData) const {
