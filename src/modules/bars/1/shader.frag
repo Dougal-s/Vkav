@@ -28,6 +28,7 @@ layout(binding = 1) uniform samplerBuffer lBuffer;
 layout(binding = 2) uniform samplerBuffer rBuffer;
 
 layout(location = 0) in vec2 position;
+layout(location = 1) in vec2 screen;
 
 layout(location = 0) out vec4 outColor;
 
@@ -46,7 +47,7 @@ void main() {
 
 		const float mixThreshold = 0.03;
 
-		float texCoord = 2.0*barCenter/width;
+		float texCoord = 2.0*barCenter/screen.x;
 
 		if (abs(texCoord) < mixThreshold)
 			v = mix(
@@ -60,7 +61,7 @@ void main() {
 			v = kernelSmoothTexture(rBuffer, smoothingLevel, texCoord);
 
 		if (position.y < amplitude*v) {
-			outColor = vec4(color * brightness * (height*position.y/40 + 1), 1.f);
+			outColor = vec4(color * brightness * (screen.y*position.y/40 + 1), 1.f);
 			return;
 		}
 	}
