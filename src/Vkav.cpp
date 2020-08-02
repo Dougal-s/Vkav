@@ -386,7 +386,6 @@ namespace {
 			}
 
 			proccessSettings.channels = audioSettings.channels;
-			std::cout << proccessSettings.channels << std::endl;
 			proccessSettings.inputSize = audioSettings.bufferSize;
 			proccessSettings.outputSize = smoothedSize;
 			proccessSettings.smoothingLevel = smoothingLevel;
