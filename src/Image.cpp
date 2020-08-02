@@ -238,31 +238,28 @@ namespace {
 
 			size_t rowSize = ((header.width * header.bitsPerPixel + 31) >> 5) << 2;
 
-			char** buffer = new char*[imgHeight];
 			image = new unsigned char*[imgHeight];
+			char* buffer = new char[rowSize];
 			for (int y = imgHeight - 1; y != -1; --y) {
-				buffer[y] = new char[rowSize];
 				image[y] = new unsigned char[4 * imgWidth];
-				file.read(buffer[y], rowSize);
+				file.read(buffer, rowSize);
 				for (size_t x = 0; x < imgWidth; ++x) {
 					switch (header.bitsPerPixel) {
 						case 24:
-							image[y][4 * x + 0] = buffer[y][3 * x + 2];
-							image[y][4 * x + 1] = buffer[y][3 * x + 1];
-							image[y][4 * x + 2] = buffer[y][3 * x + 0];
+							image[y][4 * x + 0] = buffer[3 * x + 2];
+							image[y][4 * x + 1] = buffer[3 * x + 1];
+							image[y][4 * x + 2] = buffer[3 * x + 0];
 							image[y][4 * x + 3] = 0xff;
 							break;
 						case 32:
-							image[y][4 * x + 0] = buffer[y][4 * x + 3];
-							image[y][4 * x + 1] = buffer[y][4 * x + 2];
-							image[y][4 * x + 2] = buffer[y][4 * x + 1];
-							image[y][4 * x + 3] = buffer[y][4 * x + 0];
+							image[y][4 * x + 0] = buffer[4 * x + 3];
+							image[y][4 * x + 1] = buffer[4 * x + 2];
+							image[y][4 * x + 2] = buffer[4 * x + 1];
+							image[y][4 * x + 3] = buffer[4 * x + 0];
 							break;
 					}
 				}
 			}
-
-			for (size_t i = 0; i < imgHeight; ++i) delete[] buffer[i];
 			delete[] buffer;
 		}
 
