@@ -39,7 +39,7 @@ jobs:
         CXX: clang++
       run: |
         mkdir build && cd build
-        cmake .. -DVULKAN_SDK_PATH="vulkansdk-macos-1.2.131.2" -DGLFW_PATH="glfw-3.3.2" -DDISABLE_X11="a"
+        cmake .. -DVULKAN_SDK_PATH="vulkansdk-macos-1.2.131.2" -DGLFW_PATH="glfw-3.3.2" -DINCLUDE_X11=OFF
         make
     - name: app bundle
       run: cd MacOS && ./build.sh ../vulkansdk-macos-1.2.131.2

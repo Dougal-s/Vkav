@@ -74,7 +74,7 @@ In order to compile vkav run:
 $ git clone https://github.com/Dougal-s/Vkav.git
 $ cd Vkav
 $ mkdir build && cd build
-$ cmake .. -DVULKAN_SDK_PATH="path to vulkan sdk" -DDISABLE_X11="a"
+$ cmake .. -DVULKAN_SDK_PATH="path to vulkan sdk" -DINCLUDE_X11=OFF
 $ make
 ```
 
