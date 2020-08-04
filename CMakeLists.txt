@@ -13,7 +13,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(
   "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra>"
+  "$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
   "$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
+)
+
+add_link_options(
+  "$<$<CONFIG:ASAN>:-fno-omit-frame-pointer;-fsanitize=address>"
 )
 
 # Platform specific flags
