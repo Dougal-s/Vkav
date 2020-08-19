@@ -29,7 +29,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: prerequisites
       run: |
-        brew install libsoundio libpng jpeg cmake make
+        brew install libsoundio libpng jpeg cmake make coreutils
         wget https://sdk.lunarg.com/sdk/download/1.2.131.2/mac/vulkansdk-macos-1.2.131.2.tar.gz
         tar -xf vulkansdk-macos-1.2.131.2.tar.gz
         wget https://github.com/glfw/glfw/releases/download/3.3.2/glfw-3.3.2.zip
@@ -39,7 +39,7 @@ jobs:
         CXX: clang++
       run: |
         mkdir build && cd build
-        cmake .. -DVULKAN_SDK_PATH="vulkansdk-macos-1.2.131.2" -DGLFW_PATH="glfw-3.3.2" -DINCLUDE_X11=OFF
+        cmake .. -DVULKAN_SDK_PATH="`realpath ../vulkansdk-macos-1.2.131.2`" -DGLFW_PATH="glfw-3.3.2" -DINCLUDE_X11=OFF
         make
     - name: app bundle
       run: cd MacOS && ./build.sh ../vulkansdk-macos-1.2.131.2
