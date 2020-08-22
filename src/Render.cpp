@@ -1304,40 +1304,28 @@ private:
 	void createBackgroundImage() { createTextureImage(settings.backgroundImage, backgroundImage); }
 
 	void createTextureImage(const std::filesystem::path& imagePath, Image& image) {
-		size_t width, height, size;
-		unsigned char** imgData;
-		if (imagePath.empty()) {
-			width = 1;
-			height = 1;
-			imgData = new unsigned char*[1];
-			imgData[0] = new unsigned char[4]{0, 0, 0, 0};
-		} else {
-			imgData = readImg(imagePath, width, height);
-		}
-		size = width * height * 4;
+		ImageFile img;
+		if (!imagePath.empty()) img.open(imagePath);
 
 		Buffer stagingBuffer(
-		    device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		    device, img.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		void* data = stagingBuffer.mapMemory();
-		for (size_t y = 0; y < height; ++y)
-			std::copy_n(imgData[y], width * 4,
-			            reinterpret_cast<unsigned char*>(data) + y * width * 4);
+		for (size_t y = 0; y < img.height(); ++y)
+			std::copy_n(img[y], img.width() * 4,
+			            reinterpret_cast<unsigned char*>(data) + y * img.width() * 4);
 		stagingBuffer.unmapMemory();
 
-		for (size_t y = 0; y < height; ++y) delete[] imgData[y];
-		delete[] imgData;
-
-		image = Image(device, width, height, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+		image = Image(device, img.width(), img.height(), VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 		              VK_IMAGE_TILING_OPTIMAL,
 		              VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		transitionImageLayout(image.image, VK_IMAGE_LAYOUT_UNDEFINED,
 		                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer.buffer, image.image, static_cast<uint32_t>(width),
-		                  static_cast<uint32_t>(height));
+		copyBufferToImage(stagingBuffer.buffer, image.image, static_cast<uint32_t>(img.width()),
+		                  static_cast<uint32_t>(img.height()));
 		transitionImageLayout(image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
