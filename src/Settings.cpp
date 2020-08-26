@@ -164,7 +164,7 @@ void installConfig() {
 	src = "../Resources/vkav";
 	dst = std::getenv("HOME");
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
-	dst /= "Library/Preferences";
+	dst /= "Library/Preferences/vkav";
 #elif defined(WINDOWS)
 	const char* path;
 	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
