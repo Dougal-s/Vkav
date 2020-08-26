@@ -190,25 +190,26 @@ endif()
 # Installer
 
 if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
-	install(TARGETS vkav # executable
+	install(TARGETS vkav
 			CONFIGURATIONS Release
 			RUNTIME DESTINATION bin)
-	install(FILES src/config # config file
+	install(FILES src/config
 			CONFIGURATIONS Release
 			DESTINATION /etc/vkav)
-	install(DIRECTORY src/shaders # shaders
+	install(DIRECTORY src/modules
 			CONFIGURATIONS Release
 			DESTINATION /etc/vkav)
-	install(FILES vkav.desktop # .desktop file
+	install(FILES vkav.desktop
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/applications)
-	install(FILES vkav.png # icon
+	install(FILES vkav.png
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/icons/hicolor/48x48/apps)
 	install(FILES vkav.svg # icon
 			CONFIGURATIONS Release
 			DESTINATION /usr/share/icons/hicolor/scalable/apps)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
+	message("CMAKE installation unsupported on this platform. An app bundle must be created instead.")
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 endif()
 
