@@ -153,6 +153,19 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	return configLocations;
 }
 
+std::unordered_map<std::string, std::vector<std::filesystem::path>> getModules() {
+	auto configLocations = getConfigLocations();
+	std::unordered_map<std::string, std::vector<std::filesystem::path>> modules;
+	for (auto& configLocation : configLocations) {
+		for (auto& module : std::filesystem::directory_iterator(configLocation / "modules")) {
+			if (std::filesystem::exists(module.path() / "config") &&
+			    std::filesystem::exists(module.path() / "1"))
+				modules[module.path().filename()].push_back(module.path());
+		}
+	}
+	return modules;
+}
+
 void installConfig() {
 	std::filesystem::path src, dst;
 #ifdef LINUX

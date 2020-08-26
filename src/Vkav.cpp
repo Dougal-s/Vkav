@@ -50,9 +50,10 @@ namespace {
 	    "                                        Overrides config file.\n"
 	    "-c, --config=CONFIG_PATH              Specifies config file path.\n"
 	    "-a, --amplitude=AMPLITUDE             Multiplies audio with AMPLITUDE.\n"
+		"    --install-config                  Installs config files to a user\n"
+		"    --list-modules                    Output the list of available modules and exit\n"
 	    "-h, --help                            Display this help and exit.\n"
 	    "-V, --version                         Output version information and exit.\n"
-	    "    --install-config                  Installs config files to a user\n"
 	    "                                        specific config directory.\n"
 	    "\n"
 	    "Any of the settings in the config file can be set using the format:\n"
@@ -76,6 +77,17 @@ namespace {
 
 			if (cmdLineArgs.find("version") != cmdLineArgs.end()) {
 				std::cout << versionStr;
+				std::exit(0);
+			}
+
+			if (cmdLineArgs.find("list-modules") != cmdLineArgs.end()) {
+				auto modules = getModules();
+				std::cout << "Available Modules:" << std::endl;
+				for (auto& module : modules) {
+					std::cout << module.first << ":\n";
+					std::cout << "    location(s):\n";
+					for (auto& path : module.second) std::cout << "        " << path << std::endl;
+				}
 				std::exit(0);
 			}
 
