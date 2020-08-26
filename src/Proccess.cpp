@@ -10,20 +10,53 @@ class Proccess::ProccessImpl {
 public:
 	ProccessImpl(const ProccessSettings& settings) {
 		channels = settings.channels;
-		const size_t capacity = std::max(settings.inputSize / 2, settings.outputSize);
-		lBuffer = new float[capacity];
-		rBuffer = new float[capacity];
-
-		inputSize = settings.inputSize;
-
+		inputSize = settings.size;
 		amplitude = settings.amplitude;
+		smooth = settings.smoothingLevel;
 
-		wfCoeff = M_PI / (settings.inputSize - 1);
+		if (smooth) {
+			// generate convolutionVec
+			convolutionVec = new std::complex<float>[inputSize / 2];
+			const float smoothingFactor = 1.f / (settings.smoothingLevel * settings.smoothingLevel);
+			float sum = 0;
+			for (size_t i = 0; i < inputSize / 2; ++i) {
+				float dx = static_cast<float>(2 * i) / inputSize;
+				convolutionVec[i].real(std::exp(-dx * dx * smoothingFactor) +
+				                       std::exp(-(1.f - dx) * (1.f - dx) * smoothingFactor));
+				dx = static_cast<float>(2 * i + 1) / inputSize;
+				convolutionVec[i].imag(std::exp(-dx * dx * smoothingFactor) +
+				                       std::exp(-(1.f - dx) * (1.f - dx) * smoothingFactor));
 
-		smoothedSize = settings.outputSize;
-		smoothingFactor =
-		    inputSize * inputSize * 0.125f /
-		    (settings.smoothingLevel * smoothedSize * settings.smoothingLevel * smoothedSize);
+				sum += convolutionVec[i].real() + convolutionVec[i].imag();
+			}
+			for (size_t i = 0; i < inputSize / 2; ++i) convolutionVec[i] /= sum;
+
+			// precompute fft
+			fft(convolutionVec, inputSize / 2);
+
+			convolutionVec[0] = convolutionVec[0].imag() + convolutionVec[0].real();
+			convolutionVec[inputSize / 4] =
+			    convolutionVec[inputSize / 4].imag() + convolutionVec[inputSize / 4].real();
+			const std::complex<float> wm =
+			    std::exp(std::complex<float>(0.f, -2.f * M_PI / inputSize));
+			std::complex<float> w = wm;
+			for (size_t r = 1; r < inputSize / 4; ++r) {
+				auto F1 = 0.5f * (convolutionVec[r] + std::conj(convolutionVec[inputSize / 2 - r]));
+				auto G1 = std::complex<float>(0, 0.5f) *
+				          (std::conj(convolutionVec[inputSize / 2 - r]) - convolutionVec[r]);
+
+				auto F2 = 0.5f * (convolutionVec[inputSize / 2 - r] + std::conj(convolutionVec[r]));
+				auto G2 = std::complex<float>(0, 0.5f) *
+				          (std::conj(convolutionVec[r]) - convolutionVec[inputSize / 2 - r]);
+
+				convolutionVec[r] = F1 + w * G1;
+				convolutionVec[inputSize / 2 - r] = F2 - G2 / w;
+
+				w *= wm;
+			}
+		}
+
+		wfCoeff = M_PI / (settings.size - 1);
 	}
 
 	void proccessSignal(AudioData& audioData) {
@@ -31,18 +64,19 @@ public:
 		magnitudes(audioData);
 		equalise(audioData);
 		calculateVolume(audioData);
-		if (!std::isnan(smoothingFactor)) smooth(audioData);
+		if (smooth) smoothBuffer(audioData);
 	}
 
 	~ProccessImpl() {
-		delete[] lBuffer;
-		delete[] rBuffer;
+		if (smooth) delete[] convolutionVec;
 	}
 
 private:
 	// Member variables
-	float* lBuffer;
-	float* rBuffer;
+
+	// for smoothing
+	std::complex<float>* convolutionVec;
+	bool smooth;
 
 	size_t inputSize;
 	unsigned char channels;
@@ -51,10 +85,6 @@ private:
 
 	// window function
 	float wfCoeff;
-
-	// smooth
-	size_t smoothedSize;
-	float smoothingFactor;
 
 	// Member functions
 	void windowFunction(AudioData& audioData) const {
@@ -96,7 +126,7 @@ private:
 			audioData.rBuffer[0] = input[0].imag();
 
 			for (size_t i = 1; i < inputSize / 2; ++i) {
-				std::complex<float> val = (input[i] + std::conj(input[inputSize - i])) * 0.5f;
+				std::complex<float> val = 0.5f * (std::conj(input[inputSize - i]) + input[i]);
 				audioData.lBuffer[i] = std::abs(val);
 
 				val = std::complex<float>(0, 0.5f) * (std::conj(input[inputSize - i]) - input[i]);
@@ -120,34 +150,42 @@ private:
 		    std::accumulate(audioData.rBuffer, audioData.rBuffer + inputSize / 2, 0.f) / inputSize;
 	}
 
-	void smooth(AudioData& audioData) { kernelSmooth(audioData); }
-
-	void kernelSmooth(AudioData& audioData) {
-		const float oldSize = inputSize / 2;
-		const float radius = sqrtf(-logf(0.05f) / smoothingFactor) * oldSize / smoothedSize;
-
-		for (uint32_t i = 0; i < smoothedSize; ++i) {
-			float sum = 0;
-			uint32_t min = std::max((int)0, (int)(i * oldSize / smoothedSize - radius));
-			uint32_t max = std::min((int)oldSize, (int)(i * oldSize / smoothedSize + radius));
-			lBuffer[i] = 0.f;
-			rBuffer[i] = 0.f;
-			for (uint32_t j = min; j < max; ++j) {
-				float distance = (i - j * smoothedSize / oldSize);
-				float weight = expf(-distance * distance * smoothingFactor);
-				lBuffer[i] += audioData.lBuffer[j] * weight;
-				rBuffer[i] += audioData.rBuffer[j] * weight;
-				sum += weight;
-			}
-			lBuffer[i] /= sum;
-			rBuffer[i] /= sum;
+	/**
+	 * Performs a fast convolution between the input audio and convolutionVec
+	 */
+	void smoothBuffer(AudioData& audioData) {
+		auto input = reinterpret_cast<std::complex<float>*>(audioData.buffer);
+		for (size_t i = 0; i < inputSize / 2; ++i) {
+			input[i] = {audioData.lBuffer[i], audioData.rBuffer[i]};
+			input[i + inputSize / 2] = {audioData.lBuffer[inputSize / 2 - i],
+			                            audioData.rBuffer[inputSize / 2 - i]};
 		}
+		fft(input, inputSize);
 
-		std::swap(audioData.lBuffer, lBuffer);
-		std::swap(audioData.rBuffer, rBuffer);
+		input[0] *= convolutionVec[0];
+		for (size_t i = 1; i < inputSize / 2; ++i) {
+			input[i] *= convolutionVec[i];
+			input[inputSize - i] *= convolutionVec[i];
+		}
+		ifft(input, inputSize);
+		for (size_t i = 0; i < inputSize / 2; ++i) {
+			audioData.lBuffer[i] = input[i].real();
+			audioData.rBuffer[i] = input[i].imag();
+		}
 	}
 
 	// Static member functions
+
+	/**
+	 * Performs an ifft using the fft
+	 * Requires the input buffer size to be a power of 2
+	 */
+
+	static void ifft(std::complex<float>* first, const size_t size) {
+		for (size_t i = 0; i < size; ++i) first[i] = std::conj(first[i]);
+		fft(first, size);
+		for (size_t i = 0; i < size; ++i) first[i] = std::conj(first[i]) / static_cast<float>(size);
+	}
 
 	/**
 	 * Performs bit reverse fft

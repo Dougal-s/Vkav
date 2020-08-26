@@ -56,14 +56,11 @@ fpsLimit = 0
 
 /**
  * Whether to perform smoothing on the CPU or GPU.
+ * Note: while smoothing is more efficient when performed on the CPU,
+ * it may cause issues with some modules if they use a custom smoothing algorithm
+ * as there is no way to know how the module processes the data.
  */
 smoothingDevice = GPU
-
-/**
- * Size of the left and right audio buffers after smoothing.
- * Only applies if smoothingDevice is set to CPU.
- */
-smoothedSize = 320
 
 /**
  * Amount of smoothing applied to the audio data. Higher values mean more smoothing.

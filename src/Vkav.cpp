@@ -130,7 +130,7 @@ namespace {
 			proccess.init(proccessSettings);
 
 			audioData.allocate(audioSettings.channels * audioSettings.bufferSize,
-			                   std::max(proccessSettings.outputSize, audioSettings.bufferSize / 2));
+			                   audioSettings.bufferSize / 2);
 
 			std::chrono::high_resolution_clock::time_point initEnd =
 			    std::chrono::high_resolution_clock::now();
@@ -218,13 +218,6 @@ namespace {
 			} else {
 				PRINT_UNDEFINED(smoothingDevice);
 			}
-
-			size_t smoothedSize = 320;
-			if (const auto confSetting = configSettings.find("smoothedSize");
-			    confSetting != configSettings.end())
-				smoothedSize = calculate<size_t>(confSetting->second);
-			else
-				PRINT_UNDEFINED(smoothedSize);
 
 			if (const auto confSetting = configSettings.find("channels");
 			    confSetting != configSettings.end())
@@ -365,14 +358,12 @@ namespace {
 				PRINT_UNDEFINED(smoothingLevel);
 			}
 
+			renderSettings.audioSize = (audioSettings.bufferSize / 2) * (1.f - trebleCut);
 			switch (smoothingDevice) {
 				case GPU:
-					renderSettings.audioSize = (audioSettings.bufferSize / 2) * (1.f - trebleCut);
 					smoothingLevel = 0.f;
-					smoothedSize = 0;
 					break;
 				case CPU:
-					renderSettings.audioSize = smoothedSize * (1.f - trebleCut);
 					renderSettings.smoothingLevel = 0.f;
 					break;
 			}
@@ -386,8 +377,7 @@ namespace {
 			}
 
 			proccessSettings.channels = audioSettings.channels;
-			proccessSettings.inputSize = audioSettings.bufferSize;
-			proccessSettings.outputSize = smoothedSize;
+			proccessSettings.size = audioSettings.bufferSize;
 			proccessSettings.smoothingLevel = smoothingLevel;
 
 			if (const auto confSetting = configSettings.find("amplitude");
