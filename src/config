@@ -5,7 +5,8 @@
 /**
  * Names of the rendering modules.
  * They can be found in the following directories:
- * Linux: /etc/vkav/modules, /home/user/.config/vkav/modules
+ * Linux: /etc/vkav/modules, ~/.config/vkav/modules
+ * MacOS: Vkav.app/Contents/Resources/modules, ~/Library/Preferences/vkav/modules
  */
 modules = {"bars", "radial"}
 
@@ -14,6 +15,7 @@ modules = {"bars", "radial"}
  * Supported image types:
  * 	PNG
  * 	JPEG
+ *  BMP
  */
 backgroundImage = none
 
