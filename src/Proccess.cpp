@@ -157,8 +157,8 @@ private:
 		auto input = reinterpret_cast<std::complex<float>*>(audioData.buffer);
 		for (size_t i = 0; i < inputSize / 2; ++i) {
 			input[i] = {audioData.lBuffer[i], audioData.rBuffer[i]};
-			input[i + inputSize / 2] = {audioData.lBuffer[inputSize / 2 - i],
-			                            audioData.rBuffer[inputSize / 2 - i]};
+			input[i + inputSize / 2] = {audioData.lBuffer[inputSize / 2 - i - 1],
+			                            audioData.rBuffer[inputSize / 2 - i - 1]};
 		}
 		fft(input, inputSize);
 
