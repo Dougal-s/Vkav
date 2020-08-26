@@ -77,15 +77,16 @@ private:
 
 			audioData.lBuffer[0] = audioData.rBuffer[0] = input[0].imag() + input[0].real();
 
+			const std::complex<float> wm =
+			    std::exp(std::complex<float>(0.f, -2.f * M_PI / inputSize));
+			std::complex<float> w = wm;
 			for (size_t r = 1; r < inputSize / 2; ++r) {
-				std::complex<float> F = 0.5f * (input[r] + std::conj(input[inputSize / 2 - r]));
-				std::complex<float> G =
+				auto F = 0.5f * (input[r] + std::conj(input[inputSize / 2 - r]));
+				auto G =
 				    std::complex<float>(0, 0.5f) * (std::conj(input[inputSize / 2 - r]) - input[r]);
 
-				std::complex<float> w = exp(std::complex<float>(0.f, -2.f * M_PI * r / inputSize));
-				std::complex<float> X = F + w * G;
-
-				audioData.lBuffer[r] = audioData.rBuffer[r] = std::abs(X);
+				audioData.lBuffer[r] = audioData.rBuffer[r] = std::abs(F + w * G);
+				w *= wm;
 			}
 		} else {
 			// input has range [0, inputSize)
