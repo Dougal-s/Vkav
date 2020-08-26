@@ -242,7 +242,7 @@ namespace {
 				if (err->parent->image[y]) delete[] err->parent->image[y];
 			if (err->parent->height() > 0) delete[] err->parent->image;
 			// get error message
-			char* err_msg;
+		 	char err_msg[JMSG_LENGTH_MAX];
 			(*cInfo->err->format_message)(cInfo, err_msg);
 			// throw error
 			throw std::runtime_error(std::string(LOCATION) + "failed to read JPEG!: " + err_msg);
