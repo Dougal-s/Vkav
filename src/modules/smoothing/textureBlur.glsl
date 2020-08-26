@@ -28,7 +28,7 @@ vec4 blurredTexture(in sampler2D image, in vec2 position, in float blur) {
 		pixel += texture(image, position-off.yy); // bottom left
 		pixel += texture(image, position+negate*off.yy); // bottom right
 		pixel += texture(image, position-negate*off.yy); // top left
-		for (off.x = off.y+stepSize; dot(off, off) <= radius*radius; off.x += stepSize.x) {
+		for (off.x = off.y+stepSize.x; dot(off, off) <= radius*radius; off.x += stepSize.x) {
 			vec4 offset = vec4(off, -off);
 			pixel += texture(image, position+offset.xy); // top right
 			pixel += texture(image, position+offset.xw); // bottom right
