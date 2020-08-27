@@ -50,9 +50,10 @@ namespace {
 	    "                                        Overrides config file.\n"
 	    "-c, --config=CONFIG_PATH              Specifies config file path.\n"
 	    "-a, --amplitude=AMPLITUDE             Multiplies audio with AMPLITUDE.\n"
+	    "    --install-config                  Installs config files to a user\n"
+	    "    --list-modules                    Output the list of available modules and exit\n"
 	    "-h, --help                            Display this help and exit.\n"
 	    "-V, --version                         Output version information and exit.\n"
-	    "    --install-config                  Installs config files to a user\n"
 	    "                                        specific config directory.\n"
 	    "\n"
 	    "Any of the settings in the config file can be set using the format:\n"
@@ -76,6 +77,17 @@ namespace {
 
 			if (cmdLineArgs.find("version") != cmdLineArgs.end()) {
 				std::cout << versionStr;
+				std::exit(0);
+			}
+
+			if (cmdLineArgs.find("list-modules") != cmdLineArgs.end()) {
+				auto modules = getModules();
+				std::cout << "Available Modules:" << std::endl;
+				for (auto& module : modules) {
+					std::cout << module.first << ":\n";
+					std::cout << "    location(s):\n";
+					for (auto& path : module.second) std::cout << "        " << path << std::endl;
+				}
 				std::exit(0);
 			}
 
@@ -130,7 +142,7 @@ namespace {
 			proccess.init(proccessSettings);
 
 			audioData.allocate(audioSettings.channels * audioSettings.bufferSize,
-			                   std::max(proccessSettings.outputSize, audioSettings.bufferSize / 2));
+			                   audioSettings.bufferSize / 2);
 
 			std::chrono::high_resolution_clock::time_point initEnd =
 			    std::chrono::high_resolution_clock::now();
@@ -218,13 +230,6 @@ namespace {
 			} else {
 				PRINT_UNDEFINED(smoothingDevice);
 			}
-
-			size_t smoothedSize = 320;
-			if (const auto confSetting = configSettings.find("smoothedSize");
-			    confSetting != configSettings.end())
-				smoothedSize = calculate<size_t>(confSetting->second);
-			else
-				PRINT_UNDEFINED(smoothedSize);
 
 			if (const auto confSetting = configSettings.find("channels");
 			    confSetting != configSettings.end())
@@ -365,14 +370,12 @@ namespace {
 				PRINT_UNDEFINED(smoothingLevel);
 			}
 
+			renderSettings.audioSize = (audioSettings.bufferSize / 2) * (1.f - trebleCut);
 			switch (smoothingDevice) {
 				case GPU:
-					renderSettings.audioSize = (audioSettings.bufferSize / 2) * (1.f - trebleCut);
 					smoothingLevel = 0.f;
-					smoothedSize = 0;
 					break;
 				case CPU:
-					renderSettings.audioSize = smoothedSize * (1.f - trebleCut);
 					renderSettings.smoothingLevel = 0.f;
 					break;
 			}
@@ -386,9 +389,7 @@ namespace {
 			}
 
 			proccessSettings.channels = audioSettings.channels;
-			std::cout << proccessSettings.channels << std::endl;
-			proccessSettings.inputSize = audioSettings.bufferSize;
-			proccessSettings.outputSize = smoothedSize;
+			proccessSettings.size = audioSettings.bufferSize;
 			proccessSettings.smoothingLevel = smoothingLevel;
 
 			if (const auto confSetting = configSettings.find("amplitude");

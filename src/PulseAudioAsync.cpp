@@ -8,7 +8,6 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <utility>
 
 // PulseAudio
@@ -102,7 +101,6 @@ private:
 
 	// pulseaudio
 	pa_threaded_mainloop* mainloop;
-	pa_mainloop_api* mainloopAPI;
 	pa_context* context;
 	pa_stream* stream;
 
@@ -118,8 +116,7 @@ private:
 
 	void initPulse() {
 		mainloop = pa_threaded_mainloop_new();
-		mainloopAPI = pa_threaded_mainloop_get_api(mainloop);
-		context = pa_context_new(mainloopAPI, "Vkav");
+		context = pa_context_new(pa_threaded_mainloop_get_api(mainloop), "Vkav");
 
 		if ((error = pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL)) < 0)
 			throw std::runtime_error(
@@ -137,6 +134,7 @@ private:
 		// wait for context to connect
 		while (running)
 			;
+		if (exceptionPtr) std::rethrow_exception(exceptionPtr);
 		pa_context_set_state_callback(context, contextStateCallback, reinterpret_cast<void*>(this));
 	}
 
@@ -147,7 +145,7 @@ private:
 		ss.channels = settings.channels;
 
 		pa_channel_map map;
-		pa_channel_map_init_stereo(&map);
+		pa_channel_map_init_auto(&map, settings.channels, PA_CHANNEL_MAP_DEFAULT);
 
 		stream = pa_stream_new(context, "Vkav", &ss, &map);
 
@@ -155,13 +153,13 @@ private:
 		attr.maxlength = (uint32_t)-1;
 		attr.fragsize = sizeof(float) * settings.sampleSize;
 
+		pa_stream_set_read_callback(stream, read_callback, reinterpret_cast<void*>(this));
+
 		if ((error = pa_stream_connect_record(stream, settings.sinkName.c_str(), &attr,
 		                                      PA_STREAM_ADJUST_LATENCY)) != 0)
 			throw std::runtime_error(
 			    std::string(LOCATION "failed to connect pulseaudio stream!: ") +
 			    pa_strerror(error));
-
-		pa_stream_set_read_callback(stream, read_callback, reinterpret_cast<void*>(this));
 	}
 
 	static void read_callback(pa_stream* stream, size_t nBytes, void* userData) {
@@ -172,6 +170,11 @@ private:
 		const float* buf;
 		size_t size;
 		pa_stream_peek(stream, reinterpret_cast<const void**>(&buf), &size);
+		if (!buf) {
+			// There is a hole in the stream
+			pa_stream_drop(stream);
+			return;
+		}
 		size /= sizeof(float);
 		// copy data
 		for (size_t i = 0; i < size; ++i, ++audio->bufPos) {
@@ -215,10 +218,9 @@ private:
 			case PA_CONTEXT_FAILED:
 			case PA_CONTEXT_TERMINATED:
 				audio->exceptionPtr = std::make_exception_ptr(
-				    std::runtime_error(std::string(LOCATION "pulseaudio context failed!")));
+				    std::runtime_error(LOCATION "pulseaudio connection terminated!"));
 				audio->running = false;
 				break;
-			case PA_CONTEXT_READY:
 			default:
 				// Do nothing
 				break;
@@ -230,8 +232,8 @@ private:
 		switch (pa_context_get_state(c)) {
 			case PA_CONTEXT_FAILED:
 			case PA_CONTEXT_TERMINATED:
-				audio->exceptionPtr = make_exception_ptr(
-				    std::runtime_error(std::string(LOCATION "pulseaudio context failed!")));
+				audio->exceptionPtr =
+				    make_exception_ptr(std::runtime_error(LOCATION "pulseaudio context failed!"));
 			case PA_CONTEXT_READY:
 				audio->running = false;
 				break;

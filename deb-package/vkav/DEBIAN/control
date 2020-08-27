@@ -1,9 +1,9 @@
 Package: vkav
-Version: 0.4-1
+Version: 0.5-1
 Section: base
 Priority: optional
 Architecture: amd64
-Depends: pulseaudio (>= 13.0.0)
+Depends: pulseaudio (>= 13.0.0), libvulkan1
 Maintainer: Dougal Stewart <dougal.koji@gmail.com>
 Description: Vkav
  An audio visualiser written in c++ using

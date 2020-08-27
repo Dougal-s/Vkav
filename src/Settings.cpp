@@ -153,6 +153,19 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	return configLocations;
 }
 
+std::unordered_map<std::string, std::vector<std::filesystem::path>> getModules() {
+	auto configLocations = getConfigLocations();
+	std::unordered_map<std::string, std::vector<std::filesystem::path>> modules;
+	for (auto& configLocation : configLocations) {
+		for (auto& module : std::filesystem::directory_iterator(configLocation / "modules")) {
+			if (std::filesystem::exists(module.path() / "config") &&
+			    std::filesystem::exists(module.path() / "1"))
+				modules[module.path().filename()].push_back(module.path());
+		}
+	}
+	return modules;
+}
+
 void installConfig() {
 	std::filesystem::path src, dst;
 #ifdef LINUX
@@ -164,7 +177,7 @@ void installConfig() {
 	src = "../Resources/vkav";
 	dst = std::getenv("HOME");
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
-	dst /= "Library/Preferences";
+	dst /= "Library/Preferences/vkav";
 #elif defined(WINDOWS)
 	const char* path;
 	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
@@ -184,8 +197,8 @@ void installConfig() {
 		throw std::runtime_error(LOCATION "Source directory: " + std::string(src) +
 		                         " does not exist!");
 
-	std::cout << "Copying config files from " << src << " to " << dst << std::endl;
 	std::filesystem::copy(src, dst,
 	                      std::filesystem::copy_options::overwrite_existing |
 	                          std::filesystem::copy_options::recursive);
+	std::cout << "Copied config files from " << src << " to " << dst << std::endl;
 }

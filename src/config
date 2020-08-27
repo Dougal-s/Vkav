@@ -5,7 +5,8 @@
 /**
  * Names of the rendering modules.
  * They can be found in the following directories:
- * Linux: /etc/vkav/modules, /home/user/.config/vkav/modules
+ * Linux: /etc/vkav/modules, ~/.config/vkav/modules
+ * MacOS: Vkav.app/Contents/Resources/modules, ~/Library/Preferences/vkav/modules
  */
 modules = {"bars", "radial"}
 
@@ -14,6 +15,7 @@ modules = {"bars", "radial"}
  * Supported image types:
  * 	PNG
  * 	JPEG
+ *  BMP
  */
 backgroundImage = none
 
@@ -56,19 +58,16 @@ fpsLimit = 0
 
 /**
  * Whether to perform smoothing on the CPU or GPU.
+ * Note: while smoothing is more efficient when performed on the CPU,
+ * it may cause issues with some modules if they use a custom smoothing algorithm
+ * as there is no way to know how the module processes the data.
  */
 smoothingDevice = GPU
 
 /**
- * Size of the left and right audio buffers after smoothing.
- * Only applies if smoothingDevice is set to CPU.
- */
-smoothedSize = 320
-
-/**
  * Amount of smoothing applied to the audio data. Higher values mean more smoothing.
  */
-smoothingLevel = 16.0
+smoothingLevel = 0.01
 
 /**
  * Determines the amount of treble that gets cut from the fft output.

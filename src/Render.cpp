@@ -160,6 +160,8 @@ namespace {
 	};
 
 	struct Module {
+		std::filesystem::path location;
+
 		std::vector<GraphicsPipeline> layers;
 		SpecializationConstants specializationConstants;
 
@@ -887,12 +889,13 @@ private:
 		modules.resize(settings.modules.size());
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
-			std::filesystem::path layerDirectory = findModule(settings.modules[i]);
+			modules[i].location = findModule(settings.modules[i]);
 
 			for (uint32_t layer = 1;
-			     std::filesystem::exists(layerDirectory / std::to_string(layer)); ++layer) {
+			     std::filesystem::exists(modules[i].location / std::to_string(layer)); ++layer) {
 				modules[i].layers.resize(layer);
-				std::filesystem::path vertexShaderPath = layerDirectory / std::to_string(layer);
+				std::filesystem::path vertexShaderPath =
+				    modules[i].location / std::to_string(layer);
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
 					vertexShaderPath = settings.modules[i];
 
@@ -902,12 +905,13 @@ private:
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
 				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
 
-				std::filesystem::path fragmentShaderPath = layerDirectory / std::to_string(layer);
+				std::filesystem::path fragmentShaderPath =
+				    modules[i].location / std::to_string(layer);
 				auto fragShaderCode = readFile(fragmentShaderPath / "frag.spv");
 				modules[i].layers[layer - 1].fragShaderModule = createShaderModule(fragShaderCode);
 			}
 
-			std::filesystem::path configFilePath = layerDirectory / "config";
+			std::filesystem::path configFilePath = modules[i].location / "config";
 			readConfig(configFilePath, modules[i]);
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
@@ -1285,7 +1289,10 @@ private:
 		samplerInfo.maxLod = 0.0f;
 
 		for (auto& module : modules) {
-			createTextureImage(module.imagePath, module.image);
+			std::filesystem::path imagePath = module.imagePath;
+			if (!imagePath.empty() && imagePath.is_relative())
+				imagePath = module.location / imagePath;
+			createTextureImage(imagePath, module.image);
 			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
 
 			if (vkCreateSampler(device.device, &samplerInfo, nullptr, &module.image.sampler) !=
@@ -1297,40 +1304,28 @@ private:
 	void createBackgroundImage() { createTextureImage(settings.backgroundImage, backgroundImage); }
 
 	void createTextureImage(const std::filesystem::path& imagePath, Image& image) {
-		size_t width, height, size;
-		unsigned char** imgData;
-		if (imagePath.empty()) {
-			width = 1;
-			height = 1;
-			imgData = new unsigned char*[1];
-			imgData[0] = new unsigned char[4]{0, 0, 0, 0};
-		} else {
-			imgData = readImg(imagePath, width, height);
-		}
-		size = width * height * 4;
+		ImageFile img;
+		if (!imagePath.empty()) img.open(imagePath);
 
 		Buffer stagingBuffer(
-		    device, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		    device, img.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		void* data = stagingBuffer.mapMemory();
-		for (size_t y = 0; y < height; ++y)
-			std::copy_n(imgData[y], width * 4,
-			            reinterpret_cast<unsigned char*>(data) + y * width * 4);
+		for (size_t y = 0; y < img.height(); ++y)
+			std::copy_n(img[y], img.width() * 4,
+			            reinterpret_cast<unsigned char*>(data) + y * img.width() * 4);
 		stagingBuffer.unmapMemory();
 
-		for (size_t y = 0; y < height; ++y) delete[] imgData[y];
-		delete[] imgData;
-
-		image = Image(device, width, height, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
+		image = Image(device, img.width(), img.height(), VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM,
 		              VK_IMAGE_TILING_OPTIMAL,
 		              VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		transitionImageLayout(image.image, VK_IMAGE_LAYOUT_UNDEFINED,
 		                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer.buffer, image.image, static_cast<uint32_t>(width),
-		                  static_cast<uint32_t>(height));
+		copyBufferToImage(stagingBuffer.buffer, image.image, static_cast<uint32_t>(img.width()),
+		                  static_cast<uint32_t>(img.height()));
 		transitionImageLayout(image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -1514,7 +1509,8 @@ private:
 		backgroundSamplerLayoutBinding.descriptorCount = 1;
 		backgroundSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		backgroundSamplerLayoutBinding.pImmutableSamplers = nullptr;
-		backgroundSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		backgroundSamplerLayoutBinding.stageFlags =
+		    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		VkDescriptorSetLayoutBinding moduleImageSamplerLayoutBinding = {};
 		moduleImageSamplerLayoutBinding.binding = 4;

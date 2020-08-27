@@ -30,8 +30,11 @@ layout(constant_id = 33) const float octahedronGreen = 0.0;
 layout(constant_id = 34) const float octahedronBlue = 0.204;
 layout(constant_id = 35) const float octahedronAlpha = 0.6;
 
-layout(constant_id = 36) const float lightStrength = 100;
-layout(constant_id = 37) const float lightReactivity = 0.6;
+layout(constant_id = 36) const float lightReactivity = 0.6;
+layout(constant_id = 37) const float lightStrength = 75;
+layout(constant_id = 38) const float ambient = 0.3;
+layout(constant_id = 39) const float diffuse = 1.0;
+layout(constant_id = 40) const float specular = 0.1;
 
 vec3 barColor1 = vec3(barRed1, barGreen1, barBlue1);
 vec3 barColor2 = vec3(barRed2, barGreen2, barBlue2);
@@ -46,18 +49,33 @@ layout(binding = 1) uniform samplerBuffer lBuffer;
 layout(binding = 2) uniform samplerBuffer rBuffer;
 
 layout(location = 0) in vec2 surfacePos; // x: [-1, 1], y: [0, 1]
-layout(location = 1) in vec3 position; // x: [-1, 1], y: [0, 1]
+layout(location = 1) in vec3 position;
+layout(location = 2) in vec3 normal;
+layout(location = 3) in vec3 camera;
 
 layout(location = 0) out vec4 outColor;
 
 #include "../../smoothing/smoothing.glsl"
 
 void main() {
-	vec2 xy = vec2(atan(surfacePos.x/(1-surfacePos.y)), surfacePos.y);
+	// Figure out lighting
+	// light properties
+	vec3 lightPos = vec3(3, -3, 1);
+	vec3 relativeLightPos = lightPos-position;
+	float lightStrengthAdjusted = lightStrength*(1+lightReactivity*(lVolume+rVolume))/dot(relativeLightPos, relativeLightPos);
+	// diffuse lighting
+	float cosTheta = clamp(dot(normal, normalize(relativeLightPos)), 0, 1);
+	// specular lighting
+	vec3 relativeCamerPos = camera-position;
+	vec3 reflectionAngle = reflect(-relativeLightPos, normal);
+	float cosAlpha = clamp(dot(reflectionAngle, relativeCamerPos), 0, 1);
+	// Combine everything
+	float brightness =
+		ambient +
+		( diffuse*cosTheta + specular*pow(cosAlpha, 5) ) * lightStrengthAdjusted;
 
-	float distanceFrmSrc = distance(position, vec3(3, -3, 1));
-	float brightness = lightStrength*( 1+lightReactivity*(lVolume+rVolume) )
-	                   / (distanceFrmSrc*distanceFrmSrc*distanceFrmSrc);
+
+	vec2 xy = vec2(atan(surfacePos.x/(1-surfacePos.y)), surfacePos.y);
 
 	if (surfacePos.y < 0.25*outlineWidth || 1-abs(surfacePos.x) - surfacePos.y < outlineWidth) {
 		outColor = vec4(0,0,0,1);

@@ -1,4 +1,3 @@
-#include <csetjmp>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -20,30 +19,46 @@
 #define STR(x) STR_HELPER(x)
 #define LOCATION __FILE__ ":" STR(__LINE__) ": "
 
-namespace {
-	class Image {
-	public:
-		virtual void init(const std::filesystem::path& filepath) = 0;
-		virtual void readImage() = 0;
-		virtual unsigned char** getBuffer() = 0;
-		virtual size_t getWidth() const = 0;
-		virtual size_t getHeight() const = 0;
-		virtual ~Image() = default;
+class ImageFile::ImageImpl {
+public:
+	virtual unsigned char** data() = 0;
+	virtual size_t width() const = 0;
+	virtual size_t height() const = 0;
+	virtual ~ImageImpl() = default;
 
-		static unsigned char** emptyBuffer() {
-			unsigned char** buffer = new unsigned char*[1];
+	static ImageImpl* readImg(const std::filesystem::path& filePath);
+
+private:
+	static ImageImpl* open(const std::filesystem::path& filePath);
+};
+
+namespace {
+	class BlankImage : public ImageFile::ImageImpl {
+	public:
+		BlankImage() {
+			buffer = new unsigned char*[1];
 			buffer[0] = new unsigned char[4]{0, 0, 0, 0};
-			return buffer;
 		}
 
-		static Image* create(const std::filesystem::path& filePath);
-		static void destroy(Image* image);
+		unsigned char** data() override { return buffer; }
+
+		size_t width() const override { return 1; }
+
+		size_t height() const override { return 1; }
+
+		~BlankImage() {
+			delete[] buffer[0];
+			delete[] buffer;
+		}
+
+	private:
+		unsigned char** buffer;
 	};
 
 #ifndef DISABLE_PNG
-	class PNG : public Image {
+	class PNG : public ImageFile::ImageImpl {
 	public:
-		void init(const std::filesystem::path& filePath) override {
+		PNG(const std::filesystem::path& filePath) {
 			file = fopen(filePath.c_str(), "rb");
 			if (!file) throw std::runtime_error(LOCATION "failed to open image!");
 
@@ -53,18 +68,25 @@ namespace {
 				throw std::runtime_error(LOCATION "failed to read png signature!");
 			}
 
-			if (!png_check_sig(sig, 8)) throw std::runtime_error(LOCATION "invalid png file!");
+			if (!png_check_sig(sig, 8)) {
+				fclose(file);
+				throw std::runtime_error(LOCATION "invalid png file!");
+			}
 
 			pPng = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-			if (!pPng) throw std::runtime_error(LOCATION "failed to create png struct!");
+			if (!pPng) {
+				fclose(file);
+				throw std::runtime_error(LOCATION "failed to create png struct!");
+			}
 
 			pInfo = png_create_info_struct(pPng);
 			if (!pInfo) {
-				png_destroy_read_struct(&pPng, nullptr, nullptr);
+				fclose(file);
 				throw std::runtime_error(LOCATION "failed to create png info struct!");
 			}
 
 			if (setjmp(png_jmpbuf(pPng))) {
+				fclose(file);
 				png_destroy_read_struct(&pPng, &pInfo, nullptr);
 				throw std::runtime_error(LOCATION "failed to read PNG!");
 			}
@@ -75,9 +97,7 @@ namespace {
 
 			png_get_IHDR(pPng, pInfo, &imgWidth, &imgHeight, &bitDepth, &colorType, nullptr,
 			             nullptr, nullptr);
-		}
 
-		void readImage() override {
 			// if the image has a bit depth of 16, reduce it to a bit depth of 8
 			if (bitDepth == 16) png_set_strip_16(pPng);
 
@@ -89,7 +109,6 @@ namespace {
 			if (png_get_valid(pPng, pInfo, PNG_INFO_tRNS)) png_set_tRNS_to_alpha(pPng);
 
 			// If the image is missing an alpha channel then fill it with 0xff
-
 			if (colorType == PNG_COLOR_TYPE_RGB || colorType == PNG_COLOR_TYPE_GRAY ||
 			    colorType == PNG_COLOR_TYPE_PALETTE)
 				png_set_filler(pPng, 0xff, PNG_FILLER_AFTER);
@@ -107,19 +126,20 @@ namespace {
 				image[y] = new png_byte[png_get_rowbytes(pPng, pInfo)];
 
 			png_read_image(pPng, image);
-
-			fclose(file);
-
 			png_destroy_read_struct(&pPng, &pInfo, nullptr);
+			fclose(file);
 		}
 
-		unsigned char** getBuffer() override { return reinterpret_cast<unsigned char**>(image); }
+		unsigned char** data() override { return reinterpret_cast<unsigned char**>(image); }
 
-		size_t getHeight() const override { return imgHeight; }
+		size_t height() const override { return imgHeight; }
 
-		size_t getWidth() const override { return imgWidth; }
+		size_t width() const override { return imgWidth; }
 
-		~PNG() override = default;
+		~PNG() override {
+			for (size_t y = 0; y < height(); ++y) delete[] image[y];
+			delete[] image;
+		}
 
 	private:
 		FILE* file;
@@ -130,62 +150,72 @@ namespace {
 		int bitDepth, colorType;
 		png_uint_32 imgWidth, imgHeight;
 
-		png_bytep* image;
+		png_bytep* image = nullptr;
 	};
 #endif
 
 #ifndef DISABLE_JPEG
-	class JPEG : public Image {
+	class JPEG : public ImageFile::ImageImpl {
 	public:
-		void init(const std::filesystem::path& filePath) override {
+		JPEG(const std::filesystem::path& filePath) {
 			file = fopen(filePath.c_str(), "rb");
 			if (!file) throw std::runtime_error(LOCATION "failed to open image!");
 
 			cInfo.err = jpeg_std_error(&error.pub);
 			error.pub.error_exit = errorExit;
-
-			if (setjmp(error.setjmpBuffer)) {
-				jpeg_destroy_decompress(&cInfo);
-				fclose(file);
-				throw std::runtime_error(LOCATION "failed to read JPEG!");
-			}
+			error.parent = this;
 
 			jpeg_create_decompress(&cInfo);
 
 			jpeg_stdio_src(&cInfo, file);
-		}
-
-		void readImage() override {
 			jpeg_read_header(&cInfo, TRUE);
 
+#ifdef JCS_ALPHA_EXTENSIONS
 			cInfo.out_color_space = JCS_EXT_RGBA;
+#else
+			cInfo.out_color_space = JCS_RGB;
+#endif
 
 			jpeg_start_decompress(&cInfo);
 
 			imgWidth = cInfo.output_width;
-			rowSize = cInfo.output_width * cInfo.output_components;
+			rowSize = cInfo.output_width * 4;
 			imgHeight = cInfo.output_height;
 
-			image = new unsigned char*[imgHeight];
+			image = new unsigned char*[imgHeight]();
 
 			while (cInfo.output_scanline < cInfo.output_height) {
 				image[cInfo.output_scanline] = new unsigned char[rowSize];
 				jpeg_read_scanlines(&cInfo, image + cInfo.output_scanline, 1);
+#ifndef JCS_ALPHA_EXTENSIONS
+				for (int pixel = cInfo.output_width - 1; pixel >= 0; --pixel) {
+					image[cInfo.output_scanline - 1][4 * pixel] =
+					    image[cInfo.output_scanline - 1][3 * pixel];
+					image[cInfo.output_scanline - 1][4 * pixel + 1] =
+					    image[cInfo.output_scanline - 1][3 * pixel + 1];
+					image[cInfo.output_scanline - 1][4 * pixel + 2] =
+					    image[cInfo.output_scanline - 1][3 * pixel + 2];
+					image[cInfo.output_scanline - 1][4 * pixel + 3] =
+					    image[cInfo.output_scanline - 1][3 * pixel + 3];
+				}
+#endif
 			}
 
 			jpeg_finish_decompress(&cInfo);
-
 			jpeg_destroy_decompress(&cInfo);
 			fclose(file);
 		}
 
-		unsigned char** getBuffer() override { return image; }
+		unsigned char** data() override { return image; }
 
-		size_t getWidth() const override { return imgWidth; }
+		size_t width() const override { return imgWidth; }
 
-		size_t getHeight() const override { return imgHeight; }
+		size_t height() const override { return imgHeight; }
 
-		~JPEG() override = default;
+		~JPEG() override {
+			for (size_t y = 0; y < height(); ++y) delete[] image[y];
+			delete[] image;
+		}
 
 	private:
 		FILE* file;
@@ -194,77 +224,81 @@ namespace {
 
 		struct errorManager {
 			jpeg_error_mgr pub;
-			jmp_buf setjmpBuffer;
+			JPEG* parent;
 		} error;
 
 		int rowSize;
-		int imgWidth, imgHeight;
+		int imgWidth, imgHeight = 0;
 
 		unsigned char** image;
 
 		[[noreturn]] static void errorExit(j_common_ptr cInfo) {
 			errorManager* err = reinterpret_cast<errorManager*>(cInfo->err);
-			(*cInfo->err->output_message)(cInfo);
-			longjmp(err->setjmpBuffer, 1);
+			// cleanup
+			jpeg_destroy_decompress(&err->parent->cInfo);
+			fclose(err->parent->file);
+			// deallocate image data
+			for (size_t y = 0; y < err->parent->height(); ++y)
+				if (err->parent->image[y]) delete[] err->parent->image[y];
+			if (err->parent->height() > 0) delete[] err->parent->image;
+			// get error message
+			char err_msg[JMSG_LENGTH_MAX];
+			(*cInfo->err->format_message)(cInfo, err_msg);
+			// throw error
+			throw std::runtime_error(std::string(LOCATION) + "failed to read JPEG!: " + err_msg);
 		}
 	};
 #endif
 
-	class BMP : public Image {
+	class BMP : public ImageFile::ImageImpl {
 	public:
-		void init(const std::filesystem::path& filePath) override {
-			file = std::ifstream(filePath, std::ios::binary | std::ios::in);
-		}
-
-		void readImage() override {
+		BMP(const std::filesystem::path& filePath) {
+			std::ifstream file(filePath, std::ios::binary | std::ios::in);
 			file.read(reinterpret_cast<char*>(&header), sizeof(header));
 			header.check();
 			file.seekg(header.dataOffset, std::ios::beg);
-			imgWidth = header.width;
-			imgHeight = header.height;
 
 			size_t rowSize = ((header.width * header.bitsPerPixel + 31) >> 5) << 2;
 
-			char** buffer = new char*[imgHeight];
-			image = new unsigned char*[imgHeight];
-			for (int y = imgHeight - 1; y != -1; --y) {
-				buffer[y] = new char[rowSize];
-				image[y] = new unsigned char[4 * imgWidth];
-				file.read(buffer[y], rowSize);
-				for (size_t x = 0; x < imgWidth; ++x) {
+			image = new unsigned char*[height()];
+			char* buffer = new char[rowSize];
+			for (int y = height() - 1; y != -1; --y) {
+				image[y] = new unsigned char[4 * width()];
+				file.read(buffer, rowSize);
+				for (size_t x = 0; x < width(); ++x) {
 					switch (header.bitsPerPixel) {
-						case 32:
-							image[y][4 * x + 0] = buffer[y][4 * x + 3];
-							image[y][4 * x + 1] = buffer[y][4 * x + 2];
-							image[y][4 * x + 2] = buffer[y][4 * x + 1];
-							image[y][4 * x + 3] = buffer[y][4 * x + 0];
-							break;
 						case 24:
-							image[y][4 * x + 0] = buffer[y][3 * x + 2];
-							image[y][4 * x + 1] = buffer[y][3 * x + 1];
-							image[y][4 * x + 2] = buffer[y][3 * x + 0];
+							image[y][4 * x + 0] = buffer[3 * x + 2];
+							image[y][4 * x + 1] = buffer[3 * x + 1];
+							image[y][4 * x + 2] = buffer[3 * x + 0];
 							image[y][4 * x + 3] = 0xff;
+							break;
+						case 32:
+							image[y][4 * x + 0] = buffer[4 * x + 3];
+							image[y][4 * x + 1] = buffer[4 * x + 2];
+							image[y][4 * x + 2] = buffer[4 * x + 1];
+							image[y][4 * x + 3] = buffer[4 * x + 0];
 							break;
 					}
 				}
 			}
-			file.close();
-
-			for (size_t i = 0; i < imgHeight; ++i) delete[] buffer[i];
 			delete[] buffer;
+
+			file.close();
 		}
 
-		unsigned char** getBuffer() override { return image; }
+		unsigned char** data() override { return image; }
 
-		size_t getWidth() const override { return imgWidth; }
+		size_t width() const override { return header.width; }
 
-		size_t getHeight() const override { return imgHeight; }
+		size_t height() const override { return header.height; }
 
-		~BMP() override = default;
+		~BMP() override {
+			for (size_t y = 0; y < height(); ++y) delete[] image[y];
+			delete[] image;
+		}
 
 	private:
-		std::ifstream file;
-
 		struct Header {
 			// header
 			uint8_t signature[2];  // 0
@@ -298,39 +332,52 @@ namespace {
 		} __attribute__((packed)) header;
 
 		unsigned char** image;
-		size_t imgWidth, imgHeight;
 	};
+}  // namespace
 
-	Image* Image::create(const std::filesystem::path& filePath) {
+ImageFile::ImageImpl* ImageFile::ImageImpl::open(const std::filesystem::path& filePath) {
 #ifndef DISABLE_PNG
-		if (filePath.extension() == ".png") return new PNG();
+	if (filePath.extension() == ".png") return new PNG(filePath);
 #endif
 
 #ifndef DISABLE_JPEG
-		if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg") return new JPEG();
+	if (filePath.extension() == ".jpg" || filePath.extension() == ".jpeg")
+		return new JPEG(filePath);
 #endif
 
-		if (filePath.extension() == ".bmp") return new BMP();
+	if (filePath.extension() == ".bmp") return new BMP(filePath);
 
-		throw std::runtime_error(LOCATION "unrecognized image type!");
-	}
-}  // namespace
+	throw std::runtime_error(LOCATION "unrecognized image type!");
+}
 
-unsigned char** readImg(const std::filesystem::path& filePath, size_t& width, size_t& height) {
+ImageFile::ImageImpl* ImageFile::ImageImpl::readImg(const std::filesystem::path& filePath) {
 	try {
-		std::unique_ptr<Image> img(Image::create(filePath));
-		unsigned char** buffer;
-
-		img->init(filePath);
-		img->readImage();
-		width = img->getWidth();
-		height = img->getHeight();
-		buffer = img->getBuffer();
-		return buffer;
+		return open(filePath);
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
-		width = 1;
-		height = 1;
-		return Image::emptyBuffer();
+		return new BlankImage();
 	}
 }
+
+// Image File member functions
+
+ImageFile::ImageFile() : impl(new BlankImage()) {}
+ImageFile::ImageFile(const std::filesystem::path& filePath) { this->open(filePath); }
+
+ImageFile::~ImageFile() {}
+
+ImageFile& ImageFile::operator=(ImageFile&& other) {
+	impl = std::move(other.impl);
+	return *this;
+}
+
+void ImageFile::open(const std::filesystem::path& filePath) {
+	impl.reset(ImageImpl::readImg(filePath));
+}
+
+unsigned char** ImageFile::data() { return impl->data(); }
+unsigned char* ImageFile::operator[](size_t row) { return impl->data()[row]; }
+
+size_t ImageFile::width() const { return impl->width(); }
+size_t ImageFile::height() const { return impl->height(); }
+size_t ImageFile::size() const { return impl->width() * impl->height() * 4; }
