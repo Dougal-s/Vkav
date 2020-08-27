@@ -67,7 +67,7 @@ smoothingDevice = GPU
 /**
  * Amount of smoothing applied to the audio data. Higher values mean more smoothing.
  */
-smoothingLevel = 16.0
+smoothingLevel = 0.01
 
 /**
  * Determines the amount of treble that gets cut from the fft output.
