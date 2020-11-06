@@ -4,7 +4,6 @@
 #include <queue>
 #include <stack>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "Calculate.hpp"
 
@@ -12,21 +11,22 @@
 #define STR(x) STR_HELPER(x)
 #define LOCATION __FILE__ ":" STR(__LINE__) ": "
 
-enum Function { SIN, COS, TAN, MAX, MIN };
-enum TokenType { UNDEFINED, NUMBER, FUNCTION, OPERATOR, PARENTHESES };
-
 struct Token {
-	TokenType type;
+	enum class Function { eSin, eCos, eTan, eMax, eMin };
+	enum class Type { eUndefined, eNumber, eOperator, eFunction, eParentheses, eComma };
+
+	Type type;
 	union {
 		float num;
 		Function func;
 		char op;
 	};
 
-	Token() : type(UNDEFINED) {}
-	Token(TokenType tokenType, float number) : type(tokenType), num(number) {}
-	Token(TokenType tokenType, Function function) : type(tokenType), func(function) {}
-	Token(TokenType tokenType, char operation) : type(tokenType), op(operation) {}
+	Token() : type(Type::eUndefined) {}
+	Token(Type tokenType) : type(tokenType) {}
+	Token(Type tokenType, float number) : type(tokenType), num(number) {}
+	Token(Type tokenType, Function function) : type(tokenType), func(function) {}
+	Token(Type tokenType, char operation) : type(tokenType), op(operation) {}
 };
 
 struct OpProperties {
@@ -34,14 +34,17 @@ struct OpProperties {
 	bool leftAssociative;
 };
 
-static const std::unordered_map<std::string, Function> functions = {
-    {"sin", SIN}, {"cos", COS}, {"tan", TAN}, {"max", MAX}, {"min", MIN}};
+static const std::unordered_map<std::string, Token::Function> functions = {
+    {"sin", Token::Function::eSin},
+    {"cos", Token::Function::eCos},
+    {"tan", Token::Function::eTan},
+    {"max", Token::Function::eMax},
+    {"min", Token::Function::eMin}};
 
 static const std::unordered_map<char, OpProperties> operators = {
     {'+', {0, 1}}, {'-', {0, 1}}, {'*', {1, 1}}, {'/', {1, 1}}, {'%', {1, 1}}, {'^', {2, 0}}};
 
-static const std::unordered_map<std::string, float> constants = {
-    {"e", std::exp(1)}, {"pi", 3.1415926535897932384626433}};
+static const std::unordered_map<std::string, float> constants = {{"e", std::exp(1)}, {"pi", M_PI}};
 
 float eval(char op, float op1, float op2) {
 	switch (op) {
@@ -61,39 +64,40 @@ float eval(char op, float op1, float op2) {
 	throw std::invalid_argument(LOCATION "Invalid operation!");
 }
 
-Token extractToken(std::string& expr, TokenType lastTokenType) {
-	size_t index;
-	if (expr.front() == ',') expr.erase(0, 1);
+Token extractToken(std::string& expr, Token::Type lastTokenType) {
+	if (expr.front() == ',') {
+		expr.erase(0, 1);
+		return Token(Token::Type::eComma);
+	}
 
 	char* ptr;
 	if (float value = std::strtof(expr.c_str(), &ptr);
-	    lastTokenType != NUMBER && ptr != expr.c_str()) {
-		Token rtrn(NUMBER, value);
+	    lastTokenType != Token::Type::eNumber && ptr != expr.c_str()) {
 		expr.erase(0, ptr - expr.c_str());
-		return rtrn;
+		return Token(Token::Type::eNumber, value);
 	}
 
-	if (constants.find(expr.substr(
-	        0, index = expr.find_first_not_of("abcdefghijklmnopqrstuvwxyz"))) != constants.end()) {
-		Token rtrn(NUMBER, constants.find(expr.substr(0, index))->second);
+	if (auto index = expr.find_first_not_of("abcdefghijklmnopqrstuvwxyz");
+	    constants.find(expr.substr(0, index)) != constants.end()) {
+		Token rtrn(Token::Type::eNumber, constants.find(expr.substr(0, index))->second);
 		expr.erase(0, index);
 		return rtrn;
 	}
 
-	if (functions.find(expr.substr(0, index = expr.find('('))) != functions.end()) {
-		Token rtrn(FUNCTION, functions.find(expr.substr(0, index))->second);
+	if (auto index = expr.find('('); functions.find(expr.substr(0, index)) != functions.end()) {
+		Token rtrn(Token::Type::eFunction, functions.find(expr.substr(0, index))->second);
 		expr.erase(0, index);
 		return rtrn;
 	}
 
 	if (operators.find(expr.front()) != operators.end()) {
-		Token rtrn(OPERATOR, expr.front());
+		Token rtrn(Token::Type::eOperator, expr.front());
 		expr.erase(0, 1);
 		return rtrn;
 	}
 
 	if (expr.front() == '(' || expr.front() == ')') {
-		Token rtrn(PARENTHESES, expr.front());
+		Token rtrn(Token::Type::eParentheses, expr.front());
 		expr.erase(0, 1);
 		return rtrn;
 	}
@@ -112,27 +116,36 @@ std::queue<Token> constructStack(std::string expr) {
 		token = extractToken(expr, token.type);
 
 		switch (token.type) {
-			case NUMBER:
-			case FUNCTION:
+			case Token::Type::eNumber:
 				output.push(token);
 				break;
-			case OPERATOR:
+			case Token::Type::eOperator:
 				while (!operatorStack.empty() &&
-				       (operatorStack.top().type == FUNCTION ||
-				        (operatorStack.top().type == OPERATOR &&
+				       (operatorStack.top().type == Token::Type::eFunction ||
+				        (operatorStack.top().type == Token::Type::eOperator &&
 				         (operators.find(operatorStack.top().op)->second.precedence +
 				              operators.find(operatorStack.top().op)->second.leftAssociative >
-				          operators.find(expr.front())->second.precedence)))) {
+				          operators.find(token.op)->second.precedence)))) {
 					output.push(operatorStack.top());
 					operatorStack.pop();
 				}
+				[[fallthrough]];
+			case Token::Type::eFunction:
 				operatorStack.push(token);
 				break;
-			case PARENTHESES:
+			case Token::Type::eComma:
+				while (!operatorStack.empty() &&
+				       operatorStack.top().type != Token::Type::eParentheses) {
+					output.push(operatorStack.top());
+					operatorStack.pop();
+				}
+				break;
+			case Token::Type::eParentheses:
 				if (token.op == '(') {
 					operatorStack.push(token);
 				} else {
-					while (!operatorStack.empty() && operatorStack.top().type != PARENTHESES) {
+					while (!operatorStack.empty() &&
+					       operatorStack.top().type != Token::Type::eParentheses) {
 						output.push(operatorStack.top());
 						operatorStack.pop();
 					}
@@ -158,35 +171,35 @@ float deconstructStack(std::queue<Token>& tokens) {
 		Token token = tokens.front();
 		tokens.pop();
 		switch (token.type) {
-			case NUMBER:
+			case Token::Type::eNumber:
 				operandStack.push(token.num);
 				break;
-			case OPERATOR: {
+			case Token::Type::eOperator: {
 				float op1 = operandStack.top();
 				operandStack.pop();
 				float op2 = operandStack.top();
 				operandStack.pop();
 				operandStack.push(eval(token.op, op2, op1));
 			} break;
-			case FUNCTION: {
+			case Token::Type::eFunction: {
 				switch (token.func) {
-					case SIN:
+					case Token::Function::eSin:
 						operandStack.top() = std::sin(operandStack.top());
 						break;
-					case COS:
+					case Token::Function::eCos:
 						operandStack.top() = std::cos(operandStack.top());
 						break;
-					case TAN:
+					case Token::Function::eTan:
 						operandStack.top() = std::tan(operandStack.top());
 						break;
-					case MAX: {
+					case Token::Function::eMax: {
 						float arg1 = operandStack.top();
 						operandStack.pop();
 						float arg2 = operandStack.top();
 						operandStack.pop();
 						operandStack.push(std::max(arg1, arg2));
 					} break;
-					case MIN: {
+					case Token::Function::eMin: {
 						float arg1 = operandStack.top();
 						operandStack.pop();
 						float arg2 = operandStack.top();
