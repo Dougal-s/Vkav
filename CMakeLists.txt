@@ -222,3 +222,10 @@ file(GLOB src
 add_custom_target(format clang-format -style=file -i ${src})
 
 add_custom_target(run VK_ICD_FILENAMES=${VULKAN_ICD_FILENAMES} LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./vkav)
+
+# Unit Tests
+option(BUILD_TESTS "Build unit tests" OFF)
+if (BUILD_TESTS)
+	enable_testing()
+	add_subdirectory(tests)
+endif()
