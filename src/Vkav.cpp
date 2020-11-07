@@ -16,7 +16,7 @@
 #include "Audio.hpp"
 #include "Calculate.hpp"
 #include "Data.hpp"
-#include "Proccess.hpp"
+#include "Process.hpp"
 #include "Render.hpp"
 #include "Settings.hpp"
 #include "Version.hpp"
@@ -124,9 +124,9 @@ namespace {
 			AudioSettings audioSettings = {};
 			RenderSettings renderSettings = {};
 			renderSettings.configLocations = configLocations;
-			ProccessSettings proccessSettings = {};
+			ProcessSettings processSettings = {};
 
-			fillStructs(cmdLineArgs, audioSettings, renderSettings, proccessSettings);
+			fillStructs(cmdLineArgs, audioSettings, renderSettings, processSettings);
 
 			fpsLimit = 0;
 			if (auto it = cmdLineArgs.find("fpsLimit"); it != cmdLineArgs.end())
@@ -138,7 +138,7 @@ namespace {
 			audioSampler.start(audioSettings);
 			std::clog << "Initialising renderer.\n";
 			renderer.init(renderSettings);
-			proccess.init(proccessSettings);
+			process.init(processSettings);
 
 			audioData.allocate(audioSettings.channels * audioSettings.bufferSize,
 			                   audioSettings.bufferSize / 2);
@@ -160,7 +160,7 @@ namespace {
 				if (audioSampler.modified()) {
 					lastFrame = std::chrono::high_resolution_clock::now();
 					audioSampler.copyData(audioData);
-					proccess.proccessSignal(audioData);
+					process.processSignal(audioData);
 					if (!renderer.drawFrame(audioData)) break;
 					++numFrames;
 					std::this_thread::sleep_until(lastFrame + targetFrameTime);
@@ -186,7 +186,7 @@ namespace {
 		~Vkav() {
 			audioSampler.stop();
 			renderer.cleanup();
-			proccess.cleanup();
+			process.cleanup();
 		}
 
 	private:
@@ -194,13 +194,13 @@ namespace {
 
 		AudioSampler audioSampler;
 		Renderer renderer;
-		Proccess proccess;
+		Process process;
 
 		size_t fpsLimit;
 
 		static void fillStructs(const std::unordered_map<std::string, std::string>& configSettings,
 		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
-		                        ProccessSettings& proccessSettings) {
+		                        ProcessSettings& processSettings) {
 			float trebleCut = 0.09f;
 			if (const auto confSetting = configSettings.find("trebleCut");
 			    confSetting != configSettings.end())
@@ -376,13 +376,13 @@ namespace {
 				WARN_UNDEFINED(physicalDevice);
 			}
 
-			proccessSettings.channels = audioSettings.channels;
-			proccessSettings.size = audioSettings.bufferSize;
-			proccessSettings.smoothingLevel = smoothingLevel;
+			processSettings.channels = audioSettings.channels;
+			processSettings.size = audioSettings.bufferSize;
+			processSettings.smoothingLevel = smoothingLevel;
 
 			if (const auto confSetting = configSettings.find("amplitude");
 			    confSetting != configSettings.end())
-				proccessSettings.amplitude = calculate<float>(confSetting->second);
+				processSettings.amplitude = calculate<float>(confSetting->second);
 			else
 				WARN_UNDEFINED(amplitude);
 		}

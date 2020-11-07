@@ -4,24 +4,24 @@
 
 struct AudioData;
 
-struct ProccessSettings {
+struct ProcessSettings {
 	unsigned char channels;
 	size_t size;
 	float smoothingLevel;
 	float amplitude;
 };
 
-class Proccess {
+class Process {
 public:
-	void init(const ProccessSettings& settings);
+	void init(const ProcessSettings& settings);
 
-	void proccessSignal(AudioData& audioData);
+	void processSignal(AudioData& audioData);
 
 	void cleanup();
 
 private:
-	class ProccessImpl;
-	ProccessImpl* impl;
+	class ProcessImpl;
+	ProcessImpl* impl;
 };
 
 #endif

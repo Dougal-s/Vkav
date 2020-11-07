@@ -168,7 +168,7 @@ endif()
 
 add_executable(vkav
 	src/Vkav.cpp
-	src/Proccess.cpp
+	src/Process.cpp
 	src/Settings.cpp
 	src/Data.cpp
 	src/Calculate.cpp

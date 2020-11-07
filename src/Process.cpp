@@ -4,11 +4,11 @@
 #include <utility>
 
 #include "Data.hpp"
-#include "Proccess.hpp"
+#include "Process.hpp"
 
-class Proccess::ProccessImpl {
+class Process::ProcessImpl {
 public:
-	ProccessImpl(const ProccessSettings& settings) {
+	ProcessImpl(const ProcessSettings& settings) {
 		channels = settings.channels;
 		inputSize = settings.size;
 		amplitude = settings.amplitude;
@@ -59,7 +59,7 @@ public:
 		wfCoeff = M_PI / (settings.size - 1);
 	}
 
-	void proccessSignal(AudioData& audioData) {
+	void processSignal(AudioData& audioData) {
 		windowFunction(audioData);
 		magnitudes(audioData);
 		equalise(audioData);
@@ -67,7 +67,7 @@ public:
 		if (smooth) smoothBuffer(audioData);
 	}
 
-	~ProccessImpl() {
+	~ProcessImpl() {
 		if (smooth) delete[] convolutionVec;
 	}
 
@@ -243,10 +243,10 @@ private:
 	}
 };
 
-void Proccess::init(const ProccessSettings& proccessSettings) {
-	impl = new ProccessImpl(proccessSettings);
+void Process::init(const ProcessSettings& processSettings) {
+	impl = new ProcessImpl(processSettings);
 }
 
-void Proccess::proccessSignal(AudioData& audioData) { impl->proccessSignal(audioData); }
+void Process::processSignal(AudioData& audioData) { impl->processSignal(audioData); }
 
-void Proccess::cleanup() { delete impl; }
+void Process::cleanup() { delete impl; }
