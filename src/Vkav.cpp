@@ -60,7 +60,7 @@ namespace {
 	    "--SETTINGNAME=\"VALUE\"\n"
 	    "\n";
 
-#define PRINT_UNDEFINED(name) std::clog << #name << " not defined!" << std::endl;
+#define WARN_UNDEFINED(name) std::clog << #name << " not defined!" << std::endl;
 
 	class Vkav {
 	public:
@@ -133,7 +133,7 @@ namespace {
 			if (auto it = cmdLineArgs.find("fpsLimit"); it != cmdLineArgs.end())
 				fpsLimit = calculate<size_t>(it->second);
 			else
-				PRINT_UNDEFINED(fpsLimit);
+				WARN_UNDEFINED(fpsLimit);
 
 			std::clog << "Initialising audio.\n";
 			audioSampler.start(audioSettings);
@@ -216,7 +216,7 @@ namespace {
 			    confSetting != configSettings.end())
 				trebleCut = calculate<float>(confSetting->second);
 			else
-				PRINT_UNDEFINED(trebleCut);
+				WARN_UNDEFINED(trebleCut);
 
 			Device smoothingDevice = Device::gpu;
 			if (const auto confSetting = configSettings.find("smoothingDevice");
@@ -228,39 +228,39 @@ namespace {
 				else
 					std::cerr << LOCATION "Smoothing device set to an invalid value!\n";
 			} else {
-				PRINT_UNDEFINED(smoothingDevice);
+				WARN_UNDEFINED(smoothingDevice);
 			}
 
 			if (const auto confSetting = configSettings.find("channels");
 			    confSetting != configSettings.end())
 				audioSettings.channels = calculate<int>(confSetting->second);
 			else
-				PRINT_UNDEFINED(channels);
+				WARN_UNDEFINED(channels);
 
 			if (const auto confSetting = configSettings.find("sampleSize");
 			    confSetting != configSettings.end())
 				audioSettings.sampleSize = calculate<size_t>(confSetting->second);
 			else
-				PRINT_UNDEFINED(sampleSize);
+				WARN_UNDEFINED(sampleSize);
 
 			if (const auto confSetting = configSettings.find("bufferSize");
 			    confSetting != configSettings.end())
 				audioSettings.bufferSize = calculate<size_t>(confSetting->second);
 			else
-				PRINT_UNDEFINED(bufferSize);
+				WARN_UNDEFINED(bufferSize);
 
 			if (const auto confSetting = configSettings.find("sampleRate");
 			    confSetting != configSettings.end())
 				audioSettings.sampleRate = calculate<int>(confSetting->second);
 			else
-				PRINT_UNDEFINED(sampleRate);
+				WARN_UNDEFINED(sampleRate);
 
 			if (const auto confSetting = configSettings.find("sinkName");
 			    confSetting != configSettings.end()) {
 				audioSettings.sinkName = confSetting->second;
 				if (audioSettings.sinkName == "auto") audioSettings.sinkName.clear();
 			} else {
-				PRINT_UNDEFINED(sinkName);
+				WARN_UNDEFINED(sinkName);
 			}
 
 			if (const auto confSetting = configSettings.find("modules");
@@ -277,7 +277,7 @@ namespace {
 					renderSettings.modules.push_back(directory);
 				}
 			} else {
-				PRINT_UNDEFINED(modules);
+				WARN_UNDEFINED(modules);
 			}
 
 			if (const auto confSetting = configSettings.find("backgroundImage");
@@ -286,20 +286,20 @@ namespace {
 				if (renderSettings.backgroundImage == "none")
 					renderSettings.backgroundImage.clear();
 			} else {
-				PRINT_UNDEFINED(backgroundImage)
+				WARN_UNDEFINED(backgroundImage)
 			}
 
 			if (const auto confSetting = configSettings.find("width");
 			    confSetting != configSettings.end())
 				renderSettings.width = calculate<int>(confSetting->second);
 			else
-				PRINT_UNDEFINED(width);
+				WARN_UNDEFINED(width);
 
 			if (const auto confSetting = configSettings.find("height");
 			    confSetting != configSettings.end())
 				renderSettings.height = calculate<int>(confSetting->second);
 			else
-				PRINT_UNDEFINED(height);
+				WARN_UNDEFINED(height);
 
 			if (const auto confSetting = configSettings.find("transparency");
 			    confSetting != configSettings.end()) {
@@ -313,7 +313,7 @@ namespace {
 				else
 					std::cerr << LOCATION "Transparency set to an invalid value!\n";
 			} else {
-				PRINT_UNDEFINED(transparency);
+				WARN_UNDEFINED(transparency);
 			}
 
 			if (const auto confSetting = configSettings.find("windowTitle");
@@ -322,7 +322,7 @@ namespace {
 				if (renderSettings.windowTitle == "executable")
 					renderSettings.windowTitle = execPath;
 			} else {
-				PRINT_UNDEFINED(windowTitle);
+				WARN_UNDEFINED(windowTitle);
 			}
 
 			if (const auto confSetting = configSettings.find("windowPosition");
@@ -334,32 +334,32 @@ namespace {
 				    calculate<int>(
 				        position.substr(gapPosition + 1, position.size() - gapPosition - 2))};
 			} else {
-				PRINT_UNDEFINED(windowPosition);
+				WARN_UNDEFINED(windowPosition);
 			}
 
 			if (const auto confSetting = configSettings.find("decorated");
 			    confSetting != configSettings.end())
 				renderSettings.windowHints.decorated = (confSetting->second == "true");
 			else
-				PRINT_UNDEFINED(decorated);
+				WARN_UNDEFINED(decorated);
 
 			if (const auto confSetting = configSettings.find("resizable");
 			    confSetting != configSettings.end())
 				renderSettings.windowHints.resizable = (confSetting->second == "true");
 			else
-				PRINT_UNDEFINED(resizable);
+				WARN_UNDEFINED(resizable);
 
 			if (const auto confSetting = configSettings.find("sticky");
 			    confSetting != configSettings.end())
 				renderSettings.windowHints.sticky = (confSetting->second == "true");
 			else
-				PRINT_UNDEFINED(sticky);
+				WARN_UNDEFINED(sticky);
 
 			if (const auto confSetting = configSettings.find("windowType");
 			    confSetting != configSettings.end())
 				renderSettings.windowType = confSetting->second;
 			else
-				PRINT_UNDEFINED(windowType);
+				WARN_UNDEFINED(windowType);
 
 			float smoothingLevel = 16.0f;
 			if (const auto confSetting = configSettings.find("smoothingLevel");
@@ -367,7 +367,7 @@ namespace {
 				smoothingLevel = calculate<float>(confSetting->second);
 				renderSettings.smoothingLevel = smoothingLevel;
 			} else {
-				PRINT_UNDEFINED(smoothingLevel);
+				WARN_UNDEFINED(smoothingLevel);
 			}
 
 			renderSettings.audioSize = (audioSettings.bufferSize / 2) * (1.f - trebleCut);
@@ -385,7 +385,7 @@ namespace {
 				if (confSetting->second != "auto")
 					renderSettings.physicalDevice.value() = calculate<int>(confSetting->second);
 			} else {
-				PRINT_UNDEFINED(physicalDevice);
+				WARN_UNDEFINED(physicalDevice);
 			}
 
 			proccessSettings.channels = audioSettings.channels;
@@ -396,7 +396,7 @@ namespace {
 			    confSetting != configSettings.end())
 				proccessSettings.amplitude = calculate<float>(confSetting->second);
 			else
-				PRINT_UNDEFINED(amplitude);
+				WARN_UNDEFINED(amplitude);
 		}
 	};
 }  // namespace
