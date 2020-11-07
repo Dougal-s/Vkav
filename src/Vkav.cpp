@@ -126,7 +126,7 @@ namespace {
 			renderSettings.configLocations = configLocations;
 			ProccessSettings proccessSettings = {};
 
-			fillStructs(argv[0], cmdLineArgs, audioSettings, renderSettings, proccessSettings);
+			fillStructs(cmdLineArgs, audioSettings, renderSettings, proccessSettings);
 
 			fpsLimit = 0;
 			if (auto it = cmdLineArgs.find("fpsLimit"); it != cmdLineArgs.end())
@@ -203,8 +203,7 @@ namespace {
 			proccess.cleanup();
 		}
 
-		static void fillStructs(const char* execPath,
-		                        const std::unordered_map<std::string, std::string>& configSettings,
+		static void fillStructs(const std::unordered_map<std::string, std::string>& configSettings,
 		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
 		                        ProccessSettings& proccessSettings) {
 			float trebleCut = 0.09f;
@@ -315,8 +314,6 @@ namespace {
 			if (const auto confSetting = configSettings.find("windowTitle");
 			    confSetting != configSettings.end()) {
 				renderSettings.windowTitle = confSetting->second;
-				if (renderSettings.windowTitle == "executable")
-					renderSettings.windowTitle = execPath;
 			} else {
 				WARN_UNDEFINED(windowTitle);
 			}

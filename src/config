@@ -95,7 +95,6 @@ windowPosition = {0,0}
 
 /**
  * Window title
- * Setting this to executable sets the window title to the executable path.
  */
 windowTitle = "Vkav"
 
