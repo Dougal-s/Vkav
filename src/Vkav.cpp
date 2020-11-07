@@ -27,7 +27,7 @@
 
 namespace {
 
-	enum Device { CPU, GPU };
+	enum class Device { cpu, gpu };
 
 	static constexpr const char* versionStr =
 	    "Vkav v" STR(VERSION_MAJOR) "." STR(VERSION_MINOR) "." STR(VERSION_PATCH) " "
@@ -218,13 +218,13 @@ namespace {
 			else
 				PRINT_UNDEFINED(trebleCut);
 
-			Device smoothingDevice = GPU;
+			Device smoothingDevice = Device::gpu;
 			if (const auto confSetting = configSettings.find("smoothingDevice");
 			    confSetting != configSettings.end()) {
 				if (confSetting->second == "CPU")
-					smoothingDevice = CPU;
+					smoothingDevice = Device::cpu;
 				else if (confSetting->second == "GPU")
-					smoothingDevice = GPU;
+					smoothingDevice = Device::gpu;
 				else
 					std::cerr << LOCATION "Smoothing device set to an invalid value!\n";
 			} else {
@@ -372,10 +372,10 @@ namespace {
 
 			renderSettings.audioSize = (audioSettings.bufferSize / 2) * (1.f - trebleCut);
 			switch (smoothingDevice) {
-				case GPU:
+				case Device::gpu:
 					smoothingLevel = 0.f;
 					break;
-				case CPU:
+				case Device::cpu:
 					renderSettings.smoothingLevel = 0.f;
 					break;
 			}
