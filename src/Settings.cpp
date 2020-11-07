@@ -7,8 +7,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 #ifdef LINUX
@@ -72,44 +72,34 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::filesyste
 	return variables;
 }
 
-std::unordered_map<std::string, std::string> readCmdLineArgs(int argc, const char* argv[]) {
+std::unordered_map<std::string, std::string> readCmdLineArgs(int argc, const char** argv) {
 	std::unordered_map<std::string, std::string> arguments(argc - 1);
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-')
 			throw std::invalid_argument(LOCATION ": Invalid command line argument!");
 
-		std::string argValue;
-		std::string argName = argv[i];
-
-		for (size_t size = 0; argv[i][size]; ++size) {
-			if (argv[i][size] == '=') {
-				argName.resize(size);
-				argValue = argv[i] + size + 1;
-				break;
-			}
+		std::string_view argName(argv[i]);
+		std::string_view argValue;
+		if (auto split = argName.find('='); split != std::string_view::npos) {
+			argValue = argName.substr(split + 1);
+			argName = argName.substr(0, split);
 		}
 
-		if (argv[i][1] == '-') {
-			arguments.insert(std::make_pair(argName.c_str() + 2, argValue));
-		} else {
-			std::string key;
+		if (argValue.empty() && i + 1 < argc && argv[i + 1][0] != '-') argValue = argv[++i];
+
+		if (argName.length() == 2) {
 			static const std::unordered_map<char, std::string> cmdLineArgKeyMap = {
-			    {'v', "verbose"},   {'s', "sinkName"}, {'d', "physicalDevice"}, {'c', "config"},
-			    {'a', "amplitude"}, {'h', "help"},     {'V', "version"}};
-			if (const auto it = cmdLineArgKeyMap.find(argv[i][1]); it != cmdLineArgKeyMap.end())
-				key = it->second;
+			    {'v', "--verbose"}, {'s', "--sinkName"},  {'d', "--physicalDevice"},
+			    {'c', "--config"},  {'a', "--amplitude"}, {'h', "--help"},
+			    {'V', "--version"}};
+			if (auto key = cmdLineArgKeyMap.find(argName[1]); key != cmdLineArgKeyMap.end())
+				argName = key->second;
 			else
-				throw std::invalid_argument(LOCATION ": Invalid command line argument!");
-
-			const char* value;
-
-			if (!argv[i][2] && i + 1 < argc && argv[i + 1][0] != '-')
-				value = argv[++i];
-			else
-				value = argv[i] + 2;
-
-			arguments.insert(std::make_pair(key, value));
+				throw std::invalid_argument(LOCATION ": Unrecognized command line argument!");
 		}
+
+		argName.remove_prefix(2);
+		arguments.insert(std::make_pair(argName, argValue));
 	}
 	return arguments;
 }
