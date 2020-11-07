@@ -40,15 +40,16 @@ struct RenderSettings {
 
 class Renderer {
 public:
-	void init(const RenderSettings& renderSettings);
+	Renderer() = default;
+	Renderer(const RenderSettings& renderSettings);
+	~Renderer();
+
+	Renderer& operator=(Renderer&& other) noexcept;
 
 	bool drawFrame(const AudioData& audioData);
-
-	void cleanup();
-
 private:
 	class RendererImpl;
-	RendererImpl* rendererImpl;
+	RendererImpl* rendererImpl = nullptr;
 };
 
 #endif

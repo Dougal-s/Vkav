@@ -1804,10 +1804,15 @@ private:
 	}
 };
 
-void Renderer::init(const RenderSettings& renderSettings) {
+Renderer::Renderer(const RenderSettings& renderSettings) {
 	rendererImpl = new RendererImpl(renderSettings);
+}
+
+Renderer& Renderer::operator=(Renderer&& other) noexcept {
+	std::swap(rendererImpl, other.rendererImpl);
+	return *this;
 }
 
 bool Renderer::drawFrame(const AudioData& audioData) { return rendererImpl->drawFrame(audioData); }
 
-void Renderer::cleanup() { delete rendererImpl; }
+Renderer::~Renderer() { delete rendererImpl; }

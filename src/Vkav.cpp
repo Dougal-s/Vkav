@@ -135,10 +135,10 @@ namespace {
 				WARN_UNDEFINED(fpsLimit);
 
 			std::clog << "Initialising audio.\n";
-			audioSampler.start(audioSettings);
+			audioSampler = AudioSampler(audioSettings);
 			std::clog << "Initialising renderer.\n";
-			renderer.init(renderSettings);
-			process.init(processSettings);
+			renderer = Renderer(renderSettings);
+			process = Process(processSettings);
 
 			audioData.allocate(audioSettings.channels * audioSettings.bufferSize,
 			                   audioSettings.bufferSize / 2);
@@ -181,12 +181,6 @@ namespace {
 
 			// rethrow any exceptions the audio thread may have thrown
 			audioSampler.rethrowExceptions();
-		}
-
-		~Vkav() {
-			audioSampler.stop();
-			renderer.cleanup();
-			process.cleanup();
 		}
 
 	private:

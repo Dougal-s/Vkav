@@ -243,10 +243,15 @@ private:
 	}
 };
 
-void Process::init(const ProcessSettings& processSettings) {
+Process::Process(const ProcessSettings& processSettings) {
 	impl = new ProcessImpl(processSettings);
+}
+
+Process& Process::operator=(Process&& other) noexcept {
+	std::swap(impl, other.impl);
+	return *this;
 }
 
 void Process::processSignal(AudioData& audioData) { impl->processSignal(audioData); }
 
-void Process::cleanup() { delete impl; }
+Process::~Process() { delete impl; }

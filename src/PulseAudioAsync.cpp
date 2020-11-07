@@ -244,17 +244,22 @@ private:
 	}
 };
 
+AudioSampler::AudioSampler(const AudioSettings& audioSettings) {
+	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
+}
+
+AudioSampler::~AudioSampler() { delete audioSamplerImpl; }
+
+AudioSampler& AudioSampler::operator=(AudioSampler&& other) noexcept {
+	std::swap(audioSamplerImpl, other.audioSamplerImpl);
+	return *this;
+}
+
 bool AudioSampler::running() const { return audioSamplerImpl->running; }
 
 bool AudioSampler::modified() const { return audioSamplerImpl->modified; }
 
 int AudioSampler::ups() const { return audioSamplerImpl->ups; }
-
-void AudioSampler::start(const AudioSettings& audioSettings) {
-	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
-}
-
-void AudioSampler::stop() { delete audioSamplerImpl; }
 
 void AudioSampler::copyData(AudioData& audioData) { audioSamplerImpl->copyData(audioData); }
 

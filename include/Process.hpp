@@ -5,23 +5,25 @@
 struct AudioData;
 
 struct ProcessSettings {
-	unsigned char channels;
 	size_t size;
 	float smoothingLevel;
 	float amplitude;
+	unsigned char channels;
 };
 
 class Process {
 public:
-	void init(const ProcessSettings& settings);
+	Process() = default;
+	Process(const ProcessSettings& createInfo);
+	~Process();
 
-	void processSignal(AudioData& audioData);
+	Process& operator=(Process&& other) noexcept;
 
-	void cleanup();
+	void processSignal(AudioData& audio);
 
 private:
 	class ProcessImpl;
-	ProcessImpl* impl;
+	ProcessImpl* impl = nullptr;
 };
 
 #endif

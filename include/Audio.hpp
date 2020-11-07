@@ -15,13 +15,15 @@ struct AudioSettings {
 
 class AudioSampler {
 public:
+	AudioSampler() = default;
+	AudioSampler(const AudioSettings& audioSettings);
+	~AudioSampler();
+
+	AudioSampler& operator=(AudioSampler&& other) noexcept;
+
 	bool running() const;
 	bool modified() const;
 	int ups() const;
-
-	void start(const AudioSettings& audioSettings);
-
-	void stop();
 
 	void copyData(AudioData& audioData);
 
@@ -29,7 +31,7 @@ public:
 
 private:
 	class AudioSamplerImpl;
-	AudioSamplerImpl* audioSamplerImpl;
+	AudioSamplerImpl* audioSamplerImpl = nullptr;
 };
 
 #endif
