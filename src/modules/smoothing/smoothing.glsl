@@ -7,28 +7,20 @@ float texture(in samplerBuffer s, in float index) {
 	return texelFetch(s, int(wrapIndex(index)*textureSize(s))).r;
 }
 
-float kernelSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float index) {
-	if (smoothingAmount == 0.f)
+float kernelSmoothTexture(in samplerBuffer s, in float stdDeviation, in float index) {
+	if (stdDeviation == 0.f)
 		return texture(s, index);
 
-	const float pi = 3.14159265359;
+	const float coef = 0.5f/(stdDeviation*stdDeviation);
+	const float stepSize = 1.f/textureSize(s);
+
 	float val = texture(s, index);
-
-	int size = textureSize(s);
-
-	const float smoothingFactor = 0.5f/(smoothingAmount*smoothingAmount);
-	const float radius = sqrt(-log(0.05f)/smoothingFactor);
-	const float stepSize = 1.f/size;
-	float sum = 0.f;
-	// skip i = 0
-	for (float i = stepSize; i < radius; i += stepSize) {
-		const float weight = exp(-i*i*smoothingFactor);
+	for (float i = stepSize; i < 3*stdDeviation; i += stepSize) {
+		const float weight = exp(-coef*i*i);
 		val += weight*(texture(s, index+i)+texture(s, index-i));
-		sum += weight;
 	}
-	val /= sum;
 
-	return val;
+	return stepSize*val / (stdDeviation*sqrt(2*3.14159265359));
 }
 
 float mcatSmoothTexture(in samplerBuffer s, in float smoothingAmount, in float index) {

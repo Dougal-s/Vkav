@@ -36,8 +36,6 @@ layout(location = 1) in vec3 camera;
 
 layout(location = 0) out vec4 outColor;
 
-#include "../../smoothing/smoothing.glsl"
-
 void main() {
 	vec3 normal = vec3(0, -1, 0);
 	vec3 fragPosition = position+normal*(texture(normalMap, position.xz/8-0.125).r*2-1);
