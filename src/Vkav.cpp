@@ -65,8 +65,7 @@ namespace {
 	class Vkav {
 	public:
 		Vkav(int argc, const char* argv[]) {
-			std::chrono::high_resolution_clock::time_point initStart =
-			    std::chrono::high_resolution_clock::now();
+			auto initStart = std::chrono::high_resolution_clock::now();
 
 			std::unordered_map<std::string, std::string> cmdLineArgs = readCmdLineArgs(argc, argv);
 
@@ -144,8 +143,7 @@ namespace {
 			audioData.allocate(audioSettings.channels * audioSettings.bufferSize,
 			                   audioSettings.bufferSize / 2);
 
-			std::chrono::high_resolution_clock::time_point initEnd =
-			    std::chrono::high_resolution_clock::now();
+			auto initEnd = std::chrono::high_resolution_clock::now();
 			std::clog << "Initialisation took: "
 			          << std::chrono::duration_cast<std::chrono::milliseconds>(initEnd - initStart)
 			                 .count()
@@ -169,9 +167,8 @@ namespace {
 		void mainLoop() {
 			int numFrames = 0;
 			std::chrono::microseconds targetFrameTime(1000000 / (fpsLimit ? fpsLimit : 89));
-			std::chrono::high_resolution_clock::time_point lastFrame =
-			    std::chrono::high_resolution_clock::now();
-			std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
+			auto lastFrame = std::chrono::high_resolution_clock::now();
+			auto lastUpdate = std::chrono::steady_clock::now();
 
 			while (audioSampler.running()) {
 				if (audioSampler.modified()) {
@@ -183,8 +180,7 @@ namespace {
 					std::this_thread::sleep_until(lastFrame + targetFrameTime);
 				}
 
-				std::chrono::steady_clock::time_point currentTime =
-				    std::chrono::steady_clock::now();
+				auto currentTime = std::chrono::steady_clock::now();
 				if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastUpdate)
 				        .count() >= 1) {
 					std::clog << "FPS: " << std::setw(3) << std::right << numFrames
