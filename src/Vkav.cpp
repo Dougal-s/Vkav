@@ -204,7 +204,7 @@ namespace {
 		}
 
 		static void fillStructs(const char* execPath,
-		                        const std::unordered_map<std::string, std::string> configSettings,
+		                        const std::unordered_map<std::string, std::string>& configSettings,
 		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
 		                        ProccessSettings& proccessSettings) {
 			float trebleCut = 0.09f;
