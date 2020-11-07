@@ -151,20 +151,6 @@ namespace {
 		}
 
 		void run() {
-			mainLoop();
-			cleanup();
-		}
-
-	private:
-		AudioData audioData;
-
-		AudioSampler audioSampler;
-		Renderer renderer;
-		Proccess proccess;
-
-		size_t fpsLimit;
-
-		void mainLoop() {
 			int numFrames = 0;
 			std::chrono::microseconds targetFrameTime(1000000 / (fpsLimit ? fpsLimit : 89));
 			auto lastFrame = std::chrono::high_resolution_clock::now();
@@ -197,11 +183,20 @@ namespace {
 			audioSampler.rethrowExceptions();
 		}
 
-		void cleanup() {
+		~Vkav() {
 			audioSampler.stop();
 			renderer.cleanup();
 			proccess.cleanup();
 		}
+
+	private:
+		AudioData audioData;
+
+		AudioSampler audioSampler;
+		Renderer renderer;
+		Proccess proccess;
+
+		size_t fpsLimit;
 
 		static void fillStructs(const std::unordered_map<std::string, std::string>& configSettings,
 		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
