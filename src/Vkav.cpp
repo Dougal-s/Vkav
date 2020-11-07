@@ -140,8 +140,7 @@ namespace {
 			renderer = Renderer(renderSettings);
 			process = Process(processSettings);
 
-			audioData.allocate(audioSettings.channels * audioSettings.bufferSize,
-			                   audioSettings.bufferSize / 2);
+			audioData.allocate(audioSettings.channels, audioSettings.bufferSize);
 
 			auto initEnd = std::chrono::high_resolution_clock::now();
 			std::clog << "Initialisation took: "

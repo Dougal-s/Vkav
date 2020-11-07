@@ -14,7 +14,7 @@ struct AudioData {
 
 	AudioData();
 
-	void allocate(size_t bufferSize, size_t lrBufferSize);
+	void allocate(size_t channels, size_t channelSize);
 
 	~AudioData();
 };

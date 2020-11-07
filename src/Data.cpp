@@ -8,13 +8,13 @@ AudioData::AudioData() {
 	buffer = new float[0];
 }
 
-void AudioData::allocate(size_t bufferSize, size_t lrBufferSize) {
+void AudioData::allocate(size_t channels, size_t channelSize) {
 	delete[] lBuffer;
 	delete[] rBuffer;
 	delete[] buffer;
-	lBuffer = new float[lrBufferSize];
-	rBuffer = new float[lrBufferSize];
-	buffer = new float[bufferSize];
+	lBuffer = new float[channelSize/2];
+	rBuffer = new float[channelSize/2];
+	buffer = new float[channels*channelSize];
 }
 
 AudioData::~AudioData() {
