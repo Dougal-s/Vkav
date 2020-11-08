@@ -4,6 +4,7 @@
 #include <queue>
 #include <stack>
 #include <unordered_map>
+#include <utility>
 
 #include "Calculate.hpp"
 
@@ -216,11 +217,11 @@ float deconstructStack(std::queue<Token>& tokens) {
 }
 
 template <class NumType>
-NumType calculate(const std::string& expr) {
-	std::queue<Token> tokens = constructStack(expr);
+NumType calculate(std::string expr) {
+	std::queue<Token> tokens = constructStack(std::move(expr));
 	return static_cast<NumType>(deconstructStack(tokens));
 }
 
-template int calculate<int>(const std::string& expr);
-template size_t calculate<size_t>(const std::string& expr);
-template float calculate<float>(const std::string& expr);
+template int calculate<int>(std::string expr);
+template size_t calculate<size_t>(std::string expr);
+template float calculate<float>(std::string expr);

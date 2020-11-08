@@ -1,4 +1,4 @@
 #include <string>
 
 template <class NumType>
-NumType calculate(const std::string& expression);
+NumType calculate(std::string expression);
