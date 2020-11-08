@@ -8,7 +8,7 @@
 
 class Process::ProcessImpl {
 public:
-	ProcessImpl(const ProcessSettings& settings) {
+	ProcessImpl(const Settings& settings) {
 		channels = settings.channels;
 		inputSize = settings.size;
 		amplitude = settings.amplitude;
@@ -243,9 +243,7 @@ private:
 	}
 };
 
-Process::Process(const ProcessSettings& processSettings) {
-	impl = new ProcessImpl(processSettings);
-}
+Process::Process(const Settings& processSettings) { impl = new ProcessImpl(processSettings); }
 
 Process& Process::operator=(Process&& other) noexcept {
 	std::swap(impl, other.impl);

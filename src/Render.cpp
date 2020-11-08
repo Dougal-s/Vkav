@@ -259,7 +259,7 @@ namespace {
 
 class Renderer::RendererImpl {
 public:
-	RendererImpl(const RenderSettings& renderSettings) {
+	RendererImpl(const Settings& renderSettings) {
 		settings = renderSettings;
 
 		initWindow();
@@ -379,7 +379,7 @@ public:
 private:
 	// Variables
 
-	RenderSettings settings;
+	Settings settings;
 
 	GLFWwindow* window;
 
@@ -436,33 +436,35 @@ private:
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-		glfwWindowHint(GLFW_DECORATED, settings.windowHints.decorated ? GLFW_TRUE : GLFW_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, settings.windowHints.resizable ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_DECORATED, settings.window.hints.decorated ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, settings.window.hints.resizable ? GLFW_TRUE : GLFW_FALSE);
 
 #ifdef GLFW_TRANSPARENT_FRAMEBUFFER
 		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER,
-		               settings.transparency == NATIVE ? GLFW_TRUE : GLFW_FALSE);
+		               settings.window.transparency == Settings::Window::Transparency::native
+		                   ? GLFW_TRUE
+		                   : GLFW_FALSE);
 #else
-		if (settings.transparency == NATIVE) {
+		if (settings.transparency == Settings::Window::Transparency::native) {
 			std::cerr << LOCATION "Native transaprency unsupported by current configuration!"
 			          << std::endl;
-			settings.transparency = OPAQUE;
+			settings.transparency = Settings::Window::Transparency::opaque;
 		}
 #endif
 
-		window = glfwCreateWindow(settings.width, settings.height, settings.windowTitle.c_str(),
-		                          nullptr, nullptr);
+		window = glfwCreateWindow(settings.window.width, settings.window.height,
+		                          settings.window.title.c_str(), nullptr, nullptr);
 #ifdef NATIVE_WINDOW_HINTS_SUPPORTED
-		if (settings.windowType == "desktop") setWindowType(window, WindowType::DESKTOP);
+		if (settings.window.type == "desktop") setWindowType(window, WindowType::DESKTOP);
 
-		if (settings.windowHints.sticky) setSticky(window);
+		if (settings.window.hints.sticky) setSticky(window);
 #endif
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
-		if (settings.windowPosition)
-			glfwSetWindowPos(window, settings.windowPosition.value().first,
-			                 settings.windowPosition.value().second);
+		if (settings.window.position)
+			glfwSetWindowPos(window, settings.window.position->first,
+			                 settings.window.position->second);
 	}
 
 	void initVulkan() {
@@ -766,28 +768,28 @@ private:
 
 		swapChainInfo.preTransform = swapChainSupport.capabilities.currentTransform;
 
-		switch (settings.transparency) {
-			case NATIVE:
+		switch (settings.window.transparency) {
+			case Settings::Window::Transparency::native:
 				if (swapChainSupport.capabilities.supportedCompositeAlpha &
 				    VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) {
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 				} else {
 					std::cerr << LOCATION "native transparency not supported!\n";
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-					settings.transparency = OPAQUE;
+					settings.window.transparency = Settings::Window::Transparency::opaque;
 				}
 				break;
-			case VULKAN:
+			case Settings::Window::Transparency::vulkan:
 				if (swapChainSupport.capabilities.supportedCompositeAlpha &
 				    VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR) {
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 				} else {
 					std::cerr << LOCATION "vulkan transparency not supported!\n";
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-					settings.transparency = OPAQUE;
+					settings.window.transparency = Settings::Window::Transparency::opaque;
 				}
 				break;
-			case OPAQUE:
+			case Settings::Window::Transparency::opaque:
 				swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 				break;
 		}
@@ -900,7 +902,7 @@ private:
 					vertexShaderPath = settings.modules[i];
 
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = settings.configLocations.front() / "modules";
+					vertexShaderPath = settings.moduleLocations.front() / "modules";
 
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
 				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
@@ -922,7 +924,7 @@ private:
 	std::filesystem::path findModule(const std::string& moduleName) {
 		if (std::filesystem::path(moduleName).is_absolute()) return moduleName;
 
-		for (auto& path : settings.configLocations)
+		for (auto& path : settings.moduleLocations)
 			if (std::filesystem::exists(path / "modules" / moduleName))
 				return path / "modules" / moduleName;
 
@@ -1804,9 +1806,7 @@ private:
 	}
 };
 
-Renderer::Renderer(const RenderSettings& renderSettings) {
-	rendererImpl = new RendererImpl(renderSettings);
-}
+Renderer::Renderer(const Settings& settings) { rendererImpl = new RendererImpl(settings); }
 
 Renderer& Renderer::operator=(Renderer&& other) noexcept {
 	std::swap(rendererImpl, other.rendererImpl);

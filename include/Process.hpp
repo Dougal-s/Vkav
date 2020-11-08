@@ -4,17 +4,17 @@
 
 struct AudioData;
 
-struct ProcessSettings {
-	size_t size;
-	float smoothingLevel;
-	float amplitude;
-	unsigned char channels;
-};
-
 class Process {
 public:
+	struct Settings {
+		size_t size;
+		float smoothingLevel;
+		float amplitude;
+		unsigned char channels;
+	};
+
 	Process() = default;
-	Process(const ProcessSettings& createInfo);
+	Process(const Settings& settings);
 	~Process();
 
 	Process& operator=(Process&& other) noexcept;

@@ -121,10 +121,10 @@ namespace {
 			std::clog << "Parsing configuration file.\n";
 			cmdLineArgs.merge(readConfigFile(configFilePath));
 
-			AudioSettings audioSettings = {};
-			RenderSettings renderSettings = {};
-			renderSettings.configLocations = configLocations;
-			ProcessSettings processSettings = {};
+			AudioSampler::Settings audioSettings = {};
+			Renderer::Settings renderSettings = {};
+			renderSettings.moduleLocations = configLocations;
+			Process::Settings processSettings = {};
 
 			fillStructs(cmdLineArgs, audioSettings, renderSettings, processSettings);
 
@@ -191,22 +191,21 @@ namespace {
 
 		size_t fpsLimit;
 
-		static void fillStructs(const std::unordered_map<std::string, std::string>& configSettings,
-		                        AudioSettings& audioSettings, RenderSettings& renderSettings,
-		                        ProcessSettings& processSettings) {
+		static void fillStructs(const std::unordered_map<std::string, std::string>& settings,
+		                        AudioSampler::Settings& audioSettings,
+		                        Renderer::Settings& renderSettings,
+		                        Process::Settings& processSettings) {
 			float trebleCut = 0.09f;
-			if (const auto confSetting = configSettings.find("trebleCut");
-			    confSetting != configSettings.end())
-				trebleCut = calculate<float>(confSetting->second);
+			if (const auto setting = settings.find("trebleCut"); setting != settings.end())
+				trebleCut = calculate<float>(setting->second);
 			else
 				WARN_UNDEFINED(trebleCut);
 
 			Device smoothingDevice = Device::gpu;
-			if (const auto confSetting = configSettings.find("smoothingDevice");
-			    confSetting != configSettings.end()) {
-				if (confSetting->second == "CPU")
+			if (const auto setting = settings.find("smoothingDevice"); setting != settings.end()) {
+				if (setting->second == "CPU")
 					smoothingDevice = Device::cpu;
-				else if (confSetting->second == "GPU")
+				else if (setting->second == "GPU")
 					smoothingDevice = Device::gpu;
 				else
 					std::cerr << LOCATION "Smoothing device set to an invalid value!\n";
@@ -214,138 +213,114 @@ namespace {
 				WARN_UNDEFINED(smoothingDevice);
 			}
 
-			if (const auto confSetting = configSettings.find("channels");
-			    confSetting != configSettings.end())
-				audioSettings.channels = calculate<int>(confSetting->second);
+			if (const auto setting = settings.find("channels"); setting != settings.end())
+				audioSettings.channels = calculate<int>(setting->second);
 			else
 				WARN_UNDEFINED(channels);
 
-			if (const auto confSetting = configSettings.find("sampleSize");
-			    confSetting != configSettings.end())
-				audioSettings.sampleSize = calculate<size_t>(confSetting->second);
+			if (const auto setting = settings.find("sampleSize"); setting != settings.end())
+				audioSettings.sampleSize = calculate<size_t>(setting->second);
 			else
 				WARN_UNDEFINED(sampleSize);
 
-			if (const auto confSetting = configSettings.find("bufferSize");
-			    confSetting != configSettings.end())
-				audioSettings.bufferSize = calculate<size_t>(confSetting->second);
+			if (const auto setting = settings.find("bufferSize"); setting != settings.end())
+				audioSettings.bufferSize = calculate<size_t>(setting->second);
 			else
 				WARN_UNDEFINED(bufferSize);
 
-			if (const auto confSetting = configSettings.find("sampleRate");
-			    confSetting != configSettings.end())
-				audioSettings.sampleRate = calculate<int>(confSetting->second);
+			if (const auto setting = settings.find("sampleRate"); setting != settings.end())
+				audioSettings.sampleRate = calculate<int>(setting->second);
 			else
 				WARN_UNDEFINED(sampleRate);
 
-			if (const auto confSetting = configSettings.find("sinkName");
-			    confSetting != configSettings.end()) {
-				audioSettings.sinkName = confSetting->second;
-				if (audioSettings.sinkName == "auto") audioSettings.sinkName.clear();
+			if (const auto setting = settings.find("sinkName"); setting != settings.end()) {
+				if (setting->second != "auto")
+					audioSettings.sinkName = parseAsString(setting->second);
 			} else {
 				WARN_UNDEFINED(sinkName);
 			}
 
-			if (const auto confSetting = configSettings.find("modules");
-			    confSetting != configSettings.end()) {
+			if (const auto setting = settings.find("modules"); setting != settings.end()) {
+				auto modules = parseAsArray(setting->second);
 				renderSettings.modules.clear();
-				std::stringstream ss(confSetting->second);
-				std::string directory;
-				while (std::getline(ss, directory, '\"').good()) {
-					if (!std::getline(ss, directory, '\"').good())
-						throw std::invalid_argument(LOCATION
-						                            ": Missing terminating \" character in "
-						                            "configuration "
-						                            "file");
-					renderSettings.modules.push_back(directory);
-				}
+				renderSettings.modules.reserve(modules.size());
+				for (auto module : modules) renderSettings.modules.push_back(parseAsString(module));
 			} else {
 				WARN_UNDEFINED(modules);
 			}
 
-			if (const auto confSetting = configSettings.find("backgroundImage");
-			    confSetting != configSettings.end()) {
-				renderSettings.backgroundImage = confSetting->second;
-				if (renderSettings.backgroundImage == "none")
-					renderSettings.backgroundImage.clear();
+			if (const auto setting = settings.find("backgroundImage"); setting != settings.end()) {
+				if (setting->second != "none") renderSettings.backgroundImage = setting->second;
 			} else {
 				WARN_UNDEFINED(backgroundImage)
 			}
 
-			if (const auto confSetting = configSettings.find("width");
-			    confSetting != configSettings.end())
-				renderSettings.width = calculate<int>(confSetting->second);
+			if (const auto setting = settings.find("width"); setting != settings.end())
+				renderSettings.window.width = calculate<int>(setting->second);
 			else
 				WARN_UNDEFINED(width);
 
-			if (const auto confSetting = configSettings.find("height");
-			    confSetting != configSettings.end())
-				renderSettings.height = calculate<int>(confSetting->second);
+			if (const auto setting = settings.find("height"); setting != settings.end())
+				renderSettings.window.height = calculate<int>(setting->second);
 			else
 				WARN_UNDEFINED(height);
 
-			if (const auto confSetting = configSettings.find("transparency");
-			    confSetting != configSettings.end()) {
-				std::string transparency = confSetting->second;
+			if (const auto setting = settings.find("windowPosition"); setting != settings.end()) {
+				if (setting->second != "auto") {
+					auto [x, y] = parseAsPair(setting->second);
+					renderSettings.window.position = std::make_pair(calculate<int>(std::string(x)),
+					                                                calculate<int>(std::string(y)));
+				}
+			} else {
+				WARN_UNDEFINED(windowPosition);
+			}
+
+			if (const auto setting = settings.find("transparency"); setting != settings.end()) {
+				std::string transparency = setting->second;
 				if (transparency == "Vulkan")
-					renderSettings.transparency = VULKAN;
+					renderSettings.window.transparency =
+					    Renderer::Settings::Window::Transparency::vulkan;
 				else if (transparency == "Native")
-					renderSettings.transparency = NATIVE;
+					renderSettings.window.transparency =
+					    Renderer::Settings::Window::Transparency::native;
 				else if (transparency == "Opaque")
-					renderSettings.transparency = OPAQUE;
+					renderSettings.window.transparency =
+					    Renderer::Settings::Window::Transparency::opaque;
 				else
 					std::cerr << LOCATION "Transparency set to an invalid value!\n";
 			} else {
 				WARN_UNDEFINED(transparency);
 			}
 
-			if (const auto confSetting = configSettings.find("windowTitle");
-			    confSetting != configSettings.end()) {
-				renderSettings.windowTitle = confSetting->second;
+			if (const auto setting = settings.find("windowTitle"); setting != settings.end()) {
+				renderSettings.window.title = parseAsString(setting->second);
 			} else {
 				WARN_UNDEFINED(windowTitle);
 			}
 
-			if (const auto confSetting = configSettings.find("windowPosition");
-			    confSetting != configSettings.end()) {
-				std::string position = confSetting->second;
-				size_t gapPosition = position.find(',');
-				renderSettings.windowPosition = {
-				    calculate<int>(position.substr(1, gapPosition - 1)),
-				    calculate<int>(
-				        position.substr(gapPosition + 1, position.size() - gapPosition - 2))};
-			} else {
-				WARN_UNDEFINED(windowPosition);
-			}
-
-			if (const auto confSetting = configSettings.find("decorated");
-			    confSetting != configSettings.end())
-				renderSettings.windowHints.decorated = (confSetting->second == "true");
+			if (const auto setting = settings.find("decorated"); setting != settings.end())
+				renderSettings.window.hints.decorated = (setting->second == "true");
 			else
 				WARN_UNDEFINED(decorated);
 
-			if (const auto confSetting = configSettings.find("resizable");
-			    confSetting != configSettings.end())
-				renderSettings.windowHints.resizable = (confSetting->second == "true");
+			if (const auto setting = settings.find("resizable"); setting != settings.end())
+				renderSettings.window.hints.resizable = (setting->second == "true");
 			else
 				WARN_UNDEFINED(resizable);
 
-			if (const auto confSetting = configSettings.find("sticky");
-			    confSetting != configSettings.end())
-				renderSettings.windowHints.sticky = (confSetting->second == "true");
+			if (const auto setting = settings.find("sticky"); setting != settings.end())
+				renderSettings.window.hints.sticky = (setting->second == "true");
 			else
 				WARN_UNDEFINED(sticky);
 
-			if (const auto confSetting = configSettings.find("windowType");
-			    confSetting != configSettings.end())
-				renderSettings.windowType = confSetting->second;
+			if (const auto setting = settings.find("windowType"); setting != settings.end())
+				renderSettings.window.type = setting->second;
 			else
 				WARN_UNDEFINED(windowType);
 
 			float smoothingLevel = 16.0f;
-			if (const auto confSetting = configSettings.find("smoothingLevel");
-			    confSetting != configSettings.end()) {
-				smoothingLevel = calculate<float>(confSetting->second);
+			if (const auto setting = settings.find("smoothingLevel"); setting != settings.end()) {
+				smoothingLevel = calculate<float>(setting->second);
 				renderSettings.smoothingLevel = smoothingLevel;
 			} else {
 				WARN_UNDEFINED(smoothingLevel);
@@ -361,10 +336,9 @@ namespace {
 					break;
 			}
 
-			if (const auto confSetting = configSettings.find("physicalDevice");
-			    confSetting != configSettings.end()) {
-				if (confSetting->second != "auto")
-					renderSettings.physicalDevice.value() = calculate<int>(confSetting->second);
+			if (const auto setting = settings.find("physicalDevice"); setting != settings.end()) {
+				if (setting->second != "auto")
+					renderSettings.physicalDevice.value() = calculate<int>(setting->second);
 			} else {
 				WARN_UNDEFINED(physicalDevice);
 			}
@@ -373,9 +347,8 @@ namespace {
 			processSettings.size = audioSettings.bufferSize;
 			processSettings.smoothingLevel = smoothingLevel;
 
-			if (const auto confSetting = configSettings.find("amplitude");
-			    confSetting != configSettings.end())
-				processSettings.amplitude = calculate<float>(confSetting->second);
+			if (const auto setting = settings.find("amplitude"); setting != settings.end())
+				processSettings.amplitude = calculate<float>(setting->second);
 			else
 				WARN_UNDEFINED(amplitude);
 		}

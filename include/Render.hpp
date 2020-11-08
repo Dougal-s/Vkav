@@ -9,39 +9,41 @@
 #include <vector>
 struct AudioData;
 
-enum TransparencyType { VULKAN, NATIVE, OPAQUE };
-
-struct RenderSettings {
-	uint32_t width = 800;
-	uint32_t height = 800;
-	std::optional<std::pair<int, int>> windowPosition;
-
-	TransparencyType transparency = OPAQUE;
-
-	std::string windowTitle = "Vkav";
-
-	struct WindowHints {
-		bool decorated = true;
-		bool resizable = true;
-		bool sticky = false;
-	} windowHints;
-
-	size_t audioSize;
-	float smoothingLevel = 16.f;
-	std::vector<std::filesystem::path> configLocations;
-	std::vector<std::filesystem::path> modules =
-	    std::vector<std::filesystem::path>(1, "shaders/bars");
-	std::filesystem::path backgroundImage;
-
-	std::optional<uint32_t> physicalDevice;
-
-	std::string windowType;
-};
-
 class Renderer {
 public:
+	struct Settings {
+		struct Window {
+			enum class Transparency { vulkan, native, opaque };
+
+			uint32_t width = 800;
+			uint32_t height = 800;
+			std::optional<std::pair<int, int>> position;
+
+			Transparency transparency = Transparency::opaque;
+
+			std::string title = "Vkav";
+			struct Hints {
+				bool decorated = true;
+				bool resizable = true;
+				bool sticky = false;
+			} hints;
+			std::string type;
+		};
+
+		Window window;
+
+		size_t audioSize;
+		float smoothingLevel = 16.f;
+		std::vector<std::filesystem::path> moduleLocations;
+		std::vector<std::filesystem::path> modules =
+		    std::vector<std::filesystem::path>(1, "shaders/bars");
+		std::filesystem::path backgroundImage;
+
+		std::optional<uint32_t> physicalDevice;
+	};
+
 	Renderer() = default;
-	Renderer(const RenderSettings& renderSettings);
+	Renderer(const Settings& renderSettings);
 	~Renderer();
 
 	Renderer& operator=(Renderer&& other) noexcept;

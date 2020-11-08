@@ -28,7 +28,7 @@ public:
 	std::atomic<bool> modified;
 	std::atomic<int> ups;
 
-	AudioSamplerImpl(const AudioSettings& audioSettings) {
+	AudioSamplerImpl(const Settings& audioSettings) {
 		settings.channels = audioSettings.channels;
 		settings.sampleSize = audioSettings.sampleSize * audioSettings.channels;
 		settings.bufferSize = audioSettings.bufferSize * audioSettings.channels;
@@ -97,7 +97,7 @@ private:
 	std::exception_ptr exceptionPtr = nullptr;
 
 	// settings
-	AudioSettings settings;
+	Settings settings;
 
 	// pulseaudio
 	pa_threaded_mainloop* mainloop;
@@ -244,7 +244,7 @@ private:
 	}
 };
 
-AudioSampler::AudioSampler(const AudioSettings& audioSettings) {
+AudioSampler::AudioSampler(const Settings& audioSettings) {
 	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
 }
 

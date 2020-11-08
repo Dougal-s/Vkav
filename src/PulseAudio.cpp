@@ -29,7 +29,7 @@ public:
 	std::atomic<bool> modified;
 	std::atomic<int> ups;
 
-	AudioSamplerImpl(const AudioSettings& audioSettings) {
+	AudioSamplerImpl(const Settings& audioSettings) {
 		init(audioSettings);
 
 		audioThread = std::thread([&]() {
@@ -83,7 +83,7 @@ private:
 	std::thread audioThread;
 
 	// settings
-	AudioSettings settings;
+	Settings settings;
 
 	// pulseaudio
 	pa_simple* s;
@@ -92,7 +92,7 @@ private:
 
 	int error;
 
-	void init(const AudioSettings& audioSettings) {
+	void init(const Settings& audioSettings) {
 		settings.channels = audioSettings.channels;
 		settings.sampleSize = audioSettings.sampleSize * audioSettings.channels;
 		settings.bufferSize = audioSettings.bufferSize * audioSettings.channels;
@@ -207,7 +207,7 @@ private:
 	}
 };
 
-AudioSampler::AudioSampler(const AudioSettings& audioSettings) {
+AudioSampler::AudioSampler(const Settings& audioSettings) {
 	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
 }
 

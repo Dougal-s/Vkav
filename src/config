@@ -11,7 +11,7 @@
 modules = {"bars", "radial"}
 
 /**
- * Path to an image, which is sent to the fragment shaders. Set to none to disable background images.
+ * Path to an image, which is sent to the fragment shaders. Set to none to disable.
  * Supported image types:
  * 	PNG
  * 	JPEG
@@ -25,12 +25,12 @@ backgroundImage = none
 amplitude = 0.4
 
 /**
- * Name of the audio source to record audio from.
+ * Name of the audio source to sample.
  */
 sinkName = auto
 
 /**
- * Size of the array that reads audio from the audio source.
+ * Size of the array used to sample audio.
  */
 sampleSize = 64
 
@@ -89,9 +89,9 @@ width  = 800
 height = 800
 
 /**
- * Position of the top left corner of the window. {0,0} is the top left corner of the screen.
+ * Position of the top left corner of the window relative to the top left corner of the screen
  */
-windowPosition = {0,0}
+windowPosition = auto
 
 /**
  * Window title
