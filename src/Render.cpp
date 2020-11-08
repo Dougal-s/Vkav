@@ -445,10 +445,10 @@ private:
 		                   ? GLFW_TRUE
 		                   : GLFW_FALSE);
 #else
-		if (settings.transparency == Settings::Window::Transparency::native) {
+		if (settings.window.transparency == Settings::Window::Transparency::native) {
 			std::cerr << LOCATION "Native transaprency unsupported by current configuration!"
 			          << std::endl;
-			settings.transparency = Settings::Window::Transparency::opaque;
+			settings.window.transparency = Settings::Window::Transparency::opaque;
 		}
 #endif
 
