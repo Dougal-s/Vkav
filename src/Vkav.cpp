@@ -253,7 +253,7 @@ namespace {
 				std::string directory;
 				while (std::getline(ss, directory, '\"').good()) {
 					if (!std::getline(ss, directory, '\"').good())
-						throw std::invalid_argument(__FILE__
+						throw std::invalid_argument(LOCATION
 						                            ": Missing terminating \" character in "
 						                            "configuration "
 						                            "file");
