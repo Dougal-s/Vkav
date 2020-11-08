@@ -25,3 +25,36 @@ TEST(testSettings, commandLineArguments) {
 	ASSERT_NE(argsParsed.find("physicalDevice"), argsParsed.end());
 	EXPECT_STREQ(argsParsed.find("physicalDevice")->second.data(), "2");
 }
+
+TEST(testSettings, parseAsString) {
+	EXPECT_EQ(parseAsString("\"a string woooo\""), "a string woooo");
+	EXPECT_EQ(parseAsString("a string woooo"), "a string woooo");
+}
+
+TEST(testSettings, parseAsArray) {
+	{
+		auto arr = parseAsArray("a string woooo");
+		ASSERT_EQ(arr.size(), 1);
+		EXPECT_EQ(arr[0], "a string woooo");
+	}
+	{
+		auto arr = parseAsArray("{    a 2 , asd, fds}");
+		ASSERT_EQ(arr.size(), 3);
+		EXPECT_EQ(arr[0], "a 2");
+		EXPECT_EQ(arr[1], "asd");
+		EXPECT_EQ(arr[2], "fds");
+	}
+}
+
+TEST(testSettings, parseAsPair) {
+	{
+		auto pair = parseAsPair("{ a ,      b  }");
+		EXPECT_EQ(pair.first, "a");
+		EXPECT_EQ(pair.second, "b");
+	}
+	{
+		auto pair = parseAsPair("{a 2 , asd}");
+		EXPECT_EQ(pair.first, "a 2");
+		EXPECT_EQ(pair.second, "asd");
+	}
+}
