@@ -17,6 +17,6 @@
 (id=20) float yOffset = 0
 
 // height of the pillars. Increasing this will increase the height.
-(id=21) float top = 0.8;
+(id=21) float top = 0.8
 // height of the base. Increasing this will decrease the size of the base.
-(id=22) float bottom = 0;
+(id=22) float bottom = 0
