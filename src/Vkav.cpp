@@ -250,7 +250,7 @@ namespace {
 			}
 
 			if (const auto setting = settings.find("backgroundImage"); setting != settings.end()) {
-				if (setting->second != "none") renderSettings.backgroundImage = setting->second;
+				if (setting->second != "none") renderSettings.backgroundImage = parseAsString(setting->second);
 			} else {
 				WARN_UNDEFINED(backgroundImage)
 			}
