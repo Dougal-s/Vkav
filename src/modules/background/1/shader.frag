@@ -30,7 +30,7 @@ void main() {
 	float volume = amplitude*(lVolume+rVolume);
 	float value = exp2(saturation*volume)-1;
 	float blurAmount = min(0.01*blur*volume, maxBlur);
-	float brightness = min(exp2(brightnessSensitivity*volume), 2);
+	float brightness = exp2(brightnessSensitivity*volume);
 
 	// blur
 	vec4 rgba = blurredTexture(backgroundImage, fragTexCoord, blurAmount);
