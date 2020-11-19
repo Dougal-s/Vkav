@@ -108,8 +108,6 @@ std::unordered_map<std::string, std::string> readConfigFile(const std::filesyste
 		variables.insert(std::make_pair(varName, varVal));
 	}
 
-	configFile.close();
-
 	return variables;
 }
 

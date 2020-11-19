@@ -118,7 +118,6 @@ namespace {
 			if (const auto cmdLineArg = cmdLineArgs.find("config"); cmdLineArg != cmdLineArgs.end())
 				configFilePath = cmdLineArg->second;
 
-			std::clog << "Parsing configuration file.\n";
 			cmdLineArgs.merge(readConfigFile(configFilePath));
 
 			AudioSampler::Settings audioSettings = {};
@@ -134,9 +133,9 @@ namespace {
 			else
 				WARN_UNDEFINED(fpsLimit);
 
-			std::clog << "Initialising audio.\n";
+			std::clog << "Initialising audio" << std::endl;
 			audioSampler = AudioSampler(audioSettings);
-			std::clog << "Initialising renderer.\n";
+			std::clog << "Initialising renderer" << std::endl;
 			renderer = Renderer(renderSettings);
 			process = Process(processSettings);
 
@@ -146,7 +145,7 @@ namespace {
 			std::clog << "Initialisation took: "
 			          << std::chrono::duration_cast<std::chrono::milliseconds>(initEnd - initStart)
 			                 .count()
-			          << " milliseconds\n";
+			          << " milliseconds" << std::endl;
 		}
 
 		void run() {
@@ -250,7 +249,8 @@ namespace {
 			}
 
 			if (const auto setting = settings.find("backgroundImage"); setting != settings.end()) {
-				if (setting->second != "none") renderSettings.backgroundImage = parseAsString(setting->second);
+				if (setting->second != "none")
+					renderSettings.backgroundImage = parseAsString(setting->second);
 			} else {
 				WARN_UNDEFINED(backgroundImage)
 			}
@@ -356,6 +356,7 @@ namespace {
 }  // namespace
 
 int main(int argc, const char* argv[]) {
+	std::ios_base::sync_with_stdio(false);
 	try {
 		Vkav app(argc, argv);
 		app.run();
