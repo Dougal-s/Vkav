@@ -1007,11 +1007,11 @@ private:
 		size_t pipelineCount = 0;
 		for (const auto& module : modules) pipelineCount += module.layers.size();
 
-		VkPipelineShaderStageCreateInfo vertShaderStageInfos[pipelineCount];
-		VkPipelineShaderStageCreateInfo fragShaderStageInfos[pipelineCount];
-		VkSpecializationInfo specializationInfos[pipelineCount];
-		VkPipelineShaderStageCreateInfo shaderStages[pipelineCount][2];
-		VkGraphicsPipelineCreateInfo pipelineInfos[pipelineCount];
+		std::vector<VkPipelineShaderStageCreateInfo> vertShaderStageInfos(pipelineCount);
+		std::vector<VkPipelineShaderStageCreateInfo> fragShaderStageInfos(pipelineCount);
+		std::vector<VkSpecializationInfo> specializationInfos(pipelineCount);
+		std::vector<std::array<VkPipelineShaderStageCreateInfo, 2>> shaderStages(pipelineCount);
+		std::vector<VkGraphicsPipelineCreateInfo> pipelineInfos(pipelineCount);
 		std::vector<VkPipeline> pipelines;
 
 		for (uint32_t i = 0, module = 0; module < modules.size(); ++module) {
@@ -1045,13 +1045,12 @@ private:
 				modules[module].specializationConstants.data[2] = swapChainExtent.width;
 				modules[module].specializationConstants.data[3] = swapChainExtent.height;
 
-				shaderStages[i][0] = vertShaderStageInfos[i];
-				shaderStages[i][1] = fragShaderStageInfos[i];
+				shaderStages[i] = {vertShaderStageInfos[i], fragShaderStageInfos[i]};
 
 				pipelineInfos[i] = {};
 				pipelineInfos[i].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 				pipelineInfos[i].stageCount = 2;
-				pipelineInfos[i].pStages = shaderStages[i];
+				pipelineInfos[i].pStages = shaderStages[i].data();
 				pipelineInfos[i].pVertexInputState = &vertexInputInfo;
 				pipelineInfos[i].pInputAssemblyState = &inputAssembly;
 				pipelineInfos[i].pViewportState = &viewportState;
@@ -1069,7 +1068,7 @@ private:
 		}
 
 		if (vkCreateGraphicsPipelines(device.device, VK_NULL_HANDLE, pipelines.size(),
-		                              pipelineInfos, nullptr, pipelines.data()))
+		                              pipelineInfos.data(), nullptr, pipelines.data()))
 			throw std::runtime_error(LOCATION "failed to create graphics pipeline!");
 
 		for (uint32_t i = 0, module = 0; i < pipelineCount; ++module)

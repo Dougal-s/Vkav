@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(
-  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra>"
+  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra;-Wpedantic>"
   "$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
   "$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
 )
