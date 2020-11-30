@@ -1,6 +1,6 @@
 // simulates address mode VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT
 float wrapIndex(float index) {
-	return 1.f - abs(mod(abs(index), 2.f)-1.f);
+	return 1.f - abs(mod(index, 2.f)-1.f);
 }
 
 float texture(in samplerBuffer s, in float index) {
