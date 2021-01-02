@@ -183,8 +183,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES 
 	target_link_libraries(vkav -lstdc++fs)
 endif()
 
-if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows AND ${CMAKE_BUILD_TYPE} MATCHES release)
-	add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
+if (${CMAKE_BUILD_TYPE} MATCHES Release)
+	add_custom_command(TARGET vkav POST_BUILD COMMAND ${CMAKE_STRIP} --strip-all vkav)
 endif()
 
 # Installer
