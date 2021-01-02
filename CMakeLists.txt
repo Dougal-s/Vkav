@@ -213,12 +213,55 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 endif()
 
-# For formatting source code
+# compile modules
+if (NOT DEFINED GLSLC_PATH)
+	if (DEFINED VULKAN_SDK_PATH)
+		set(GLSLC_PATH ${VULKAN_SDK_PATH}/x86_64/bin/glslc)
+	else()
+		set(GLSLC_PATH glslc)
+	endif()
+endif()
+
+add_custom_target(shaders)
+function(add_module MODULE STAGES)
+	string(REPLACE " " "_" MODULE_NAME "${MODULE}")
+	add_custom_target(${MODULE_NAME})
+	foreach(STAGE RANGE 1 ${STAGES})
+		if (EXISTS "${CMAKE_SOURCE_DIR}/src/modules/${MODULE}/${STAGE}/shader.vert")
+			set(VERT_COMMAND ${GLSLC_PATH} -O shader.vert -o vert.spv)
+		else()
+			set(VERT_COMMAND "")
+		endif()
+		
+		add_custom_target(
+			${MODULE_NAME}_STAGE_${STAGE}
+			COMMAND ${GLSLC_PATH} -O shader.frag -o frag.spv
+			COMMAND ${VERT_COMMAND}
+			BYPRODUCTS frag.spv vert.spv
+			WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/modules/${MODULE}/${STAGE}"
+		)
+		add_dependencies(${MODULE_NAME} ${MODULE_NAME}_STAGE_${STAGE})
+	endforeach()
+	add_dependencies(shaders ${MODULE_NAME})
+endfunction()
+
+add_module(background 1)
+add_module(bars 1)
+add_module(eclipse 2)
+add_module(fragment 1)
+add_module(logo 1)
+add_module(mist 1)
+add_module(octahedron 1)
+add_module("octahedron 2" 3)
+add_module(orbital 1)
+add_module(radial 1)
+add_module(rings 1)
+
+# Formatting source code
 file(GLOB src
 	"include/*.h"
 	"src/*.cpp"
 )
-
 add_custom_target(format clang-format -style=file -i ${src})
 
 add_custom_target(run VK_ICD_FILENAMES=${VULKAN_ICD_FILENAMES} LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./vkav)
