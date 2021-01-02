@@ -12,13 +12,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(
-  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra;-Wpedantic>"
-  "$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
-  "$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
+	"$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra;-Wpedantic>"
+	"$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
+	"$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
 )
 
 add_link_options(
-  "$<$<CONFIG:ASAN>:-fno-omit-frame-pointer;-fsanitize=address>"
+	"$<$<CONFIG:ASAN>:-fno-omit-frame-pointer;-fsanitize=address>"
 )
 
 # Platform specific flags
@@ -232,7 +232,7 @@ function(add_module MODULE STAGES)
 		else()
 			set(VERT_COMMAND "")
 		endif()
-		
+
 		add_custom_target(
 			${MODULE_NAME}_STAGE_${STAGE}
 			COMMAND ${GLSLC_PATH} -O shader.frag -o frag.spv
