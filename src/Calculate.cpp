@@ -12,216 +12,221 @@
 #define STR(x) STR_HELPER(x)
 #define LOCATION __FILE__ ":" STR(__LINE__) ": "
 
-struct Token {
-	enum class Function { eSin, eCos, eTan, eMax, eMin };
-	enum class Type { eUndefined, eNumber, eOperator, eFunction, eParentheses, eComma };
+namespace {
+	struct Token {
+		enum class Function { eSin, eCos, eTan, eMax, eMin };
+		enum class Type { eUndefined, eNumber, eOperator, eFunction, eParentheses, eComma };
 
-	Type type;
-	union {
-		float num;
-		Function func;
-		char op;
+		Type type;
+		union {
+			float num;
+			Function func;
+			char op;
+		};
+
+		constexpr Token() : type(Type::eUndefined), num(0.f) {}
+		constexpr Token(Type tokenType) : type(tokenType), num(0.f) {}
+		constexpr Token(Type tokenType, float number) : type(tokenType), num(number) {}
+		constexpr Token(Type tokenType, Function function) : type(tokenType), func(function) {}
+		constexpr Token(Type tokenType, char operation) : type(tokenType), op(operation) {}
 	};
 
-	Token() : type(Type::eUndefined) {}
-	Token(Type tokenType) : type(tokenType) {}
-	Token(Type tokenType, float number) : type(tokenType), num(number) {}
-	Token(Type tokenType, Function function) : type(tokenType), func(function) {}
-	Token(Type tokenType, char operation) : type(tokenType), op(operation) {}
-};
+	struct OpProperties {
+		unsigned char precedence;
+		bool leftAssociative;
+	};
 
-struct OpProperties {
-	unsigned char precedence;
-	bool leftAssociative;
-};
+	static const std::unordered_map<std::string, Token::Function> functions = {
+	    {"sin", Token::Function::eSin},
+	    {"cos", Token::Function::eCos},
+	    {"tan", Token::Function::eTan},
+	    {"max", Token::Function::eMax},
+	    {"min", Token::Function::eMin}};
 
-static const std::unordered_map<std::string, Token::Function> functions = {
-    {"sin", Token::Function::eSin},
-    {"cos", Token::Function::eCos},
-    {"tan", Token::Function::eTan},
-    {"max", Token::Function::eMax},
-    {"min", Token::Function::eMin}};
+	static const std::unordered_map<char, OpProperties> operators = {
+	    {'+', {0, 1}}, {'-', {0, 1}}, {'*', {1, 1}}, {'/', {1, 1}}, {'%', {1, 1}}, {'^', {2, 0}}};
 
-static const std::unordered_map<char, OpProperties> operators = {
-    {'+', {0, 1}}, {'-', {0, 1}}, {'*', {1, 1}}, {'/', {1, 1}}, {'%', {1, 1}}, {'^', {2, 0}}};
+	static const std::unordered_map<std::string, float> constants = {{"e", std::exp(1)},
+	                                                                 {"pi", M_PI}};
 
-static const std::unordered_map<std::string, float> constants = {{"e", std::exp(1)}, {"pi", M_PI}};
-
-float eval(char op, float op1, float op2) {
-	switch (op) {
-		case '+':
-			return op1 + op2;
-		case '-':
-			return op1 - op2;
-		case '*':
-			return op1 * op2;
-		case '/':
-			return op1 / op2;
-		case '%':
-			return std::fmod(op1, op2);
-		case '^':
-			return std::pow(op1, op2);
-	}
-	throw std::invalid_argument(LOCATION "Invalid operation!");
-}
-
-Token extractToken(std::string& expr, Token::Type lastTokenType) {
-	if (expr.front() == ',') {
-		expr.erase(0, 1);
-		return Token(Token::Type::eComma);
+	static constexpr float eval(char op, float op1, float op2) {
+		switch (op) {
+			case '+':
+				return op1 + op2;
+			case '-':
+				return op1 - op2;
+			case '*':
+				return op1 * op2;
+			case '/':
+				return op1 / op2;
+			case '%':
+				return std::fmod(op1, op2);
+			case '^':
+				return std::pow(op1, op2);
+		}
+		throw std::invalid_argument(LOCATION "Invalid operation!");
 	}
 
-	char* ptr;
-	if (float value = std::strtof(expr.c_str(), &ptr);
-	    lastTokenType != Token::Type::eNumber && ptr != expr.c_str()) {
-		expr.erase(0, ptr - expr.c_str());
-		return Token(Token::Type::eNumber, value);
+	Token extractToken(std::string_view& str, Token::Type lastTokenType) {
+		if (str.front() == ',') {
+			str.remove_prefix(1);
+			return Token(Token::Type::eComma);
+		}
+
+		char* ptr;
+		if (float value = std::strtof(str.data(), &ptr);
+		    lastTokenType != Token::Type::eNumber && ptr != str.data()) {
+			str.remove_prefix(ptr - str.data());
+			return Token(Token::Type::eNumber, value);
+		}
+
+		auto constEnd =
+		    std::find_if_not(str.begin(), str.end(), [](char c) { return std::isalpha(c); });
+		if (auto it = constants.find(std::string(str.begin(), constEnd)); it != constants.end()) {
+			Token rtrn(Token::Type::eNumber, it->second);
+			str.remove_prefix(constEnd - str.data());
+			return rtrn;
+		}
+
+		auto fnSize = str.find('(');
+		if (auto it = functions.find(std::string(str, 0, fnSize)); it != functions.end()) {
+			Token rtrn(Token::Type::eFunction, it->second);
+			str.remove_prefix(fnSize);
+			return rtrn;
+		}
+
+		if (operators.find(str.front()) != operators.end()) {
+			Token rtrn(Token::Type::eOperator, str.front());
+			str.remove_prefix(1);
+			return rtrn;
+		}
+
+		if (str.front() == '(' || str.front() == ')') {
+			Token rtrn(Token::Type::eParentheses, str.front());
+			str.remove_prefix(1);
+			return rtrn;
+		}
+
+		throw std::invalid_argument(LOCATION "Unrecognized token!");
 	}
 
-	if (auto index = expr.find_first_not_of("abcdefghijklmnopqrstuvwxyz");
-	    constants.find(expr.substr(0, index)) != constants.end()) {
-		Token rtrn(Token::Type::eNumber, constants.find(expr.substr(0, index))->second);
-		expr.erase(0, index);
-		return rtrn;
-	}
+	std::queue<Token> constructStack(std::string_view expr) {
+		while (std::isspace(expr.back())) expr.remove_suffix(1);
 
-	if (auto index = expr.find('('); functions.find(expr.substr(0, index)) != functions.end()) {
-		Token rtrn(Token::Type::eFunction, functions.find(expr.substr(0, index))->second);
-		expr.erase(0, index);
-		return rtrn;
-	}
+		std::stack<Token> operatorStack;
+		std::queue<Token> output;
+		Token token;
+		while (!expr.empty()) {
+			while (std::isspace(expr.front())) expr.remove_prefix(1);
+			token = extractToken(expr, token.type);
 
-	if (operators.find(expr.front()) != operators.end()) {
-		Token rtrn(Token::Type::eOperator, expr.front());
-		expr.erase(0, 1);
-		return rtrn;
-	}
-
-	if (expr.front() == '(' || expr.front() == ')') {
-		Token rtrn(Token::Type::eParentheses, expr.front());
-		expr.erase(0, 1);
-		return rtrn;
-	}
-
-	throw std::invalid_argument(LOCATION "Unrecognized token!");
-}
-
-std::queue<Token> constructStack(std::string expr) {
-	expr.resize(std::remove_if(expr.begin(), expr.end(), [](char x) { return std::isspace(x); }) -
-	            expr.begin());
-
-	std::stack<Token> operatorStack;
-	std::queue<Token> output;
-	Token token;
-	while (!expr.empty()) {
-		token = extractToken(expr, token.type);
-
-		switch (token.type) {
-			case Token::Type::eNumber:
-				output.push(token);
-				break;
-			case Token::Type::eOperator:
-				while (!operatorStack.empty() &&
-				       (operatorStack.top().type == Token::Type::eFunction ||
-				        (operatorStack.top().type == Token::Type::eOperator &&
-				         (operators.find(operatorStack.top().op)->second.precedence +
-				              operators.find(operatorStack.top().op)->second.leftAssociative >
-				          operators.find(token.op)->second.precedence)))) {
-					output.push(operatorStack.top());
-					operatorStack.pop();
-				}
-				[[fallthrough]];
-			case Token::Type::eFunction:
-				operatorStack.push(token);
-				break;
-			case Token::Type::eComma:
-				while (!operatorStack.empty() &&
-				       operatorStack.top().type != Token::Type::eParentheses) {
-					output.push(operatorStack.top());
-					operatorStack.pop();
-				}
-				break;
-			case Token::Type::eParentheses:
-				if (token.op == '(') {
+			switch (token.type) {
+				case Token::Type::eNumber:
+					output.push(token);
+					break;
+				case Token::Type::eOperator:
+					while (!operatorStack.empty() &&
+					       (operatorStack.top().type == Token::Type::eFunction ||
+					        (operatorStack.top().type == Token::Type::eOperator &&
+					         (operators.find(operatorStack.top().op)->second.precedence +
+					              operators.find(operatorStack.top().op)->second.leftAssociative >
+					          operators.find(token.op)->second.precedence)))) {
+						output.push(operatorStack.top());
+						operatorStack.pop();
+					}
+					[[fallthrough]];
+				case Token::Type::eFunction:
 					operatorStack.push(token);
-				} else {
+					break;
+				case Token::Type::eComma:
 					while (!operatorStack.empty() &&
 					       operatorStack.top().type != Token::Type::eParentheses) {
 						output.push(operatorStack.top());
 						operatorStack.pop();
 					}
-					if (operatorStack.empty())
-						throw std::invalid_argument(LOCATION "Mismatched parentheses!");
-					operatorStack.pop();
-				}
-				break;
-			default:
-				break;
+					break;
+				case Token::Type::eParentheses:
+					if (token.op == '(') {
+						operatorStack.push(token);
+					} else {
+						while (!operatorStack.empty() &&
+						       operatorStack.top().type != Token::Type::eParentheses) {
+							output.push(operatorStack.top());
+							operatorStack.pop();
+						}
+						if (operatorStack.empty())
+							throw std::invalid_argument(LOCATION "Mismatched parentheses!");
+						operatorStack.pop();
+					}
+					break;
+				default:
+					break;
+			}
 		}
+		while (!operatorStack.empty()) {
+			output.push(operatorStack.top());
+			operatorStack.pop();
+		}
+		return output;
 	}
-	while (!operatorStack.empty()) {
-		output.push(operatorStack.top());
-		operatorStack.pop();
-	}
-	return output;
-}
 
-float deconstructStack(std::queue<Token>& tokens) {
-	std::stack<float> operandStack;
-	while (!tokens.empty()) {
-		Token token = tokens.front();
-		tokens.pop();
-		switch (token.type) {
-			case Token::Type::eNumber:
-				operandStack.push(token.num);
-				break;
-			case Token::Type::eOperator: {
-				float op1 = operandStack.top();
-				operandStack.pop();
-				float op2 = operandStack.top();
-				operandStack.pop();
-				operandStack.push(eval(token.op, op2, op1));
-			} break;
-			case Token::Type::eFunction: {
-				switch (token.func) {
-					case Token::Function::eSin:
-						operandStack.top() = std::sin(operandStack.top());
-						break;
-					case Token::Function::eCos:
-						operandStack.top() = std::cos(operandStack.top());
-						break;
-					case Token::Function::eTan:
-						operandStack.top() = std::tan(operandStack.top());
-						break;
-					case Token::Function::eMax: {
-						float arg1 = operandStack.top();
-						operandStack.pop();
-						float arg2 = operandStack.top();
-						operandStack.pop();
-						operandStack.push(std::max(arg1, arg2));
-					} break;
-					case Token::Function::eMin: {
-						float arg1 = operandStack.top();
-						operandStack.pop();
-						float arg2 = operandStack.top();
-						operandStack.pop();
-						operandStack.push(std::min(arg1, arg2));
-					} break;
-				}
-			} break;
-			default:
-				throw std::invalid_argument(LOCATION "Invalid token!");
+	float deconstructStack(std::queue<Token>& tokens) {
+		std::stack<float> operandStack;
+		while (!tokens.empty()) {
+			Token token = tokens.front();
+			tokens.pop();
+			switch (token.type) {
+				case Token::Type::eNumber:
+					operandStack.push(token.num);
+					break;
+				case Token::Type::eOperator: {
+					float op1 = operandStack.top();
+					operandStack.pop();
+					float op2 = operandStack.top();
+					operandStack.pop();
+					operandStack.push(eval(token.op, op2, op1));
+				} break;
+				case Token::Type::eFunction: {
+					switch (token.func) {
+						case Token::Function::eSin:
+							operandStack.top() = std::sin(operandStack.top());
+							break;
+						case Token::Function::eCos:
+							operandStack.top() = std::cos(operandStack.top());
+							break;
+						case Token::Function::eTan:
+							operandStack.top() = std::tan(operandStack.top());
+							break;
+						case Token::Function::eMax: {
+							float arg1 = operandStack.top();
+							operandStack.pop();
+							float arg2 = operandStack.top();
+							operandStack.pop();
+							operandStack.push(std::max(arg1, arg2));
+						} break;
+						case Token::Function::eMin: {
+							float arg1 = operandStack.top();
+							operandStack.pop();
+							float arg2 = operandStack.top();
+							operandStack.pop();
+							operandStack.push(std::min(arg1, arg2));
+						} break;
+					}
+				} break;
+				default:
+					throw std::invalid_argument(LOCATION "Invalid token!");
+			}
 		}
+		return operandStack.top();
 	}
-	return operandStack.top();
-}
+}  // namespace
 
 template <class NumType>
-NumType calculate(std::string expr) {
-	std::queue<Token> tokens = constructStack(std::move(expr));
+NumType calculate(std::string_view expr) {
+	auto tokens = constructStack(expr);
 	return static_cast<NumType>(deconstructStack(tokens));
 }
 
-template int calculate<int>(std::string expr);
-template size_t calculate<size_t>(std::string expr);
-template float calculate<float>(std::string expr);
+template int calculate<int>(std::string_view expr);
+template size_t calculate<size_t>(std::string_view expr);
+template float calculate<float>(std::string_view expr);
