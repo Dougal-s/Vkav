@@ -365,7 +365,7 @@ public:
 
 		vkDestroyDevice(device.device, nullptr);
 
-		if (enableValidationLayers)
+		if constexpr (enableValidationLayers)
 			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -515,7 +515,7 @@ private:
 		instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		instanceInfo.ppEnabledExtensionNames = extensions.data();
 
-		if (enableValidationLayers) {
+		if constexpr (enableValidationLayers) {
 			instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			instanceInfo.ppEnabledLayerNames = validationLayers.data();
 		} else {
@@ -533,7 +533,7 @@ private:
 
 		std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-		if (enableValidationLayers) {
+		if constexpr (enableValidationLayers) {
 			extensions.reserve(extensions.size() + 1);
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
@@ -570,7 +570,7 @@ private:
 	}
 
 	void setupDebugCallback() {
-		if (!enableValidationLayers) return;
+		if constexpr (!enableValidationLayers) return;
 
 		VkDebugUtilsMessengerCreateInfoEXT messengerInfo = {};
 		messengerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -712,7 +712,7 @@ private:
 		deviceInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-		if (enableValidationLayers) {
+		if constexpr (enableValidationLayers) {
 			deviceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			deviceInfo.ppEnabledLayerNames = validationLayers.data();
 		} else {
@@ -1697,10 +1697,8 @@ private:
 	// Static member functions
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL
-	debugCallback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	              [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
-	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	              [[maybe_unused]] void* userData) {
+	debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
+	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
 		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 		return VK_FALSE;
 	}
@@ -1798,8 +1796,7 @@ private:
 		module.specializationConstants.specializationInfo.shrink_to_fit();
 	}
 
-	static void framebufferResizeCallback(GLFWwindow* window, [[maybe_unused]] int width,
-	                                      [[maybe_unused]] int height) {
+	static void framebufferResizeCallback(GLFWwindow* window, int, int) {
 		auto renderer = reinterpret_cast<RendererImpl*>(glfwGetWindowUserPointer(window));
 		renderer->framebufferResized = true;
 	}

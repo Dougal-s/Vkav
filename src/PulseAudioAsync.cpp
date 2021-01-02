@@ -163,7 +163,7 @@ private:
 	}
 
 	static void read_callback(pa_stream* stream, size_t nBytes, void* userData) {
-		static std::chrono::steady_clock::time_point lastFrame = std::chrono::steady_clock::now();
+		static auto lastFrame = std::chrono::steady_clock::now();
 		static int numUpdates = 0;
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(userData);
 
@@ -187,8 +187,7 @@ private:
 				audio->modified = true;
 
 				++numUpdates;
-				std::chrono::steady_clock::time_point currentTime =
-				    std::chrono::steady_clock::now();
+				auto currentTime = std::chrono::steady_clock::now();
 				if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastFrame)
 				        .count() >= 1) {
 					audio->ups = numUpdates;

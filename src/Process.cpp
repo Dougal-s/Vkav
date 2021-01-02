@@ -233,7 +233,7 @@ private:
 	/**
 	 * Reverses the first n bits in val
 	 */
-	static size_t reverseBits(size_t val, uint8_t n) {
+	constexpr static size_t reverseBits(size_t val, uint8_t n) {
 		size_t reversed = 0;
 		for (uint8_t i = 0; i < n; ++i) {
 			reversed <<= 1;

@@ -178,8 +178,7 @@ private:
 		soundio_flush_events(soundio);
 	}
 
-	static void readCallback(SoundIoInStream* instream, [[maybe_unused]] int frameCountMin,
-	                         int frameCountMax) {
+	static void readCallback(SoundIoInStream* instream, int, int frameCountMax) {
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(instream->userdata);
 		SoundIoChannelArea* areas;
 

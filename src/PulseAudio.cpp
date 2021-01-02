@@ -181,7 +181,7 @@ private:
 			                         pa_strerror(error));
 	}
 
-	static void callback([[maybe_unused]] pa_context* c, const pa_server_info* i, void* userdata) {
+	static void callback(pa_context*, const pa_server_info* i, void* userdata) {
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(userdata);
 		audio->settings.sinkName = i->default_sink_name;
 		audio->settings.sinkName += ".monitor";
