@@ -2,49 +2,38 @@
 // bokeh blur
 vec4 blurredTexture(in sampler2D image, in vec2 position, in float blur) {
 
-	const vec2 stepSize = vec2(1.f)/textureSize(image, 0);
-	const float radius = blur;
-
-	// go through overlapped regions
+	const float stepSize = 1.f/max(textureSize(image, 0).x, textureSize(image, 0).y);
+	const float edgeWidth = 2*stepSize;
+	const float edge0 = blur*blur-edgeWidth;
+	const float edge1 = blur*blur+edgeWidth;
+	const float radius = blur + edgeWidth;
 
 	// centre pixel
 	vec4 pixel = texture(image, position);
 	int pixelCount = 1;
 
-	// horizontal row of pixels along off.y = 0 (ignoring the center pixel)
-	for (vec2 off = {stepSize, 0}; off.x <= radius; off.x += stepSize.x) {
-		pixel += texture(image, position+off); // right
-		pixel += texture(image, position-off); // left
-		pixel += texture(image, position+off.yx); // top
-		pixel += texture(image, position-off.yx); // bottom
+	// horizontal row of pixels along y = 0 (ignoring the center pixel)
+	for (float off = stepSize; off <= radius; off += stepSize) {
+		float distSq = off*off;
+		float coef = smoothstep(edge0, edge1, distSq);
+		pixel += coef*texture(image, position+vec2(off, 0)); // right
+		pixel += coef*texture(image, position-vec2(off, 0)); // left
+		pixel += coef*texture(image, position+vec2(0, off)); // right
+		pixel += coef*texture(image, position-vec2(0, off)); // left
+		pixelCount += 4;
 	}
-	pixelCount += 4*int(radius/stepSize.x);
 
-	// Go through the octant from 0 rad to pi/4 rad
-	for (vec2 off = {0,stepSize}; sqrt(2)*off.y <= radius; off.y += stepSize.y) {
-		// diagonals
-		const vec2 negate = vec2(1, -1);
-		pixel += texture(image, position+off.yy); // top right
-		pixel += texture(image, position-off.yy); // bottom left
-		pixel += texture(image, position+negate*off.yy); // bottom right
-		pixel += texture(image, position-negate*off.yy); // top left
-		for (off.x = off.y+stepSize.x; dot(off, off) <= radius*radius; off.x += stepSize.x) {
-			vec4 offset = vec4(off, -off);
-			pixel += texture(image, position+offset.xy); // top right
-			pixel += texture(image, position+offset.xw); // bottom right
-			pixel += texture(image, position+offset.zy); // top left
-			pixel += texture(image, position+offset.zw); // bottom left
-
-			// flip x and y axis
-			pixel += texture(image, position+offset.yx);
-			pixel += texture(image, position+offset.wx);
-			pixel += texture(image, position+offset.yz);
-			pixel += texture(image, position+offset.wz);
-
-			pixelCount += 8;
+	for (float xOff = stepSize; xOff <= radius; xOff += stepSize) {
+		for (float yOff = stepSize; xOff*xOff + yOff*yOff <= radius*radius; yOff += stepSize) {
+			float distSq = xOff*xOff + yOff*yOff;
+			float coef = smoothstep(edge0, edge1, distSq);
+			pixel += coef * texture(image, position + vec2( xOff,  yOff));
+			pixel += coef * texture(image, position + vec2( xOff, -yOff));
+			pixel += coef * texture(image, position + vec2(-xOff,  yOff));
+			pixel += coef * texture(image, position + vec2(-xOff, -yOff));
+			pixelCount += 4;
 		}
 	}
-	pixelCount += 4*int(radius/length(stepSize));
 
 	return pixel/pixelCount;
 }
