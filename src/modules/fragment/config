@@ -3,7 +3,7 @@
 vertexCount = 729
 
 (id=11) float radius = 200
-(id=12) float reactivity = 50
+(id=12) float reactivity = 10
 
 (id=13) float red = 0.314/2
 (id=14) float green = 0.314/2

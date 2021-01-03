@@ -1,9 +1,9 @@
 
-(id=11) int originalRadius = 128
+(id=11) int originalRadius = 96
 
 (id=12) int lineWidth = 2
 
-(id=13) float amplitude = 3000.0
+(id=13) float amplitude = 1000.0
 
 (id=14) float radiusSensitivity = 15
 

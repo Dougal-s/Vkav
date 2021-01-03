@@ -6,10 +6,10 @@
 
 (id=14) int numBars = 180
 
-(id=15) float amplitude = 3000.0
+(id=15) float amplitude = 1000.0
 
 (id=16) float brightnessSensitivity = 1
-(id=17) float radiusSensitivity = 20
+(id=17) float radiusSensitivity = 10
 
 (id=18) float red = 0.196
 (id=19) float green = 0.196

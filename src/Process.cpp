@@ -96,7 +96,10 @@ private:
 
 	template <class T>
 	void windowFunction(T* audio) const {
-		for (size_t n = 0; n < inputSize; ++n) audio[n] *= pow(sinf(wfCoeff * n), 2);
+		for (size_t n = 0; n < inputSize; ++n) {
+			float tmp = std::sin(wfCoeff * n);
+			audio[n] *= tmp*tmp;
+		}
 	}
 
 	void magnitudes(AudioData& audioData) {
@@ -137,7 +140,7 @@ private:
 
 	void equalise(AudioData& audioData) const {
 		for (size_t n = 0; n < inputSize / 2; ++n) {
-			float weight = 0.08f * amplitude * log10f(2.f * n / inputSize + 1.05f);
+			float weight = 170.f * amplitude * std::log10(2.f * n / inputSize + 1.05f) / inputSize;
 			audioData.lBuffer[n] *= weight;
 			audioData.rBuffer[n] *= weight;
 		}

@@ -2,7 +2,7 @@
 (id=11) int barWidth = 4
 (id=12) int barGap = 2
 
-(id=13) float amplitude = 3
+(id=13) float amplitude = 1
 
 (id=14) float brightnessSensitivity = 1
 

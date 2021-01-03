@@ -35,7 +35,7 @@ layout(location = 0) out vec4 outColor;
 #include "../../smoothing/smoothing.glsl"
 
 void main() {
-	float brightness = exp2(20.f*brightnessSensitivity*(lVolume+rVolume));
+	float brightness = exp2(10.f*brightnessSensitivity*(lVolume+rVolume));
 
 	float totalBarSize = barWidth + barGap;
 	float center = 0.5*totalBarSize;

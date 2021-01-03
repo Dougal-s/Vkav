@@ -7,9 +7,9 @@
 
 (id=16) int originalRadius = 0
 (id=17) float amplitude = 20
-(id=18) float radiusSensitivity = 128
+(id=18) float radiusSensitivity = 64
 
-(id=19) float frequencySensitivity = 25
+(id=19) float frequencySensitivity = 10
 
 // If set to 1, all the rings will react to the frequency specify by frequency.
 // If set to 0, all the rings will react to separate frequencies.
