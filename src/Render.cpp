@@ -893,28 +893,33 @@ private:
 		for (uint32_t i = 0; i < modules.size(); ++i) {
 			modules[i].location = findModule(settings.modules[i]);
 
-			for (uint32_t layer = 1;
-			     std::filesystem::exists(modules[i].location / std::to_string(layer)); ++layer) {
-				modules[i].layers.resize(layer);
-				std::filesystem::path vertexShaderPath =
-				    modules[i].location / std::to_string(layer);
-				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = settings.modules[i];
+			// find number of layers
+			uint32_t layerCount = 1;
+			while (std::filesystem::exists(modules[i].location / std::to_string(layerCount + 1)))
+				++layerCount;
+			modules[i].layers.resize(layerCount);
 
+			// find fallback vertex shader
+			const auto fallbackVertShaderPath =
+			    std::filesystem::exists(modules[i].location / "vert.spv")
+			        ? modules[i].location
+			        : settings.moduleLocations.front() / "modules";
+
+			// find and create shaders for each layer
+			for (uint32_t layer = 0; layer < layerCount; ++layer) {
+				auto vertexShaderPath = modules[i].location / std::to_string(layer + 1);
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = settings.moduleLocations.front() / "modules";
+					vertexShaderPath = fallbackVertShaderPath;
 
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
-				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
+				modules[i].layers[layer].vertShaderModule = createShaderModule(vertShaderCode);
 
-				std::filesystem::path fragmentShaderPath =
-				    modules[i].location / std::to_string(layer);
+				auto fragmentShaderPath = modules[i].location / std::to_string(layer + 1);
 				auto fragShaderCode = readFile(fragmentShaderPath / "frag.spv");
-				modules[i].layers[layer - 1].fragShaderModule = createShaderModule(fragShaderCode);
+				modules[i].layers[layer].fragShaderModule = createShaderModule(fragShaderCode);
 			}
 
-			std::filesystem::path configFilePath = modules[i].location / "config";
-			readConfig(configFilePath, modules[i]);
+			readConfig(modules[i].location / "config", modules[i]);
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
 			modules[i].specializationConstants.data[4] = modules[i].vertexCount;

@@ -35,8 +35,7 @@ public:
 		size_t audioSize;
 		float smoothingLevel = 16.f;
 		std::vector<std::filesystem::path> moduleLocations;
-		std::vector<std::filesystem::path> modules =
-		    std::vector<std::filesystem::path>(1, "shaders/bars");
+		std::vector<std::filesystem::path> modules = {1, "bars"};
 		std::filesystem::path backgroundImage;
 
 		std::optional<uint32_t> physicalDevice;
