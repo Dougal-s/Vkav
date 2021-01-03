@@ -42,9 +42,9 @@ namespace {
 
 		unsigned char** data() override { return buffer; }
 
-		constexpr size_t width() const override { return 1; }
+		size_t width() const override { return 1; }
 
-		constexpr size_t height() const override { return 1; }
+		size_t height() const override { return 1; }
 
 		~BlankImage() {
 			delete[] buffer[0];

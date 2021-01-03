@@ -5,6 +5,7 @@
 #include <stack>
 #include <unordered_map>
 #include <utility>
+#include <stdexcept>
 
 #include "Calculate.hpp"
 
