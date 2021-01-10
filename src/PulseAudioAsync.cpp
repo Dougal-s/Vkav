@@ -25,7 +25,7 @@
 class AudioSampler::AudioSamplerImpl {
 public:
 	std::atomic<bool> running;
-	std::atomic<bool> modified;
+	std::atomic<bool> modified{false};
 	std::atomic<int> ups;
 
 	AudioSamplerImpl(const Settings& audioSettings) {
@@ -35,7 +35,6 @@ public:
 		settings.sampleRate = audioSettings.sampleRate;
 		settings.sinkName = audioSettings.sinkName;
 
-		modified = false;
 		ups = settings.sampleRate / settings.sampleSize;
 
 		pSampleBuffer = new float[settings.sampleSize];
@@ -72,11 +71,10 @@ public:
 
 	void copyData(AudioData& audioData) {
 		audioMutexLock.lock();
+		modified.store(false, std::memory_order_relaxed);
 		for (size_t i = 0; i < settings.bufferSize; ++i)
 			audioData.buffer[i] = ppAudioBuffer[i / settings.sampleSize][i % settings.sampleSize];
 		audioMutexLock.unlock();
-
-		modified = false;
 	}
 
 	void rethrowExceptions() {
@@ -104,8 +102,6 @@ private:
 	pa_context* context;
 	pa_stream* stream;
 
-	int error;
-
 	void getDefaultSink() {
 		running = true;
 		pa_operation_unref(
@@ -118,19 +114,17 @@ private:
 		mainloop = pa_threaded_mainloop_new();
 		context = pa_context_new(pa_threaded_mainloop_get_api(mainloop), "Vkav");
 
-		if ((error = pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL)) < 0)
+		if (int err = pa_context_connect(context, NULL, PA_CONTEXT_NOFLAGS, NULL); err < 0)
 			throw std::runtime_error(
-			    std::string(LOCATION "pulseaudio context failed to connect!: ") +
-			    pa_strerror(error));
+			    std::string(LOCATION "pulseaudio context failed to connect!: ") + pa_strerror(err));
 
 		pa_context_set_state_callback(context, contextReadyStateCallback,
 		                              reinterpret_cast<void*>(this));
 
 		running = true;
-		if ((error = pa_threaded_mainloop_start(mainloop)) < 0)
+		if (int err = pa_threaded_mainloop_start(mainloop); err < 0)
 			throw std::runtime_error(
-			    std::string(LOCATION "failed to start pulseaudio mainloop!: ") +
-			    pa_strerror(error));
+			    std::string(LOCATION "failed to start pulseaudio mainloop!: ") + pa_strerror(err));
 		// wait for context to connect
 		while (running)
 			;
@@ -155,11 +149,11 @@ private:
 
 		pa_stream_set_read_callback(stream, read_callback, reinterpret_cast<void*>(this));
 
-		if ((error = pa_stream_connect_record(stream, settings.sinkName.c_str(), &attr,
-		                                      PA_STREAM_ADJUST_LATENCY)) != 0)
+		if (int err = pa_stream_connect_record(stream, settings.sinkName.c_str(), &attr,
+		                                       PA_STREAM_ADJUST_LATENCY);
+		    err != 0)
 			throw std::runtime_error(
-			    std::string(LOCATION "failed to connect pulseaudio stream!: ") +
-			    pa_strerror(error));
+			    std::string(LOCATION "failed to connect pulseaudio stream!: ") + pa_strerror(err));
 	}
 
 	static void read_callback(pa_stream* stream, size_t nBytes, void* userData) {
@@ -180,17 +174,17 @@ private:
 		for (size_t i = 0; i < size; ++i, ++audio->bufPos) {
 			if (audio->bufPos == audio->settings.sampleSize) {
 				audio->audioMutexLock.lock();
+				audio->modified.store(true, std::memory_order_relaxed);
 				std::swap(audio->ppAudioBuffer[0], audio->pSampleBuffer);
 				for (size_t i = 1; i * audio->settings.sampleSize < audio->settings.bufferSize; ++i)
 					std::swap(audio->ppAudioBuffer[i - 1], audio->ppAudioBuffer[i]);
 				audio->audioMutexLock.unlock();
-				audio->modified = true;
 
 				++numUpdates;
 				auto currentTime = std::chrono::steady_clock::now();
 				if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastFrame)
 				        .count() >= 1) {
-					audio->ups = numUpdates;
+					audio->ups.store(numUpdates, std::memory_order_relaxed);
 					numUpdates = 0;
 					lastFrame = currentTime;
 				}
@@ -204,7 +198,7 @@ private:
 		pa_stream_drop(stream);
 	}
 
-	static void callback(pa_context* c, const pa_server_info* i, void* userdata) {
+	static void callback(pa_context*, const pa_server_info* i, void* userdata) {
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(userdata);
 		audio->settings.sinkName = i->default_sink_name;
 		audio->settings.sinkName += ".monitor";
@@ -256,9 +250,11 @@ AudioSampler& AudioSampler::operator=(AudioSampler&& other) noexcept {
 
 bool AudioSampler::running() const { return audioSamplerImpl->running; }
 
-bool AudioSampler::modified() const { return audioSamplerImpl->modified; }
+bool AudioSampler::modified() const {
+	return audioSamplerImpl->modified.load(std::memory_order_acquire);
+}
 
-int AudioSampler::ups() const { return audioSamplerImpl->ups; }
+int AudioSampler::ups() const { return audioSamplerImpl->ups.load(std::memory_order_relaxed); }
 
 void AudioSampler::copyData(AudioData& audioData) { audioSamplerImpl->copyData(audioData); }
 
