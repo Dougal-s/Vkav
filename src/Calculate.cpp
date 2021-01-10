@@ -3,9 +3,9 @@
 #include <cmath>
 #include <queue>
 #include <stack>
+#include <stdexcept>
 #include <unordered_map>
 #include <utility>
-#include <stdexcept>
 
 #include "Calculate.hpp"
 
@@ -181,6 +181,11 @@ namespace {
 					operandStack.push(token.num);
 					break;
 				case Token::Type::eOperator: {
+					if (operandStack.size() < 2)
+						throw std::invalid_argument(
+						    std::string(LOCATION "Encountered unexpected operator '") + token.op +
+						    "'");
+
 					float op1 = operandStack.top();
 					operandStack.pop();
 					float op2 = operandStack.top();
@@ -190,15 +195,23 @@ namespace {
 				case Token::Type::eFunction: {
 					switch (token.func) {
 						case Token::Function::eSin:
+							if (operandStack.empty())
+								throw std::invalid_argument(LOCATION "Expected function arguments");
 							operandStack.top() = std::sin(operandStack.top());
 							break;
 						case Token::Function::eCos:
+							if (operandStack.empty())
+								throw std::invalid_argument(LOCATION "Expected function arguments");
 							operandStack.top() = std::cos(operandStack.top());
 							break;
 						case Token::Function::eTan:
+							if (operandStack.empty())
+								throw std::invalid_argument(LOCATION "Expected function arguments");
 							operandStack.top() = std::tan(operandStack.top());
 							break;
 						case Token::Function::eMax: {
+							if (operandStack.size() < 2)
+								throw std::invalid_argument(LOCATION "Expected 2 function arguments");
 							float arg1 = operandStack.top();
 							operandStack.pop();
 							float arg2 = operandStack.top();
@@ -206,6 +219,8 @@ namespace {
 							operandStack.push(std::max(arg1, arg2));
 						} break;
 						case Token::Function::eMin: {
+							if (operandStack.size() < 2)
+								throw std::invalid_argument(LOCATION "Expected 2 function arguments");
 							float arg1 = operandStack.top();
 							operandStack.pop();
 							float arg2 = operandStack.top();

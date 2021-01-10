@@ -67,3 +67,11 @@ TEST(testCalculate, whitespace) {
 	EXPECT_FLOAT_EQ(calculate<float>("   \n  pi       "), M_PI);
 	EXPECT_FLOAT_EQ(calculate<float>("	 cos(        	0.0    )\n  "), 1);
 }
+
+
+TEST(testCalculate, errors) {
+	EXPECT_ANY_THROW(calculate<float>("12**1"));
+	EXPECT_ANY_THROW(calculate<float>("*12"));
+	EXPECT_ANY_THROW(calculate<float>("4^"));
+	EXPECT_ANY_THROW(calculate<float>("sin()"));
+}
