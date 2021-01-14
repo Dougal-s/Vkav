@@ -98,7 +98,7 @@ private:
 	void windowFunction(T* audio) const {
 		for (size_t n = 0; n < inputSize; ++n) {
 			float tmp = std::sin(wfCoeff * n);
-			audio[n] *= tmp*tmp;
+			audio[n] *= tmp * tmp;
 		}
 	}
 
@@ -240,7 +240,8 @@ private:
 		size_t reversed = 0;
 		for (uint8_t i = 0; i < n; ++i) {
 			reversed <<= 1;
-			reversed += (val & (1 << i)) != 0;
+			reversed |= val & 1;
+			val >>= 1;
 		}
 		return reversed;
 	}
