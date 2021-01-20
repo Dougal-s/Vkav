@@ -4,6 +4,8 @@
 #include <queue>
 #include <stack>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
@@ -196,22 +198,22 @@ namespace {
 					switch (token.func) {
 						case Token::Function::eSin:
 							if (operandStack.empty())
-								throw std::invalid_argument(LOCATION "Expected function arguments");
+								throw std::invalid_argument(LOCATION "Expected function argument");
 							operandStack.top() = std::sin(operandStack.top());
 							break;
 						case Token::Function::eCos:
 							if (operandStack.empty())
-								throw std::invalid_argument(LOCATION "Expected function arguments");
+								throw std::invalid_argument(LOCATION "Expected function argument");
 							operandStack.top() = std::cos(operandStack.top());
 							break;
 						case Token::Function::eTan:
 							if (operandStack.empty())
-								throw std::invalid_argument(LOCATION "Expected function arguments");
+								throw std::invalid_argument(LOCATION "Expected function argument");
 							operandStack.top() = std::tan(operandStack.top());
 							break;
 						case Token::Function::eMax: {
 							if (operandStack.size() < 2)
-								throw std::invalid_argument(LOCATION "Expected 2 function arguments");
+								throw std::invalid_argument(LOCATION "Expected function arguments");
 							float arg1 = operandStack.top();
 							operandStack.pop();
 							float arg2 = operandStack.top();
@@ -220,7 +222,7 @@ namespace {
 						} break;
 						case Token::Function::eMin: {
 							if (operandStack.size() < 2)
-								throw std::invalid_argument(LOCATION "Expected 2 function arguments");
+								throw std::invalid_argument(LOCATION "Expected function arguments");
 							float arg1 = operandStack.top();
 							operandStack.pop();
 							float arg2 = operandStack.top();
