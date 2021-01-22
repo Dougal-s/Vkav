@@ -1,6 +1,8 @@
 
-image="/home/dougal/Pictures/Logo/Logo.png"
+[resources]
+(id=4) image logo = "/home/dougal/Pictures/Logo/Logo.png"
 
+[parameter]
 (id=11) int radius = 128
 (id=12) float radiusSensitivity = 10
 (id=13) float rotationSensitivity = 10

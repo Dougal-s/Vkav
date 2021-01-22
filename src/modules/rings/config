@@ -1,4 +1,6 @@
 
+[parameters]
+
 (id=11) int ringCount = 15
 (id=12) float ringWidth = 20
 (id=13) float ringGap = 10
@@ -11,19 +13,19 @@
 
 (id=19) float frequencySensitivity = 10
 
-// If set to 1, all the rings will react to the frequency specify by frequency.
-// If set to 0, all the rings will react to separate frequencies.
+# If set to 1, all the rings will react to the frequency specify by frequency.
+# If set to 0, all the rings will react to separate frequencies.
 (id=20) int fixedFreq = 0
 
-// Set to one to make frequencySensitivity scale with rotationRatio
+# Set to one to make frequencySensitivity scale with rotationRatio
 (id=21) int scaleWithRotationRatio = 0
 
-// frequency:
-// has a range of [0,1] where 0 is the lowest frequency Vkav can detect,
-// while 1 is the heighest (samplerate/2).
+# frequency:
+# has a range of [0,1] where 0 is the lowest frequency Vkav can detect,
+# while 1 is the heighest (samplerate/2).
 (id=22) float frequency = 0
 
-// Ring color.
+# Ring color.
 (id=23) float red1 = 0.196
 (id=24) float green1 = 0.196
 (id=25) float blue1 = 0.204

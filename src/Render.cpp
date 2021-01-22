@@ -19,6 +19,7 @@
 #include "Calculate.hpp"
 #include "Data.hpp"
 #include "Image.hpp"
+#include "ModuleConfig.hpp"
 #include "NativeWindowHints.hpp"
 #include "Render.hpp"
 #include "Version.hpp"
@@ -163,15 +164,21 @@ namespace {
 		VkShaderModule vertShaderModule;
 	};
 
+	template <class resourceType>
+	struct Resource {
+		uint32_t id;
+		std::filesystem::path path;
+
+		resourceType rsrc;
+	};
+
 	struct Module {
 		std::filesystem::path location;
 
 		std::vector<GraphicsPipeline> layers;
 		SpecializationConstants specializationConstants;
 
-		// Image
-		std::string imagePath = "";
-		Image image;
+		std::vector<Resource<Image>> images;
 
 		// Name of the fragment shader function to call
 		std::string moduleName = "main";
@@ -183,7 +190,7 @@ namespace {
 				vkDestroyShaderModule(device, layer.vertShaderModule, nullptr);
 			}
 
-			Image::destroy(module.image);
+			for (auto& image : module.images) Image::destroy(image.rsrc);
 		}
 	};
 
@@ -347,7 +354,8 @@ public:
 
 		vkDestroyDescriptorPool(device.device, descriptorPool, nullptr);
 
-		vkDestroyDescriptorSetLayout(device.device, descriptorSetLayout, nullptr);
+		for (auto& layout : descriptorSetLayouts)
+			vkDestroyDescriptorSetLayout(device.device, layout, nullptr);
 
 		for (size_t i = 0; i < dataBuffers.size(); ++i) {
 			Buffer::destroy(dataBuffers[i]);
@@ -406,8 +414,8 @@ private:
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 
 	VkRenderPass renderPass;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkPipelineLayout pipelineLayout;
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+	std::vector<VkPipelineLayout> pipelineLayouts;
 
 	std::vector<Module> modules;
 
@@ -480,8 +488,8 @@ private:
 		createSwapchain();
 		createImageViews();
 		createRenderPass();
-		createDescriptorSetLayout();
-		prepareGraphicsPipelineCreation();
+		discoverModules();
+		createDescriptorSetLayouts();
 		createGraphicsPipelines();
 		createFramebuffers();
 		createCommandPool();
@@ -891,7 +899,7 @@ private:
 			swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
 	}
 
-	void prepareGraphicsPipelineCreation() {
+	void discoverModules() {
 		modules.resize(settings.modules.size());
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
@@ -941,6 +949,7 @@ private:
 	}
 
 	void createGraphicsPipelines() {
+		pipelineLayouts.resize(modules.size());
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 0;
@@ -1002,17 +1011,6 @@ private:
 		colorBlending.attachmentCount = 1;
 		colorBlending.pAttachments = &colorBlendAttachment;
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-		if (vkCreatePipelineLayout(device.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
-		    VK_SUCCESS)
-			throw std::runtime_error(LOCATION "failed to create pipeline layout!");
-
 		size_t pipelineCount = 0;
 		for (const auto& module : modules) pipelineCount += module.layers.size();
 
@@ -1024,6 +1022,17 @@ private:
 		std::vector<VkPipeline> pipelines;
 
 		for (uint32_t i = 0, module = 0; module < modules.size(); ++module) {
+			VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+			pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+			pipelineLayoutInfo.setLayoutCount = 1;
+			pipelineLayoutInfo.pSetLayouts = &descriptorSetLayouts[module];
+			pipelineLayoutInfo.pushConstantRangeCount = 0;
+			pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+			if (vkCreatePipelineLayout(device.device, &pipelineLayoutInfo, nullptr,
+			                           &pipelineLayouts[module]) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to create pipeline layout!");
+
 			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer, ++i) {
 				pipelines.push_back(modules[module].layers[layer].graphicsPipeline);
 
@@ -1068,7 +1077,7 @@ private:
 				pipelineInfos[i].pDepthStencilState = nullptr;
 				pipelineInfos[i].pColorBlendState = &colorBlending;
 				pipelineInfos[i].pDynamicState = nullptr;
-				pipelineInfos[i].layout = pipelineLayout;
+				pipelineInfos[i].layout = pipelineLayouts[module];
 				pipelineInfos[i].renderPass = renderPass;
 				pipelineInfos[i].subpass = 0;
 				pipelineInfos[i].basePipelineHandle = VK_NULL_HANDLE;
@@ -1213,8 +1222,8 @@ private:
 					                  layer.graphicsPipeline);
 
 					vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-					                        pipelineLayout, 0, 1, &descriptorSets[i][module], 0,
-					                        nullptr);
+					                        pipelineLayouts[module], 0, 1,
+					                        &descriptorSets[i][module], 0, nullptr);
 					vkCmdDraw(commandBuffers[i], modules[module].vertexCount, 1, 0, 0);
 				}
 			}
@@ -1251,10 +1260,11 @@ private:
 		vkFreeCommandBuffers(device.device, commandPool,
 		                     static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
-		vkDestroyPipelineLayout(device.device, pipelineLayout, nullptr);
-		for (auto& module : modules)
-			for (auto& graphicsPipeline : module.layers)
+		for (size_t i = 0; i < modules.size(); ++i) {
+			vkDestroyPipelineLayout(device.device, pipelineLayouts[i], nullptr);
+			for (auto& graphicsPipeline : modules[i].layers)
 				vkDestroyPipeline(device.device, graphicsPipeline.graphicsPipeline, nullptr);
+		}
 
 		vkDestroyRenderPass(device.device, renderPass, nullptr);
 
@@ -1299,15 +1309,16 @@ private:
 		samplerInfo.maxLod = 0.0f;
 
 		for (auto& module : modules) {
-			std::filesystem::path imagePath = module.imagePath;
-			if (!imagePath.empty() && imagePath.is_relative())
-				imagePath = module.location / imagePath;
-			createTextureImage(imagePath, module.image);
-			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
+			for (auto& image : module.images) {
+				std::filesystem::path path = image.path;
+				if (!path.empty() && path.is_relative()) path = module.location / path;
+				createTextureImage(path, image.rsrc);
+				image.rsrc.view = createImageView(image.rsrc.image, VK_FORMAT_R8G8B8A8_UNORM);
 
-			if (vkCreateSampler(device.device, &samplerInfo, nullptr, &module.image.sampler) !=
-			    VK_SUCCESS)
-				throw std::runtime_error(LOCATION "failed to create image sampler!");
+				if (vkCreateSampler(device.device, &samplerInfo, nullptr, &image.rsrc.sampler) !=
+				    VK_SUCCESS)
+					throw std::runtime_error(LOCATION "failed to create image sampler!");
+			}
 		}
 	}
 
@@ -1490,7 +1501,9 @@ private:
 			throw std::runtime_error(LOCATION "failed to create image sampler!");
 	}
 
-	void createDescriptorSetLayout() {
+	void createDescriptorSetLayouts() {
+		descriptorSetLayouts.resize(modules.size());
+
 		VkDescriptorSetLayoutBinding dataLayoutBinding = {};
 		dataLayoutBinding.binding = 0;
 		dataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1522,25 +1535,30 @@ private:
 		backgroundSamplerLayoutBinding.stageFlags =
 		    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		VkDescriptorSetLayoutBinding moduleImageSamplerLayoutBinding = {};
-		moduleImageSamplerLayoutBinding.binding = 4;
-		moduleImageSamplerLayoutBinding.descriptorCount = 1;
-		moduleImageSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		moduleImageSamplerLayoutBinding.pImmutableSamplers = nullptr;
-		moduleImageSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		for (size_t module = 0; module < modules.size(); ++module) {
+			std::vector<VkDescriptorSetLayoutBinding> bindings(4 + modules[module].images.size());
+			bindings[0] = dataLayoutBinding;
+			bindings[1] = lAudioBufferLayoutBinding;
+			bindings[2] = rAudioBufferLayoutBinding;
+			bindings[3] = backgroundSamplerLayoutBinding;
 
-		std::array<VkDescriptorSetLayoutBinding, 5> bindings = {
-		    dataLayoutBinding, lAudioBufferLayoutBinding, rAudioBufferLayoutBinding,
-		    backgroundSamplerLayoutBinding, moduleImageSamplerLayoutBinding};
+			for (size_t image = 0; image < modules[module].images.size(); ++image) {
+				bindings[4 + image].binding = modules[module].images[image].id;
+				bindings[4 + image].descriptorCount = 1;
+				bindings[4 + image].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				bindings[4 + image].pImmutableSamplers = nullptr;
+				bindings[4 + image].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
 
-		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-		layoutInfo.pBindings = bindings.data();
+			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+			layoutInfo.pBindings = bindings.data();
 
-		if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr,
-		                                &descriptorSetLayout) != VK_SUCCESS)
-			throw std::runtime_error(LOCATION "failed to create descriptor set layout!");
+			if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr,
+			                                &descriptorSetLayouts[module]) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to create descriptor set layout!");
+		}
 	}
 
 	void createAudioBuffers() {
@@ -1592,7 +1610,7 @@ private:
 	}
 
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 5> poolSizes = {};
+		std::vector<VkDescriptorPoolSize> poolSizes(4);
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount =
 		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
@@ -1605,9 +1623,16 @@ private:
 		poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[3].descriptorCount =
 		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
-		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[4].descriptorCount =
-		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
+
+		size_t resourceCount = 0;
+		for (auto& module : modules) resourceCount += module.images.size();
+
+		if (resourceCount > 0) {
+			poolSizes.push_back({});
+			poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			poolSizes[4].descriptorCount =
+			    static_cast<uint32_t>(swapChainImages.size() * resourceCount);
+		}
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1621,12 +1646,11 @@ private:
 	}
 
 	void createDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(modules.size(), descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
 		allocInfo.descriptorSetCount = static_cast<uint32_t>(modules.size());
-		allocInfo.pSetLayouts = layouts.data();
+		allocInfo.pSetLayouts = descriptorSetLayouts.data();
 
 		descriptorSets.resize(swapChainImages.size());
 
@@ -1647,10 +1671,7 @@ private:
 			backgroundImageInfo.imageView = backgroundImage.view;
 			backgroundImageInfo.sampler = backgroundImage.sampler;
 
-			VkDescriptorImageInfo moduleImageInfo = {};
-			moduleImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-			std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
+			std::vector<VkWriteDescriptorSet> descriptorWrites{4};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstBinding = 0;
 			descriptorWrites[0].dstArrayElement = 0;
@@ -1679,22 +1700,31 @@ private:
 			descriptorWrites[3].descriptorCount = 1;
 			descriptorWrites[3].pImageInfo = &backgroundImageInfo;
 
-			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[4].dstBinding = 4;
-			descriptorWrites[4].dstArrayElement = 0;
-			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[4].descriptorCount = 1;
-			descriptorWrites[4].pImageInfo = &moduleImageInfo;
-
 			for (size_t module = 0; module < modules.size(); ++module) {
-				moduleImageInfo.imageView = modules[module].image.view;
-				moduleImageInfo.sampler = modules[module].image.sampler;
-
 				descriptorWrites[0].dstSet = descriptorSets[i][module];
 				descriptorWrites[1].dstSet = descriptorSets[i][module];
 				descriptorWrites[2].dstSet = descriptorSets[i][module];
 				descriptorWrites[3].dstSet = descriptorSets[i][module];
-				descriptorWrites[4].dstSet = descriptorSets[i][module];
+
+				const size_t resourceCount = modules[module].images.size();
+				descriptorWrites.resize(4 + resourceCount);
+
+				std::vector<VkDescriptorImageInfo> moduleImageInfos{resourceCount};
+
+				for (size_t image = 0; image < modules[module].images.size(); ++image) {
+					moduleImageInfos[image].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					moduleImageInfos[image].imageView = modules[module].images[image].rsrc.view;
+					moduleImageInfos[image].sampler = modules[module].images[image].rsrc.sampler;
+
+					descriptorWrites[4 + image].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptorWrites[4 + image].dstBinding = modules[module].images[image].id;
+					descriptorWrites[4 + image].dstArrayElement = 0;
+					descriptorWrites[4 + image].descriptorType =
+					    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descriptorWrites[4 + image].descriptorCount = 1;
+					descriptorWrites[4 + image].pImageInfo = &moduleImageInfos[image];
+					descriptorWrites[4 + image].dstSet = descriptorSets[i][module];
+				}
 
 				vkUpdateDescriptorSets(device.device,
 				                       static_cast<uint32_t>(descriptorWrites.size()),
@@ -1746,63 +1776,50 @@ private:
 			return;
 		}
 
-		std::string line;
+		ModuleConfig config;
+		try {
+			config = parseConfig(file);
+		} catch (const std::exception& e) {
+			throw std::runtime_error(std::string(LOCATION) + "Failed to parse module config '" +
+			                         configFilePath.native() + "':\n\t" + e.what());
+		}
 
-		while (std::getline(file, line).good()) {
-			size_t position;
+		if (config.moduleName) module.moduleName = config.moduleName.value();
+		if (config.vertexCount) module.vertexCount = config.vertexCount.value();
 
-			// Remove comments
-			if ((position = line.find("//")) != std::string::npos) line.resize(position);
-
-			// Remove whitespaces
-			line.resize(std::remove_if(line.begin(), line.end(), isspace) - line.begin());
-
-			if (line.substr(0, 6) == "module") {
-				module.moduleName = line.substr(8, line.size() - 8 - 1);
-				continue;
-			}
-
-			if (line.substr(0, 5) == "image") {
-				module.imagePath = line.substr(7, line.size() - 7 - 1);
-				continue;
-			}
-
-			if (line.substr(0, 11) == "vertexCount") {
-				module.vertexCount = calculate<size_t>(line.substr(12));
-				continue;
-			}
-
-			position = line.find(')');
-
-			if (position == std::string::npos) continue;
-
-			uint32_t id = calculate<int>(line.substr(4, position - 4));
-
-			size_t equalSignPos = line.find('=', position);
-
-			SpecializationConstant value;
-			if (line.substr(position + 1, 3) == "int")
-				value = calculate<int>(line.substr(equalSignPos + 1));
-			else if (line.substr(position + 1, 5) == "float")
-				value = calculate<float>(line.substr(equalSignPos + 1));
-			else
-				throw std::invalid_argument(LOCATION
-				                            "invalid variable type in shader configuration file!");
-
+		module.specializationConstants.data.reserve(5 + config.params.size());
+		module.specializationConstants.data.resize(5);
+		module.specializationConstants.specializationInfo.reserve(5 + config.params.size());
+		for (uint32_t offset = 0; offset < 5; ++offset) {
 			VkSpecializationMapEntry mapEntry = {};
-			mapEntry.constantID = id;
+			mapEntry.constantID = offset;
+			mapEntry.offset = offset * sizeof(SpecializationConstant);
+			mapEntry.size = sizeof(SpecializationConstant);
+
+			module.specializationConstants.specializationInfo.push_back(mapEntry);
+		}
+
+		for (auto& param : config.params) {
+			VkSpecializationMapEntry mapEntry = {};
+			mapEntry.constantID = param.id;
 			mapEntry.offset =
 			    module.specializationConstants.data.size() * sizeof(SpecializationConstant);
 			mapEntry.size = sizeof(SpecializationConstant);
 
-			module.specializationConstants.data.push_back(value);
+			module.specializationConstants.data.push_back(param.value);
 			module.specializationConstants.specializationInfo.push_back(mapEntry);
 		}
 
-		file.close();
+		for (auto& image : config.images) {
+			Resource<Image> resource = {};
+			resource.id = image.id;
+			resource.path = image.path;
+			module.images.push_back(resource);
+		}
 
 		module.specializationConstants.data.shrink_to_fit();
 		module.specializationConstants.specializationInfo.shrink_to_fit();
+		module.images.shrink_to_fit();
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int, int) {

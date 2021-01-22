@@ -96,6 +96,7 @@ add_library(graphicsModule
 	src/Image.cpp
 	src/X11.cpp
 	src/Calculate.cpp
+	src/ModuleConfig.cpp
 )
 target_include_directories(graphicsModule
 	PRIVATE

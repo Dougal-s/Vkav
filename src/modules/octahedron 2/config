@@ -1,22 +1,26 @@
 
 vertexCount = 24
 
-image = "./normal.jpg"
+[resources]
+
+(id=4) image normal = "./normal.jpg"
+
+[parameters]
 
 (id=11) float size = 1
-// distance from the camera
+# distance from the camera
 (id=12) float distance = 10
 (id=13) float yPos = -0.0
-// field of view
+# field of view
 (id=14) float fov = 1.55
 
-// Rotations per minute completed by the octahedron
+# Rotations per minute completed by the octahedron
 (id=15) float rpm = 6
-// rate at which the octahedron rises and falls
+# rate at which the octahedron rises and falls
 (id=16) float verticalFreq = 10
 (id=17) float verticalDistance = 0.3
 
-// Adjusts the size of the octahedron
+# Adjusts the size of the octahedron
 (id=18) float reactivity = 9
 
 (id=19) float outlineWidth = 0.0
@@ -26,40 +30,40 @@ image = "./normal.jpg"
 (id=22) float amplitude = 6
 
 (id=23) float interpolationFactor = 1
-// Bar color 1
+# Bar color 1
 (id=24) float red = 0.314
 (id=25) float green = 0.314
 (id=26) float blue = 0.792
 (id=27) float alpha = 1
-// Bar Color 2
+# Bar Color 2
 (id=28) float red = 0.666
 (id=29) float green = 0.0
 (id=30) float blue = 0.0
 (id=31) float alpha = 1
-// Octahedron Color
+# Octahedron Color
 (id=32) float red = 0.18039215686
 (id=33) float green = 0.20392156862
 (id=34) float blue = 0.21176470588
 (id=35) float alpha = 1
 
-// Floor
+# Floor
 (id=36) float floorY = -3
 (id=37) float red = 0.18039215686
 (id=38) float green = 0.20392156862
 (id=39) float blue = 0.21176470588
 
-// Lighting
+# Lighting
 (id=40) float reactivity = 4
 (id=41) float strength = 40
-// position relative to view
-(id=42) float xPos = 3 // left right
-(id=43) float yPos = 3 // up down
-(id=44) float zPos = 1 // backwards forwards
-// octahedron
+# position relative to view
+(id=42) float xPos = 3 # left right
+(id=43) float yPos = 3 # up down
+(id=44) float zPos = 1 # backwards forwards
+# octahedron
 (id=45) float ambient = 0.3
 (id=46) float diffuse = 0.9
 (id=47) float specular = 0.2
-// floor
+# floor
 (id=48) float ambient = 0.0
 (id=49) float diffuse = 0.2
 (id=50) float specular = 0.8

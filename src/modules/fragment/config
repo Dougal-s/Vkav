@@ -1,6 +1,8 @@
 
-// Must be a multiple of 3
+# Must be a multiple of 3
 vertexCount = 729
+
+[parameters]
 
 (id=11) float radius = 200
 (id=12) float reactivity = 10
@@ -10,7 +12,7 @@ vertexCount = 729
 (id=15) float blue = 0.792/2
 (id=16) float alpha = 1
 
-// Light
+# Light
 
 (id=17) float red = 0.666
 (id=18) float green = -0.3

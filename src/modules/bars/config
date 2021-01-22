@@ -1,4 +1,6 @@
 
+[parameters]
+
 (id=11) int barWidth = 4
 (id=12) int barGap = 2
 
@@ -15,9 +17,9 @@
 (id=19) float width = 1
 (id=20) float height = 0.5
 
-// radians clockwise
+# radians clockwise
 (id=21) float rotation = 0
 
-// applied last
+# applied last
 (id=22) float xOffset = 0
 (id=23) float yOffset = 0.5

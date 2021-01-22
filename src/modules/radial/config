@@ -1,4 +1,6 @@
 
+[parameters]
+
 (id=11) int originalRadius = 128
 (id=12) int centerLineWidth = 2
 
