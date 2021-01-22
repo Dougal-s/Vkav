@@ -117,23 +117,27 @@ else()
 	target_link_libraries(graphicsModule PRIVATE ${GLFW})
 endif()
 
-set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
-set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
-
 if (DEFINED VULKAN_SDK_PATH)
 	if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 		target_include_directories(graphicsModule PRIVATE ${VULKAN_SDK_PATH}/x86_64/include)
 		target_link_libraries(graphicsModule PRIVATE -L${VULKAN_SDK_PATH}/x86_64/lib)
 		target_link_libraries(graphicsModule PRIVATE vulkan)
-		set(VULKAN_SDK_LIB_PATH ${VULKAN_SDK_PATH}/x86_64/lib)
-		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/x86_64/etc/vulkan/explicit_layer.d)
+		
+		set(VULKAN_SDK_LIB_PATH "${VULKAN_SDK_PATH}/x86_64/lib")
+		set(VULKAN_SDK_LAYER_PATH "${VULKAN_SDK_PATH}/x86_64/etc/vulkan/explicit_layer.d")
+
+		set(ENV_VARS LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH})
 	elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 	elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 		target_include_directories(graphicsModule PRIVATE ${VULKAN_SDK_PATH}/macOS/include)
 		target_link_libraries(graphicsModule PRIVATE -L${VULKAN_SDK_PATH}/macOS/lib)
 		target_link_libraries(graphicsModule PRIVATE vulkan)
-		set(VULKAN_ICD_FILENAMES ${VULKAN_SDK_PATH}/macOS/etc/vulkan/icd.d/MoltenVK_icd.json)
-		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/macOS/etc/vulkan/explicit_layer.d)
+
+		set(VULKAN_ICD_FILENAMES "${VULKAN_SDK_PATH}/macOS/etc/vulkan/icd.d/MoltenVK_icd.json")
+		set(VULKAN_SDK_DYLIB_PATH "${VULKAN_SDK_PATH}/macOS/lib:$DYLD_LIBRARY_PATH")
+		set(VULKAN_SDK_LAYER_PATH "${VULKAN_SDK_PATH}/macOS/etc/vulkan/explicit_layer.d")
+
+		set(ENV_VARS VK_ICD_FILENAMES=${VULKAN_ICD_FILENAMES} DYLD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH})
 	endif()
 else()
 	find_package(Vulkan REQUIRED)
@@ -265,7 +269,7 @@ file(GLOB src
 )
 add_custom_target(format clang-format -style=file -i ${src})
 
-add_custom_target(run VK_ICD_FILENAMES=${VULKAN_ICD_FILENAMES} LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./vkav)
+add_custom_target(run ${ENV_VARS} ./vkav)
 
 # Unit Tests
 option(BUILD_TESTS "Build unit tests" OFF)
