@@ -18,9 +18,13 @@
 #include "Audio.hpp"
 #include "Data.hpp"
 
+#ifdef NDEBUG
+#define LOCATION
+#else
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 #define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#endif
 
 class AudioSampler::AudioSamplerImpl {
 public:

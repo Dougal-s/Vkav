@@ -27,9 +27,13 @@
 
 #include "Settings.hpp"
 
+#ifdef NDEBUG
+#define LOCATION
+#else
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 #define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#endif
 
 std::string_view parseAsString(std::string_view string) {
 	if ((string.front() == '"') ^ (string.back() == '"'))
