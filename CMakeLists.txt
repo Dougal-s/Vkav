@@ -185,7 +185,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES 
 endif()
 
 if (${CMAKE_BUILD_TYPE} MATCHES Release)
-	add_custom_command(TARGET vkav POST_BUILD COMMAND ${CMAKE_STRIP} --strip-all vkav)
+	add_custom_command(TARGET vkav POST_BUILD COMMAND ${CMAKE_STRIP} vkav)
 endif()
 
 # Installer
