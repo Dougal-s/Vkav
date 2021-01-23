@@ -1610,7 +1610,7 @@ private:
 	}
 
 	void createDescriptorPool() {
-		std::vector<VkDescriptorPoolSize> poolSizes(4);
+		std::array<VkDescriptorPoolSize, 4> poolSizes = {};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount =
 		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
@@ -1620,19 +1620,13 @@ private:
 		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		poolSizes[2].descriptorCount =
 		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
-		poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[3].descriptorCount =
-		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
 
 		size_t resourceCount = 0;
 		for (auto& module : modules) resourceCount += module.images.size();
 
-		if (resourceCount > 0) {
-			poolSizes.push_back({});
-			poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSizes[4].descriptorCount =
-			    static_cast<uint32_t>(swapChainImages.size() * resourceCount);
-		}
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[3].descriptorCount =
+		    static_cast<uint32_t>(swapChainImages.size() * (resourceCount + modules.size()));
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
