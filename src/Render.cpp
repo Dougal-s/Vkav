@@ -1026,9 +1026,7 @@ private:
 
 		for (uint32_t i = 0, module = 0; module < modules.size(); ++module) {
 			std::array<VkDescriptorSetLayout, 2> moduleDescriptorSetLayouts = {
-				commonDescriptorSetLayout,
-				descriptorSetLayouts[module]
-			};
+			    commonDescriptorSetLayout, descriptorSetLayouts[module]};
 			VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 			pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pipelineLayoutInfo.setLayoutCount = moduleDescriptorSetLayouts.size();
@@ -1224,12 +1222,11 @@ private:
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-							  pipelineLayouts[0], 0, 1,
-							  &commonDescriptorSets[i], 0, nullptr);
+			                        pipelineLayouts[0], 0, 1, &commonDescriptorSets[i], 0, nullptr);
 			for (size_t module = 0; module < modules.size(); ++module) {
-  				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-  								  pipelineLayouts[module], 1, 1,
-  								  &descriptorSets[i][module], 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+				                        pipelineLayouts[module], 1, 1, &descriptorSets[i][module],
+				                        0, nullptr);
 				for (const auto& layer : modules[module].layers) {
 					vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 					                  layer.graphicsPipeline);
@@ -1517,7 +1514,8 @@ private:
 			dataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			dataLayoutBinding.descriptorCount = 1;
 			dataLayoutBinding.pImmutableSamplers = nullptr;
-			dataLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+			dataLayoutBinding.stageFlags =
+			    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
 			VkDescriptorSetLayoutBinding lAudioBufferLayoutBinding = {};
 			lAudioBufferLayoutBinding.binding = 1;
@@ -1538,17 +1536,15 @@ private:
 			VkDescriptorSetLayoutBinding backgroundSamplerLayoutBinding = {};
 			backgroundSamplerLayoutBinding.binding = 3;
 			backgroundSamplerLayoutBinding.descriptorCount = 1;
-			backgroundSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			backgroundSamplerLayoutBinding.descriptorType =
+			    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			backgroundSamplerLayoutBinding.pImmutableSamplers = nullptr;
 			backgroundSamplerLayoutBinding.stageFlags =
 			    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 			std::array<VkDescriptorSetLayoutBinding, 4> bindings = {
-				dataLayoutBinding,
-				lAudioBufferLayoutBinding,
-				rAudioBufferLayoutBinding,
-				backgroundSamplerLayoutBinding
-			};
+			    dataLayoutBinding, lAudioBufferLayoutBinding, rAudioBufferLayoutBinding,
+			    backgroundSamplerLayoutBinding};
 
 			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -1556,7 +1552,7 @@ private:
 			layoutInfo.pBindings = bindings.data();
 
 			if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr,
-											&commonDescriptorSetLayout) != VK_SUCCESS)
+			                                &commonDescriptorSetLayout) != VK_SUCCESS)
 				throw std::runtime_error(LOCATION "failed to create descriptor set layout!");
 		}
 
@@ -1654,7 +1650,7 @@ private:
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size() * 2 *modules.size());
+		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size() * 2 * modules.size());
 
 		if (vkCreateDescriptorPool(device.device, &poolInfo, nullptr, &descriptorPool) !=
 		    VK_SUCCESS)
@@ -1680,8 +1676,8 @@ private:
 		for (size_t i = 0; i < swapChainImages.size(); ++i) {
 			descriptorSets[i].resize(modules.size());
 
-			if (vkAllocateDescriptorSets(device.device, &commonAllocInfo, &commonDescriptorSets[i]) !=
-			    VK_SUCCESS)
+			if (vkAllocateDescriptorSets(device.device, &commonAllocInfo,
+			                             &commonDescriptorSets[i]) != VK_SUCCESS)
 				throw std::runtime_error(LOCATION "failed to allocate descriptor sets!");
 
 			if (vkAllocateDescriptorSets(device.device, &allocInfo, descriptorSets[i].data()) !=
@@ -1734,12 +1730,11 @@ private:
 				descriptorWrites[3].dstSet = commonDescriptorSets[i];
 
 				vkUpdateDescriptorSets(device.device,
-									   static_cast<uint32_t>(descriptorWrites.size()),
-									   descriptorWrites.data(), 0, nullptr);
+				                       static_cast<uint32_t>(descriptorWrites.size()),
+				                       descriptorWrites.data(), 0, nullptr);
 			}
 
 			for (size_t module = 0; module < modules.size(); ++module) {
-
 				const size_t resourceCount = modules[module].images.size();
 
 				std::vector<VkDescriptorImageInfo> moduleImageInfos{resourceCount};
