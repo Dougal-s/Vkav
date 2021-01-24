@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_compile_options(
 	"$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra;-Wpedantic>"
 	"$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
-	"$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
+	"$<$<CONFIG:RELEASE>:-O3;-DNDEBUG>"
 )
 
 add_link_options(
@@ -122,7 +122,7 @@ if (DEFINED VULKAN_SDK_PATH)
 		target_include_directories(graphicsModule PRIVATE ${VULKAN_SDK_PATH}/x86_64/include)
 		target_link_libraries(graphicsModule PRIVATE -L${VULKAN_SDK_PATH}/x86_64/lib)
 		target_link_libraries(graphicsModule PRIVATE vulkan)
-		
+
 		set(VULKAN_SDK_LIB_PATH "${VULKAN_SDK_PATH}/x86_64/lib")
 		set(VULKAN_SDK_LAYER_PATH "${VULKAN_SDK_PATH}/x86_64/etc/vulkan/explicit_layer.d")
 
