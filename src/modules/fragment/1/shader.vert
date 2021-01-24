@@ -9,14 +9,14 @@ layout(constant_id = 4) const int vertexCount      = 1;
 layout(constant_id = 11) const float radius = 0.3;
 layout(constant_id = 12) const float reactivity = 1000;
 
-layout(binding = 0) uniform data {
+layout(set = 0, binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
 	uint time;
 };
 
-layout(binding = 1) uniform samplerBuffer lBuffer;
-layout(binding = 2) uniform samplerBuffer rBuffer;
+layout(set = 0, binding = 1) uniform samplerBuffer lBuffer;
+layout(set = 0, binding = 2) uniform samplerBuffer rBuffer;
 
 
 const float PI = 3.14159265359;

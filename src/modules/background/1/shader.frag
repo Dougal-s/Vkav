@@ -15,12 +15,12 @@ layout(constant_id = 14) const float blur = 15.0;
 
 layout(constant_id = 15) const float maxBlur = 0.01;
 
-layout(binding = 0) uniform audioVolume {
+layout(set = 0, binding = 0) uniform audioVolume {
 	float lVolume;
 	float rVolume;
 };
 
-layout(binding = 3) uniform sampler2D backgroundImage;
+layout(set = 0, binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) in vec2 fragTexCoord;
 

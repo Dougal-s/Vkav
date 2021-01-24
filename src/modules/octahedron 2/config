@@ -3,7 +3,7 @@ vertexCount = 24
 
 [resources]
 
-(id=4) image normal = "./normal.jpg"
+(id=0) image normal = "./normal.jpg"
 
 [parameters]
 

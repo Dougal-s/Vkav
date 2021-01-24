@@ -1,6 +1,6 @@
 
 [resources]
-(id=4) image logo = "/home/dougal/Pictures/Logo/Logo.png"
+(id=0) image logo = "/home/dougal/Pictures/Logo/Logo.png"
 
 [parameter]
 (id=11) int radius = 128

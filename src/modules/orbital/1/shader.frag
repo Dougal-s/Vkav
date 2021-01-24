@@ -28,14 +28,14 @@ layout(constant_id = 25) const float blue = 0.204;
 
 vec3 color = vec3(red, green, blue);
 
-layout(binding = 0) uniform data {
+layout(set = 0, binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
 	uint time;
 };
 
-layout(binding = 1) uniform samplerBuffer lBuffer;
-layout(binding = 2) uniform samplerBuffer rBuffer;
+layout(set = 0, binding = 1) uniform samplerBuffer lBuffer;
+layout(set = 0, binding = 2) uniform samplerBuffer rBuffer;
 
 layout(location = 0) out vec4 outColor;
 

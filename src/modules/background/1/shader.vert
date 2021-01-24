@@ -4,7 +4,7 @@
 layout(constant_id = 2) const int width  = 1;
 layout(constant_id = 3) const int height = 1;
 
-layout(binding = 3) uniform sampler2D backgroundImage;
+layout(set = 0, binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) out vec2 fragTexCoord;
 
