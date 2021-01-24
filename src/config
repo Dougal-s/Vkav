@@ -51,8 +51,7 @@ sampleRate = 5625
 channels = 2
 
 /**
- * Framerate limiter. Set to 0 to disable the fps limiter.
- * Fps will always be bounded by the audio update rate.
+ * Framerate limiter. Set to 0 to enable VSync and -1 to disable the fps limiter.
  */
 fpsLimit = 0
 

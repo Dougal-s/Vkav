@@ -862,6 +862,8 @@ private:
 
 	VkPresentModeKHR chooseSwapPresentMode(
 	    const std::vector<VkPresentModeKHR>& availablePresentModes) {
+		if (settings.vsync) return VK_PRESENT_MODE_FIFO_KHR;
+
 		VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
 		for (const auto& availablePresentMode : availablePresentModes) {

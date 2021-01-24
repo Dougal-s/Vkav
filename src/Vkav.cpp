@@ -136,6 +136,7 @@ namespace {
 				fpsLimit = calculate<size_t>(it->second);
 			else
 				WARN_UNDEFINED(fpsLimit);
+			renderSettings.vsync = (fpsLimit == 0);
 
 			std::clog << "Initialising audio" << std::endl;
 			audioSampler = AudioSampler(audioSettings);
@@ -154,19 +155,21 @@ namespace {
 
 		void run() {
 			int numFrames = 0;
-			std::chrono::microseconds targetFrameTime(1000000 / (fpsLimit ? fpsLimit : 89));
-			auto lastFrame = std::chrono::high_resolution_clock::now();
+			const std::chrono::microseconds targetFrameTime{(fpsLimit ? 1000000 / fpsLimit : 0)};
+			auto lastFrame = std::chrono::steady_clock::now();
 			auto lastUpdate = std::chrono::steady_clock::now();
 
 			while (audioSampler.running()) {
 				if (audioSampler.modified()) {
-					lastFrame = std::chrono::high_resolution_clock::now();
 					audioSampler.copyData(audioData);
 					process.processSignal(audioData);
-					if (!renderer.drawFrame(audioData)) break;
-					++numFrames;
-					std::this_thread::sleep_until(lastFrame + targetFrameTime);
 				}
+
+				if (fpsLimit) std::this_thread::sleep_until(lastFrame + targetFrameTime);
+				if (!renderer.drawFrame(audioData)) break;
+
+				lastFrame = std::chrono::steady_clock::now();
+				++numFrames;
 
 				auto currentTime = std::chrono::steady_clock::now();
 				if (std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastUpdate)
@@ -176,8 +179,6 @@ namespace {
 					          << std::endl;
 					numFrames = 0;
 					lastUpdate = currentTime;
-					if (!fpsLimit)
-						targetFrameTime = std::chrono::microseconds(1000000 / audioSampler.ups());
 				}
 			}
 

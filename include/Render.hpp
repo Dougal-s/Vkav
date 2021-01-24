@@ -39,6 +39,8 @@ public:
 		std::filesystem::path backgroundImage;
 
 		std::optional<uint32_t> physicalDevice;
+
+		bool vsync;
 	};
 
 	Renderer() = default;
