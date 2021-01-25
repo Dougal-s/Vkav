@@ -1,4 +1,3 @@
-#ifdef PULSEAUDIO_ASYNC
 // C++ standard libraries
 #include <atomic>
 #include <chrono>
@@ -263,4 +262,3 @@ int AudioSampler::ups() const { return audioSamplerImpl->ups.load(std::memory_or
 void AudioSampler::copyData(AudioData& audioData) { audioSamplerImpl->copyData(audioData); }
 
 void AudioSampler::rethrowExceptions() { return audioSamplerImpl->rethrowExceptions(); }
-#endif
