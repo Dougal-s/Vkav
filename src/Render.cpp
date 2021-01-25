@@ -1807,6 +1807,10 @@ private:
 		ModuleConfig config;
 		try {
 			config = parseConfig(file);
+		} catch (const ParseException& e) {
+			throw std::runtime_error(std::string(LOCATION) + "Failed to parse module config '" +
+			                         configFilePath.native() + "':\n\tline " +
+			                         std::to_string(e.line()) + ":" + e.what());
 		} catch (const std::exception& e) {
 			throw std::runtime_error(std::string(LOCATION) + "Failed to parse module config '" +
 			                         configFilePath.native() + "':\n\t" + e.what());

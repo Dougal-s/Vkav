@@ -7,8 +7,11 @@
 TEST(testParse, basic) {
 	std::stringstream stream{
 		"vertexCount = 24\n"
+		"\n"
 		"[resources]\n"
+		"\n"
 		"(id=4) image normal = \"./normal.jpg\"\n"
+		"\n"
 		"[parameters]\n"
 		"(id=11) int size = 1\n"
 		"# position relative to view\n"

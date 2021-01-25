@@ -28,18 +28,25 @@ ModuleConfig parseConfig(std::istream& stream) {
 	enum class Section { global, parameters, resources };
 	Section section = Section::global;
 
-	while ((stream >> std::ws).good()) {
+	size_t lineNum = 0;
+	std::string line_str;
+	while (std::getline(stream, line_str)) {
+		++lineNum;
+
+		std::stringstream line{std::move(line_str)};
+		if ((line >> std::ws).eof()) continue;
+
 		// discard comment
-		if (stream.peek() == '#') {
-			stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+		if (line.peek() == '#') {
+			line.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 			continue;
 		}
 
 		// sections
-		if (stream.peek() == '[') {
+		if (line.peek() == '[') {
 			std::string sectionName;
-			if (!std::getline(stream.ignore(), sectionName, ']'))
-				throw std::runtime_error("failed to parse section name!");
+			if (!std::getline(line.ignore(), sectionName, ']'))
+				throw ParseException("failed to parse section name!", lineNum);
 
 			if (sectionName == "global")
 				section = Section::global;
@@ -48,8 +55,9 @@ ModuleConfig parseConfig(std::istream& stream) {
 			else if (sectionName == "resources")
 				section = Section::resources;
 			else
-				throw std::runtime_error("unrecognized section name '" + sectionName + "'");
-			continue;
+				throw ParseException("unrecognized section name '" + sectionName + "'", lineNum);
+
+			if ((line >> std::ws).eof()) continue;
 		}
 
 		// settings
@@ -57,8 +65,8 @@ ModuleConfig parseConfig(std::istream& stream) {
 			std::string name;
 			std::string value;
 
-			std::getline(stream, name, '=');
-			std::getline(stream >> std::ws, value);
+			std::getline(line, name, '=');
+			std::getline(line >> std::ws, value);
 
 			value = value.substr(0, value.find('#'));
 
@@ -70,22 +78,23 @@ ModuleConfig parseConfig(std::istream& stream) {
 			else if (name == "vertexCount")
 				config.vertexCount = calculate<size_t>(value);
 			else
-				throw std::runtime_error("unrecognized setting '" + name + "'");
+				throw ParseException("unrecognized setting '" + name + "'", lineNum);
 		} else {
 			uint32_t id;
-			if (!(stream >> req<'('> >> req<'i', 'd'> >> req<'='> >> id >> req<')'>))
-				throw std::runtime_error("expected line to start with '(id=ID)'");
+			if (!(line >> req<'('> >> req<'i', 'd'> >> req<'='> >> id >> req<')'>))
+				throw ParseException("expected line to start with '(id=ID)'", lineNum);
 
 			std::string type;
 			std::string name;
 			std::string valueStr;
 
-			stream >> type >> name >> std::ws;
-			if (stream.get() != '=')
-				throw std::runtime_error(std::string("expected '=' instead of '") +
-				                         static_cast<char>(stream.unget().get()) + "'");
+			line >> type >> name >> std::ws;
+			if (line.get() != '=')
+				throw ParseException(std::string("expected '=' instead of '") +
+				                         static_cast<char>(line.unget().get()) + "'",
+				                     lineNum);
 
-			std::getline(stream >> std::ws, valueStr);
+			std::getline(line >> std::ws, valueStr);
 			valueStr = valueStr.substr(0, valueStr.find('#'));
 
 			switch (section) {
@@ -99,7 +108,7 @@ ModuleConfig parseConfig(std::istream& stream) {
 					else if (type == "float")
 						param.value = calculate<float>(valueStr);
 					else
-						throw std::runtime_error("Unrecognized parameter type `" + type + "`");
+						throw ParseException("Unrecognized parameter type `" + type + "`", lineNum);
 
 					config.params.push_back(param);
 					break;
@@ -111,7 +120,7 @@ ModuleConfig parseConfig(std::istream& stream) {
 					if (type == "image")
 						config.images.push_back({id, path});
 					else
-						throw std::runtime_error("Unrecognized resource type `" + type + "`");
+						throw ParseException("Unrecognized resource type `" + type + "`", lineNum);
 					break;
 				}
 			}
