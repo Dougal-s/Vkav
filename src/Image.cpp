@@ -6,21 +6,21 @@
 
 // For png files
 #ifndef DISABLE_PNG
-#include <png.h>
+	#include <png.h>
 #endif
 // for jpeg files
 #ifndef DISABLE_JPEG
-#include <jpeglib.h>
+	#include <jpeglib.h>
 #endif
 
 #include "Image.hpp"
 
 #ifdef NDEBUG
-#define LOCATION
+	#define LOCATION
 #else
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+	#define STR_HELPER(x) #x
+	#define STR(x) STR_HELPER(x)
+	#define LOCATION __FILE__ ":" STR(__LINE__) ": "
 #endif
 
 class ImageFile::ImageImpl {
@@ -174,11 +174,11 @@ namespace {
 			jpeg_stdio_src(&cInfo, file);
 			jpeg_read_header(&cInfo, TRUE);
 
-#ifdef JCS_ALPHA_EXTENSIONS
+	#ifdef JCS_ALPHA_EXTENSIONS
 			cInfo.out_color_space = JCS_EXT_RGBA;
-#else
+	#else
 			cInfo.out_color_space = JCS_RGB;
-#endif
+	#endif
 
 			jpeg_start_decompress(&cInfo);
 
@@ -191,7 +191,7 @@ namespace {
 			while (cInfo.output_scanline < cInfo.output_height) {
 				image[cInfo.output_scanline] = new unsigned char[rowSize];
 				jpeg_read_scanlines(&cInfo, image + cInfo.output_scanline, 1);
-#ifndef JCS_ALPHA_EXTENSIONS
+	#ifndef JCS_ALPHA_EXTENSIONS
 				for (int pixel = cInfo.output_width - 1; pixel >= 0; --pixel) {
 					image[cInfo.output_scanline - 1][4 * pixel] =
 					    image[cInfo.output_scanline - 1][3 * pixel];
@@ -202,7 +202,7 @@ namespace {
 					image[cInfo.output_scanline - 1][4 * pixel + 3] =
 					    image[cInfo.output_scanline - 1][3 * pixel + 3];
 				}
-#endif
+	#endif
 			}
 
 			jpeg_finish_decompress(&cInfo);

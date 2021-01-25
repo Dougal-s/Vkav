@@ -12,27 +12,27 @@
 #include <utility>
 
 #ifdef LINUX
-#include <pwd.h>
-#include <sys/types.h>
-#include <unistd.h>
+	#include <pwd.h>
+	#include <sys/types.h>
+	#include <unistd.h>
 #elif defined(MACOS)
-#include <pwd.h>
-#include <sys/types.h>
-#include <unistd.h>
+	#include <pwd.h>
+	#include <sys/types.h>
+	#include <unistd.h>
 #elif defined(WINDOWS)
-#include <Combaseapi.h>
-#include <Shlobj_api.h>
+	#include <Combaseapi.h>
+	#include <Shlobj_api.h>
 #else
 #endif
 
 #include "Settings.hpp"
 
 #ifdef NDEBUG
-#define LOCATION
+	#define LOCATION
 #else
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+	#define STR_HELPER(x) #x
+	#define STR(x) STR_HELPER(x)
+	#define LOCATION __FILE__ ":" STR(__LINE__) ": "
 #endif
 
 std::string_view parseAsString(std::string_view string) {

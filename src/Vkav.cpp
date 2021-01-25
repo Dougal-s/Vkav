@@ -24,9 +24,9 @@
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 #ifdef NDEBUG
-#define LOCATION
+	#define LOCATION
 #else
-#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+	#define LOCATION __FILE__ ":" STR(__LINE__) ": "
 #endif
 
 namespace {
