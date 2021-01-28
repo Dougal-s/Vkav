@@ -37,8 +37,6 @@
 namespace {
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-	const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
-
 	const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 #ifdef NDEBUG
@@ -506,8 +504,13 @@ private:
 	}
 
 	void createInstance() {
-		if (enableValidationLayers && !checkValidationLayerSupport())
-			throw std::runtime_error(LOCATION "validation layers unavailable!");
+		const auto extensions = getRequiredExtensions();
+		if (!checkRequiredExtensionsPresent(extensions))
+			throw std::runtime_error(LOCATION "missing required vulkan extension!");
+
+		const auto layers = getRequiredLayers();
+		if (!checkRequiredLayersPresent(layers))
+			throw std::runtime_error(LOCATION "missing required vulkan layers!");
 
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -520,20 +523,10 @@ private:
 		VkInstanceCreateInfo instanceInfo = {};
 		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instanceInfo.pApplicationInfo = &appInfo;
-
-		auto extensions = getRequiredExtensions();
-		if (!checkRequiredExtensionsPresent(extensions))
-			throw std::runtime_error(LOCATION "missing required vulkan extension!");
-
 		instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		instanceInfo.ppEnabledExtensionNames = extensions.data();
-
-		if constexpr (enableValidationLayers) {
-			instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			instanceInfo.ppEnabledLayerNames = validationLayers.data();
-		} else {
-			instanceInfo.enabledLayerCount = 0;
-		}
+		instanceInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+		instanceInfo.ppEnabledLayerNames = layers.data();
 
 		if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create a vulkan instance!");
@@ -569,13 +562,19 @@ private:
 		return requiredExtensions.empty();
 	}
 
-	bool checkValidationLayerSupport() {
+	std::vector<const char*> getRequiredLayers() const {
+		if constexpr (enableValidationLayers)
+			return {"VK_LAYER_LUNARG_standard_validation"};
+		else
+			return {};
+	}
+
+	bool checkRequiredLayersPresent(const std::vector<const char*>& layers) const {
 		uint32_t availableLayerCount = 0;
 		vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
 		std::vector<VkLayerProperties> availableLayers(availableLayerCount);
 		vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers.data());
-
-		std::set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
+		std::set<std::string> requiredLayers(layers.begin(), layers.end());
 
 		for (const auto& layer : availableLayers) requiredLayers.erase(layer.layerName);
 
@@ -717,6 +716,8 @@ private:
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 
+		const auto layers = getRequiredLayers();
+
 		VkDeviceCreateInfo deviceInfo = {};
 		deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceInfo.pQueueCreateInfos = queueInfos.data();
@@ -724,13 +725,8 @@ private:
 		deviceInfo.pEnabledFeatures = &deviceFeatures;
 		deviceInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-		if constexpr (enableValidationLayers) {
-			deviceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			deviceInfo.ppEnabledLayerNames = validationLayers.data();
-		} else {
-			deviceInfo.enabledLayerCount = 0;
-		}
+		deviceInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+		deviceInfo.ppEnabledLayerNames = layers.data();
 
 		if (vkCreateDevice(device.physicalDevice, &deviceInfo, nullptr, &device.device) !=
 		    VK_SUCCESS)
