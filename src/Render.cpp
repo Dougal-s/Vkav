@@ -289,11 +289,15 @@ public:
 		    device.device, swapChain, std::numeric_limits<uint64_t>::max(),
 		    imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			recreateSwapChain();
-			return true;
-		} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-			throw std::runtime_error(LOCATION "failed to acquire swap chain image!");
+		switch (result) {
+			case VK_SUCCESS:
+			case VK_SUBOPTIMAL_KHR:
+				break;
+			case VK_ERROR_OUT_OF_DATE_KHR:
+				recreateSwapChain();
+				return true;
+			default:
+				throw std::runtime_error(LOCATION "failed to acquire swap chain image!");
 		}
 
 		updateAudioBuffers(audioData, imageIndex);
@@ -331,12 +335,15 @@ public:
 
 		result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
-		    framebufferResized) {
-			framebufferResized = false;
-			recreateSwapChain();
-		} else if (result != VK_SUCCESS) {
-			throw std::runtime_error(LOCATION "failed to present swap chain image!");
+		switch (result) {
+			case VK_SUCCESS:
+				break;
+			case VK_ERROR_OUT_OF_DATE_KHR:
+			case VK_SUBOPTIMAL_KHR:
+				recreateSwapChain();
+				return true;
+			default:
+				throw std::runtime_error(LOCATION "failed to present swap chain image!");
 		}
 
 		currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -436,8 +443,6 @@ private:
 	std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences;
 	size_t currentFrame = 0;
 
-	bool framebufferResized = false;
-
 	// Member functions
 
 	void initWindow() {
@@ -471,8 +476,6 @@ private:
 
 		if (settings.window.hints.sticky) setSticky(window);
 #endif
-		glfwSetWindowUserPointer(window, this);
-		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
 		if (settings.window.position)
 			glfwSetWindowPos(window, settings.window.position->first,
@@ -1838,11 +1841,6 @@ private:
 		module.specializationConstants.data.shrink_to_fit();
 		module.specializationConstants.specializationInfo.shrink_to_fit();
 		module.images.shrink_to_fit();
-	}
-
-	static void framebufferResizeCallback(GLFWwindow* window, int, int) {
-		auto renderer = reinterpret_cast<RendererImpl*>(glfwGetWindowUserPointer(window));
-		renderer->framebufferResized = true;
 	}
 };
 
