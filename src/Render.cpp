@@ -532,7 +532,7 @@ private:
 			throw std::runtime_error(LOCATION "failed to create a vulkan instance!");
 	}
 
-	std::vector<const char*> getRequiredExtensions() {
+	std::vector<const char*> getRequiredExtensions() const {
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions;
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -547,7 +547,7 @@ private:
 		return extensions;
 	}
 
-	bool checkRequiredExtensionsPresent(const std::vector<const char*>& extensions) {
+	bool checkRequiredExtensionsPresent(const std::vector<const char*>& extensions) const {
 		uint32_t availableExtensionCount = 0;
 		vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
 		std::vector<VkExtensionProperties> availableExtensions(availableExtensionCount);
@@ -633,7 +633,7 @@ private:
 			throw std::runtime_error(LOCATION "failed to find a suitable GPU!");
 	}
 
-	bool isDeviceSuitable(VkPhysicalDevice device) {
+	bool isDeviceSuitable(VkPhysicalDevice device) const {
 		QueueFamilyIndices indices = findQueueFamilies(device);
 
 		bool extensionsSupported = checkDeviceExtensionSupport(device);
@@ -656,7 +656,7 @@ private:
 		       uniformBufferSizeAdequate;
 	}
 
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+	bool checkDeviceExtensionSupport(VkPhysicalDevice device) const {
 		uint32_t availableExtensionCount = 0;
 		vkEnumerateDeviceExtensionProperties(device, nullptr, &availableExtensionCount, nullptr);
 		std::vector<VkExtensionProperties> availableExtensions(availableExtensionCount);
@@ -670,7 +670,7 @@ private:
 		return requiredExtensions.empty();
 	}
 
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const {
 		QueueFamilyIndices indices;
 
 		uint32_t queueFamilyCount = 0;
@@ -818,7 +818,7 @@ private:
 		swapChainExtent = extent;
 	}
 
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const {
 		SwapChainSupportDetails details;
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
@@ -844,7 +844,7 @@ private:
 	}
 
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(
-	    const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+	    const std::vector<VkSurfaceFormatKHR>& availableFormats) const {
 		if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
 			return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
@@ -858,7 +858,7 @@ private:
 	}
 
 	VkPresentModeKHR chooseSwapPresentMode(
-	    const std::vector<VkPresentModeKHR>& availablePresentModes) {
+	    const std::vector<VkPresentModeKHR>& availablePresentModes) const {
 		if (settings.vsync) return VK_PRESENT_MODE_FIFO_KHR;
 
 		VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -873,7 +873,7 @@ private:
 		return bestMode;
 	}
 
-	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const {
 		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 			return capabilities.currentExtent;
 		} else {
@@ -937,7 +937,7 @@ private:
 		}
 	}
 
-	std::filesystem::path findModule(const std::string& moduleName) {
+	std::filesystem::path findModule(const std::string& moduleName) const {
 		if (std::filesystem::path(moduleName).is_absolute()) return moduleName;
 
 		for (auto& path : settings.moduleLocations)
