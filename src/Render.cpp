@@ -1784,17 +1784,6 @@ private:
 	}
 
 	static void readConfig(const std::filesystem::path& configFilePath, Module& module) {
-		module.specializationConstants.data.resize(5);
-
-		for (uint32_t offset = 0; offset < 5; ++offset) {
-			VkSpecializationMapEntry mapEntry = {};
-			mapEntry.constantID = offset;
-			mapEntry.offset = offset * sizeof(SpecializationConstant);
-			mapEntry.size = sizeof(SpecializationConstant);
-
-			module.specializationConstants.specializationInfo.push_back(mapEntry);
-		}
-
 		std::ifstream file(configFilePath);
 		if (!file.is_open()) {
 			std::cerr << "shader configuration file not found!" << std::endl;
