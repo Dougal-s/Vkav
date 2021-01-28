@@ -1428,9 +1428,6 @@ private:
 			throw std::invalid_argument(LOCATION "unsupported layout transition!");
 		}
 
-		barrier.srcAccessMask = 0;
-		barrier.dstAccessMask = 0;
-
 		vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1,
 		                     &barrier);
 
