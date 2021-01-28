@@ -499,8 +499,6 @@ private:
 		createAudioBuffers();
 		createModuleImages();
 		createBackgroundImage();
-		createBackgroundImageView();
-		createBackgroundImageSampler();
 		createDescriptorPool();
 		createDescriptorSets();
 		createCommandBuffers();
@@ -1298,39 +1296,22 @@ private:
 	}
 
 	void createModuleImages() {
-		VkSamplerCreateInfo samplerInfo = {};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		samplerInfo.anisotropyEnable = VK_FALSE;
-		samplerInfo.maxAnisotropy = 1;
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
-
 		for (auto& module : modules) {
 			for (auto& image : module.images) {
 				std::filesystem::path path = image.path;
 				if (!path.empty() && path.is_relative()) path = module.location / path;
 				createTextureImage(path, image.rsrc);
 				image.rsrc.view = createImageView(image.rsrc.image, VK_FORMAT_R8G8B8A8_UNORM);
-
-				if (vkCreateSampler(device.device, &samplerInfo, nullptr, &image.rsrc.sampler) !=
-				    VK_SUCCESS)
-					throw std::runtime_error(LOCATION "failed to create image sampler!");
+				image.rsrc.sampler = createImageSampler();
 			}
 		}
 	}
 
-	void createBackgroundImage() { createTextureImage(settings.backgroundImage, backgroundImage); }
+	void createBackgroundImage() {
+		createTextureImage(settings.backgroundImage, backgroundImage);
+		backgroundImage.view = createImageView(backgroundImage.image, VK_FORMAT_R8G8B8A8_UNORM);
+		backgroundImage.sampler = createImageSampler();
+	}
 
 	void createTextureImage(const std::filesystem::path& imagePath, Image& image) {
 		ImageFile img;
@@ -1459,10 +1440,6 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
-	void createBackgroundImageView() {
-		backgroundImage.view = createImageView(backgroundImage.image, VK_FORMAT_R8G8B8A8_UNORM);
-	}
-
 	VkImageView createImageView(VkImage image, VkFormat format) {
 		VkImageViewCreateInfo viewInfo = {};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1482,7 +1459,7 @@ private:
 		return imageView;
 	}
 
-	void createBackgroundImageSampler() {
+	VkSampler createImageSampler() {
 		VkSamplerCreateInfo samplerInfo = {};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -1501,9 +1478,11 @@ private:
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(device.device, &samplerInfo, nullptr, &backgroundImage.sampler) !=
-		    VK_SUCCESS)
+		VkSampler sampler;
+		if (vkCreateSampler(device.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create image sampler!");
+
+		return sampler;
 	}
 
 	void createDescriptorSetLayouts() {
