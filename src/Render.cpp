@@ -354,6 +354,11 @@ public:
 
 		cleanupSwapChain();
 
+		for (size_t i = 0; i < modules.size(); ++i)
+			vkDestroyPipelineLayout(device.device, pipelineLayouts[i], nullptr);
+
+		vkDestroyRenderPass(device.device, renderPass, nullptr);
+
 		vkDestroyDescriptorPool(device.device, descriptorPool, nullptr);
 
 		vkDestroyDescriptorSetLayout(device.device, commonDescriptorSetLayout, nullptr);
@@ -491,6 +496,7 @@ private:
 		createRenderPass();
 		discoverModules();
 		createDescriptorSetLayouts();
+		createGraphicsPipelineLayouts();
 		createGraphicsPipelines();
 		createFramebuffers();
 		createCommandPool();
@@ -947,8 +953,26 @@ private:
 		throw std::invalid_argument(LOCATION "Unable to locate module!");
 	}
 
-	void createGraphicsPipelines() {
+	void createGraphicsPipelineLayouts() {
 		pipelineLayouts.resize(modules.size());
+
+		for (uint32_t module = 0; module < modules.size(); ++module) {
+			std::array<VkDescriptorSetLayout, 2> moduleDescSetLayouts = {
+			    commonDescriptorSetLayout, descriptorSetLayouts[module]};
+			VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+			pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+			pipelineLayoutInfo.setLayoutCount = moduleDescSetLayouts.size();
+			pipelineLayoutInfo.pSetLayouts = moduleDescSetLayouts.data();
+			pipelineLayoutInfo.pushConstantRangeCount = 0;
+			pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+			if (vkCreatePipelineLayout(device.device, &pipelineLayoutInfo, nullptr,
+			                           &pipelineLayouts[module]) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to create pipeline layout!");
+		}
+	}
+
+	void createGraphicsPipelines() {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 0;
@@ -967,16 +991,16 @@ private:
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
-		VkRect2D scissors = {};
-		scissors.offset = {0, 0};
-		scissors.extent = swapChainExtent;
+		VkRect2D scissor = {};
+		scissor.offset = {0, 0};
+		scissor.extent = swapChainExtent;
 
 		VkPipelineViewportStateCreateInfo viewportState = {};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
 		viewportState.pViewports = &viewport;
 		viewportState.scissorCount = 1;
-		viewportState.pScissors = &scissors;
+		viewportState.pScissors = &scissor;
 
 		VkPipelineRasterizationStateCreateInfo rasterizer = {};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -1013,86 +1037,74 @@ private:
 		size_t pipelineCount = 0;
 		for (const auto& module : modules) pipelineCount += module.layers.size();
 
-		std::vector<VkPipelineShaderStageCreateInfo> vertShaderStageInfos(pipelineCount);
-		std::vector<VkPipelineShaderStageCreateInfo> fragShaderStageInfos(pipelineCount);
-		std::vector<VkSpecializationInfo> specializationInfos(pipelineCount);
-		std::vector<std::array<VkPipelineShaderStageCreateInfo, 2>> shaderStages(pipelineCount);
-		std::vector<VkGraphicsPipelineCreateInfo> pipelineInfos(pipelineCount);
-		std::vector<VkPipeline> pipelines;
+		std::vector<VkSpecializationInfo> specializationInfos;
+		specializationInfos.reserve(modules.size());
+		std::vector<std::array<VkPipelineShaderStageCreateInfo, 2>> shaderStages;
+		shaderStages.reserve(pipelineCount);
+		std::vector<VkGraphicsPipelineCreateInfo> pipelineInfos;
+		pipelineInfos.reserve(pipelineCount);
 
-		for (uint32_t i = 0, module = 0; module < modules.size(); ++module) {
-			std::array<VkDescriptorSetLayout, 2> moduleDescriptorSetLayouts = {
-			    commonDescriptorSetLayout, descriptorSetLayouts[module]};
-			VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-			pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-			pipelineLayoutInfo.setLayoutCount = moduleDescriptorSetLayouts.size();
-			pipelineLayoutInfo.pSetLayouts = moduleDescriptorSetLayouts.data();
-			pipelineLayoutInfo.pushConstantRangeCount = 0;
-			pipelineLayoutInfo.pPushConstantRanges = nullptr;
+		for (uint32_t module = 0; module < modules.size(); ++module) {
+			VkSpecializationInfo specializationInfo = {};
+			specializationInfo.mapEntryCount =
+			    modules[module].specializationConstants.specializationInfo.size();
+			specializationInfo.pMapEntries =
+			    modules[module].specializationConstants.specializationInfo.data();
+			specializationInfo.dataSize = modules[module].specializationConstants.data.size() *
+			                              sizeof(SpecializationConstant);
+			specializationInfo.pData = modules[module].specializationConstants.data.data();
+			specializationInfos.push_back(specializationInfo);
 
-			if (vkCreatePipelineLayout(device.device, &pipelineLayoutInfo, nullptr,
-			                           &pipelineLayouts[module]) != VK_SUCCESS)
-				throw std::runtime_error(LOCATION "failed to create pipeline layout!");
-
-			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer, ++i) {
-				pipelines.push_back(modules[module].layers[layer].graphicsPipeline);
-
-				specializationInfos[i] = {};
-				specializationInfos[i].mapEntryCount =
-				    modules[module].specializationConstants.specializationInfo.size();
-				specializationInfos[i].pMapEntries =
-				    modules[module].specializationConstants.specializationInfo.data();
-				specializationInfos[i].dataSize =
-				    modules[module].specializationConstants.data.size() *
-				    sizeof(SpecializationConstant);
-				specializationInfos[i].pData = modules[module].specializationConstants.data.data();
-
-				vertShaderStageInfos[i] = {};
-				vertShaderStageInfos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				vertShaderStageInfos[i].stage = VK_SHADER_STAGE_VERTEX_BIT;
-				vertShaderStageInfos[i].module = modules[module].layers[layer].vertShaderModule;
-				vertShaderStageInfos[i].pName = "main";
-				vertShaderStageInfos[i].pSpecializationInfo = &specializationInfos[i];
-
-				fragShaderStageInfos[i] = {};
-				fragShaderStageInfos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				fragShaderStageInfos[i].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-				fragShaderStageInfos[i].module = modules[module].layers[layer].fragShaderModule;
-				fragShaderStageInfos[i].pName = modules[module].moduleName.c_str();
-				fragShaderStageInfos[i].pSpecializationInfo = &specializationInfos[i];
-
+			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer) {
 				modules[module].specializationConstants.data[2] = swapChainExtent.width;
 				modules[module].specializationConstants.data[3] = swapChainExtent.height;
 
-				shaderStages[i] = {vertShaderStageInfos[i], fragShaderStageInfos[i]};
+				VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
+				vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+				vertShaderStageInfo.module = modules[module].layers[layer].vertShaderModule;
+				vertShaderStageInfo.pName = "main";
+				vertShaderStageInfo.pSpecializationInfo = &specializationInfos.back();
 
-				pipelineInfos[i] = {};
-				pipelineInfos[i].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-				pipelineInfos[i].stageCount = 2;
-				pipelineInfos[i].pStages = shaderStages[i].data();
-				pipelineInfos[i].pVertexInputState = &vertexInputInfo;
-				pipelineInfos[i].pInputAssemblyState = &inputAssembly;
-				pipelineInfos[i].pViewportState = &viewportState;
-				pipelineInfos[i].pRasterizationState = &rasterizer;
-				pipelineInfos[i].pMultisampleState = &multisampling;
-				pipelineInfos[i].pDepthStencilState = nullptr;
-				pipelineInfos[i].pColorBlendState = &colorBlending;
-				pipelineInfos[i].pDynamicState = nullptr;
-				pipelineInfos[i].layout = pipelineLayouts[module];
-				pipelineInfos[i].renderPass = renderPass;
-				pipelineInfos[i].subpass = 0;
-				pipelineInfos[i].basePipelineHandle = VK_NULL_HANDLE;
-				pipelineInfos[i].basePipelineIndex = 0;
+				VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+				fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+				fragShaderStageInfo.module = modules[module].layers[layer].fragShaderModule;
+				fragShaderStageInfo.pName = modules[module].moduleName.c_str();
+				fragShaderStageInfo.pSpecializationInfo = &specializationInfos[module];
+
+				shaderStages.push_back({vertShaderStageInfo, fragShaderStageInfo});
+
+				VkGraphicsPipelineCreateInfo pipelineInfo = {};
+				pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+				pipelineInfo.stageCount = 2;
+				pipelineInfo.pStages = shaderStages.back().data();
+				pipelineInfo.pVertexInputState = &vertexInputInfo;
+				pipelineInfo.pInputAssemblyState = &inputAssembly;
+				pipelineInfo.pViewportState = &viewportState;
+				pipelineInfo.pRasterizationState = &rasterizer;
+				pipelineInfo.pMultisampleState = &multisampling;
+				pipelineInfo.pDepthStencilState = nullptr;
+				pipelineInfo.pColorBlendState = &colorBlending;
+				pipelineInfo.pDynamicState = nullptr;
+				pipelineInfo.layout = pipelineLayouts[module];
+				pipelineInfo.renderPass = renderPass;
+				pipelineInfo.subpass = 0;
+				pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+				pipelineInfo.basePipelineIndex = 0;
+
+				pipelineInfos.push_back(pipelineInfo);
 			}
 		}
 
+		std::vector<VkPipeline> pipelines(pipelineCount);
 		if (vkCreateGraphicsPipelines(device.device, VK_NULL_HANDLE, pipelines.size(),
 		                              pipelineInfos.data(), nullptr, pipelines.data()))
 			throw std::runtime_error(LOCATION "failed to create graphics pipeline!");
 
-		for (uint32_t i = 0, module = 0; i < pipelineCount; ++module)
-			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer, ++i)
-				modules[module].layers[layer].graphicsPipeline = pipelines[i];
+		uint32_t i = 0;
+		for (auto& module : modules)
+			for (auto& layer : module.layers) layer.graphicsPipeline = pipelines[i++];
 	}
 
 	VkShaderModule createShaderModule(const std::vector<char>& shaderCode) {
@@ -1262,13 +1274,9 @@ private:
 		vkFreeCommandBuffers(device.device, commandPool,
 		                     static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
-		for (size_t i = 0; i < modules.size(); ++i) {
-			vkDestroyPipelineLayout(device.device, pipelineLayouts[i], nullptr);
+		for (size_t i = 0; i < modules.size(); ++i)
 			for (auto& graphicsPipeline : modules[i].layers)
 				vkDestroyPipeline(device.device, graphicsPipeline.graphicsPipeline, nullptr);
-		}
-
-		vkDestroyRenderPass(device.device, renderPass, nullptr);
 
 		for (auto imageView : swapChainImageViews)
 			vkDestroyImageView(device.device, imageView, nullptr);
@@ -1285,7 +1293,6 @@ private:
 
 		createSwapchain();
 		createImageViews();
-		createRenderPass();
 		createGraphicsPipelines();
 		createFramebuffers();
 		createCommandBuffers();
