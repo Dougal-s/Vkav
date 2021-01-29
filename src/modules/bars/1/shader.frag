@@ -4,8 +4,6 @@
 
 layout(constant_id = 0) const int audioSize        = 1;
 layout(constant_id = 1) const float smoothingLevel = 0.f;
-layout(constant_id = 2) const int width            = 1;
-layout(constant_id = 3) const int height           = 1;
 
 layout(constant_id = 11) const int barWidth = 4;
 layout(constant_id = 12) const int barGap = 2;
