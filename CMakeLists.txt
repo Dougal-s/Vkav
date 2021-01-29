@@ -88,7 +88,6 @@ endif()
 add_library(graphicsModule
 	src/Render.cpp
 	src/Image.cpp
-	src/X11.cpp
 	src/Calculate.cpp
 	src/ModuleConfig.cpp
 )
