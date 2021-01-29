@@ -1,6 +1,5 @@
 find_package(GTest REQUIRED)
 
-
 macro(create_test TESTNAME)
 	add_executable(${TESTNAME} ${ARGN})
 	target_include_directories(${TESTNAME} PRIVATE ${PROJECT_SOURCE_DIR}/include)
@@ -9,8 +8,6 @@ macro(create_test TESTNAME)
 	set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
 
 	add_test(${TESTNAME}_test ${TESTNAME})
-endmacro()
-
 endmacro()
 
 create_test(Calculate CalculateTests.cpp ${PROJECT_SOURCE_DIR}/src/Calculate.cpp)
