@@ -1790,7 +1790,7 @@ private:
 			VkSpecializationMapEntry mapEntry = {};
 			mapEntry.constantID = offset;
 			mapEntry.offset = offset * sizeof(SpecializationConstant);
-			mapEntry.size = sizeof(SpecializationConstant);
+			mapEntry.size = sizeof(uint32_t);
 
 			module.specializationConstants.specializationInfo.push_back(mapEntry);
 		}
@@ -1800,22 +1800,19 @@ private:
 			mapEntry.constantID = param.id;
 			mapEntry.offset =
 			    module.specializationConstants.data.size() * sizeof(SpecializationConstant);
-			mapEntry.size = sizeof(SpecializationConstant);
+			mapEntry.size = sizeof(uint32_t);
 
 			module.specializationConstants.data.push_back(param.value);
 			module.specializationConstants.specializationInfo.push_back(mapEntry);
 		}
 
+		module.images.reserve(config.images.size());
 		for (auto& image : config.images) {
 			Resource<Image> resource = {};
 			resource.id = image.id;
 			resource.path = image.path;
 			module.images.push_back(resource);
 		}
-
-		module.specializationConstants.data.shrink_to_fit();
-		module.specializationConstants.specializationInfo.shrink_to_fit();
-		module.images.shrink_to_fit();
 	}
 };
 
