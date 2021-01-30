@@ -15,12 +15,12 @@ layout(constant_id = 14) const float blur = 15.0;
 
 layout(constant_id = 15) const float maxBlur = 0.01;
 
-layout(binding = 0) uniform audioVolume {
+layout(set = 0, binding = 0) uniform audioVolume {
 	float lVolume;
 	float rVolume;
 };
 
-layout(binding = 3) uniform sampler2D backgroundImage;
+layout(set = 0, binding = 3) uniform sampler2D backgroundImage;
 
 layout(location = 0) in vec2 fragTexCoord;
 
@@ -30,7 +30,7 @@ void main() {
 	float volume = amplitude*(lVolume+rVolume);
 	float value = exp2(saturation*volume)-1;
 	float blurAmount = min(0.01*blur*volume, maxBlur);
-	float brightness = min(exp2(brightnessSensitivity*volume), 2);
+	float brightness = exp2(brightnessSensitivity*volume);
 
 	// blur
 	vec4 rgba = blurredTexture(backgroundImage, fragTexCoord, blurAmount);

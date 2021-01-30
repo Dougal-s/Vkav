@@ -4,8 +4,6 @@
 
 layout(constant_id = 0) const int audioSize        = 1;
 layout(constant_id = 1) const float smoothingLevel = 0.f;
-layout(constant_id = 2) const int width            = 1;
-layout(constant_id = 3) const int height           = 1;
 
 layout(constant_id = 11) const int barWidth = 4;
 layout(constant_id = 12) const int barGap = 2;
@@ -19,13 +17,13 @@ layout(constant_id = 17) const float blue = 0.204;
 
 vec3 color = vec3(red, green, blue);
 
-layout(binding = 0) uniform data {
+layout(set = 0, binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
 };
 
-layout(binding = 1) uniform samplerBuffer lBuffer;
-layout(binding = 2) uniform samplerBuffer rBuffer;
+layout(set = 0, binding = 1) uniform samplerBuffer lBuffer;
+layout(set = 0, binding = 2) uniform samplerBuffer rBuffer;
 
 layout(location = 0) in vec2 position;
 layout(location = 1) in vec2 screen;
@@ -35,7 +33,7 @@ layout(location = 0) out vec4 outColor;
 #include "../../smoothing/smoothing.glsl"
 
 void main() {
-	float brightness = exp2(20.f*brightnessSensitivity*(lVolume+rVolume));
+	float brightness = exp2(10.f*brightnessSensitivity*(lVolume+rVolume));
 
 	float totalBarSize = barWidth + barGap;
 	float center = 0.5*totalBarSize;

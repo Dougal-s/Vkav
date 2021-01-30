@@ -1,5 +1,7 @@
 
-(id=11) float amplitude = 3
+[parameters]
+
+(id=11) float amplitude = 1
 
 (id=12) float red = 0
 (id=13) float green = 0
@@ -10,13 +12,13 @@
 (id=16) float width = 2
 (id=17) float height = 2
 
-// radians clockwise
+# radians clockwise
 (id=18) float rotation = 0
 
 (id=19) float xOffset = 0
 (id=20) float yOffset = 0
 
-// height of the pillars. Increasing this will increase the height.
-(id=21) float top = 0.8;
-// height of the base. Increasing this will decrease the size of the base.
-(id=22) float bottom = 0;
+# height of the pillars. Increasing this will increase the height.
+(id=21) float top = 0.8
+# height of the base. Increasing this will decrease the size of the base.
+(id=22) float bottom = 0

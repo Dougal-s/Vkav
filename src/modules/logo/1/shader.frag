@@ -12,12 +12,12 @@ layout(constant_id = 12) const float radiusSensitivity = 1.f;
 layout(constant_id = 13) const float rotationSensitivity = 1.f;
 layout(constant_id = 14) const float rotationFrequency = 1.f;
 
-layout(binding = 0) uniform data {
+layout(set = 0, binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
 };
 
-layout(binding = 4) uniform sampler2D logo;
+layout(set = 1, binding = 0) uniform sampler2D logo;
 
 layout(location = 0) out vec4 outColor;
 

@@ -1,4 +1,3 @@
-#ifdef X11
 #include <GLFW/glfw3.h>
 
 #define GLFW_EXPOSE_NATIVE_X11
@@ -40,4 +39,3 @@ void setSticky(GLFWwindow* window) {
 	XSendEvent(glfwGetX11Display(), DefaultRootWindow(glfwGetX11Display()), false,
 	           SubstructureRedirectMask, reinterpret_cast<XEvent*>(&msgEvent));
 }
-#endif

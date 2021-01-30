@@ -1,4 +1,3 @@
-#ifdef PULSEAUDIO
 // C++ standard libraries
 #include <atomic>
 #include <chrono>
@@ -19,9 +18,13 @@
 #include "Audio.hpp"
 #include "Data.hpp"
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#ifdef NDEBUG
+	#define LOCATION
+#else
+	#define STR_HELPER(x) #x
+	#define STR(x) STR_HELPER(x)
+	#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#endif
 
 class AudioSampler::AudioSamplerImpl {
 public:
@@ -29,7 +32,7 @@ public:
 	std::atomic<bool> modified;
 	std::atomic<int> ups;
 
-	AudioSamplerImpl(const AudioSettings& audioSettings) {
+	AudioSamplerImpl(const Settings& audioSettings) {
 		init(audioSettings);
 
 		audioThread = std::thread([&]() {
@@ -83,7 +86,7 @@ private:
 	std::thread audioThread;
 
 	// settings
-	AudioSettings settings;
+	Settings settings;
 
 	// pulseaudio
 	pa_simple* s;
@@ -92,7 +95,7 @@ private:
 
 	int error;
 
-	void init(const AudioSettings& audioSettings) {
+	void init(const Settings& audioSettings) {
 		settings.channels = audioSettings.channels;
 		settings.sampleSize = audioSettings.sampleSize * audioSettings.channels;
 		settings.bufferSize = audioSettings.bufferSize * audioSettings.channels;
@@ -181,7 +184,7 @@ private:
 			                         pa_strerror(error));
 	}
 
-	static void callback([[maybe_unused]] pa_context* c, const pa_server_info* i, void* userdata) {
+	static void callback(pa_context*, const pa_server_info* i, void* userdata) {
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(userdata);
 		audio->settings.sinkName = i->default_sink_name;
 		audio->settings.sinkName += ".monitor";
@@ -207,19 +210,23 @@ private:
 	}
 };
 
+AudioSampler::AudioSampler(const Settings& audioSettings) {
+	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
+}
+
+AudioSampler::~AudioSampler() { delete audioSamplerImpl; }
+
+AudioSampler& AudioSampler::operator=(AudioSampler&& other) noexcept {
+	std::swap(audioSamplerImpl, other.audioSamplerImpl);
+	return *this;
+}
+
 bool AudioSampler::running() const { return audioSamplerImpl->running; }
 
 bool AudioSampler::modified() const { return audioSamplerImpl->modified; }
 
 int AudioSampler::ups() const { return audioSamplerImpl->ups; }
 
-void AudioSampler::start(const AudioSettings& audioSettings) {
-	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
-}
-
-void AudioSampler::stop() { delete audioSamplerImpl; }
-
 void AudioSampler::copyData(AudioData& audioData) { audioSamplerImpl->copyData(audioData); }
 
 void AudioSampler::rethrowExceptions() { return audioSamplerImpl->rethrowExceptions(); }
-#endif

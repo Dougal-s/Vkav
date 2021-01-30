@@ -24,19 +24,17 @@ layout(constant_id = 50) const float specular = 0.2;
 
 vec3 lightPos = vec3(lightPosX, -lightPosY, lightPosZ);
 
-layout(binding = 0) uniform data {
+layout(set = 0, binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
 };
 
-layout(binding = 4) uniform sampler2D normalMap;
+layout(set = 1, binding = 0) uniform sampler2D normalMap;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 camera;
 
 layout(location = 0) out vec4 outColor;
-
-#include "../../smoothing/smoothing.glsl"
 
 void main() {
 	vec3 normal = vec3(0, -1, 0);

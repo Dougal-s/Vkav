@@ -19,20 +19,23 @@
 #include "Calculate.hpp"
 #include "Data.hpp"
 #include "Image.hpp"
+#include "ModuleConfig.hpp"
 #include "NativeWindowHints.hpp"
 #include "Render.hpp"
 #include "Version.hpp"
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#ifdef NDEBUG
+	#define LOCATION
+#else
+	#define STR_HELPER(x) #x
+	#define STR(x) STR_HELPER(x)
+	#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#endif
 
 // Miscellaneous variables
 
 namespace {
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-
-	const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
 
 	const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -159,15 +162,21 @@ namespace {
 		VkShaderModule vertShaderModule;
 	};
 
+	template <class resourceType>
+	struct Resource {
+		uint32_t id;
+		std::filesystem::path path;
+
+		resourceType rsrc;
+	};
+
 	struct Module {
 		std::filesystem::path location;
 
 		std::vector<GraphicsPipeline> layers;
 		SpecializationConstants specializationConstants;
 
-		// Image
-		std::string imagePath = "";
-		Image image;
+		std::vector<Resource<Image>> images;
 
 		// Name of the fragment shader function to call
 		std::string moduleName = "main";
@@ -179,7 +188,7 @@ namespace {
 				vkDestroyShaderModule(device, layer.vertShaderModule, nullptr);
 			}
 
-			Image::destroy(module.image);
+			for (auto& image : module.images) Image::destroy(image.rsrc);
 		}
 	};
 
@@ -259,7 +268,7 @@ namespace {
 
 class Renderer::RendererImpl {
 public:
-	RendererImpl(const RenderSettings& renderSettings) {
+	RendererImpl(const Settings& renderSettings) {
 		settings = renderSettings;
 
 		initWindow();
@@ -278,11 +287,15 @@ public:
 		    device.device, swapChain, std::numeric_limits<uint64_t>::max(),
 		    imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			recreateSwapChain();
-			return true;
-		} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-			throw std::runtime_error(LOCATION "failed to acquire swap chain image!");
+		switch (result) {
+			case VK_SUCCESS:
+			case VK_SUBOPTIMAL_KHR:
+				break;
+			case VK_ERROR_OUT_OF_DATE_KHR:
+				recreateSwapChain();
+				return true;
+			default:
+				throw std::runtime_error(LOCATION "failed to acquire swap chain image!");
 		}
 
 		updateAudioBuffers(audioData, imageIndex);
@@ -311,24 +324,24 @@ public:
 
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
 
-		VkSwapchainKHR swapChains[] = {swapChain};
 		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapChains;
-
+		presentInfo.pSwapchains = &swapChain;
 		presentInfo.pImageIndices = &imageIndex;
 
 		result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
-		    framebufferResized) {
-			framebufferResized = false;
-			recreateSwapChain();
-		} else if (result != VK_SUCCESS) {
-			throw std::runtime_error(LOCATION "failed to present swap chain image!");
+		switch (result) {
+			case VK_SUCCESS:
+				break;
+			case VK_ERROR_OUT_OF_DATE_KHR:
+			case VK_SUBOPTIMAL_KHR:
+				recreateSwapChain();
+				return true;
+			default:
+				throw std::runtime_error(LOCATION "failed to present swap chain image!");
 		}
 
 		currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -341,9 +354,16 @@ public:
 
 		cleanupSwapChain();
 
+		for (size_t i = 0; i < modules.size(); ++i)
+			vkDestroyPipelineLayout(device.device, pipelineLayouts[i], nullptr);
+
+		vkDestroyRenderPass(device.device, renderPass, nullptr);
+
 		vkDestroyDescriptorPool(device.device, descriptorPool, nullptr);
 
-		vkDestroyDescriptorSetLayout(device.device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device.device, commonDescriptorSetLayout, nullptr);
+		for (auto& layout : descriptorSetLayouts)
+			vkDestroyDescriptorSetLayout(device.device, layout, nullptr);
 
 		for (size_t i = 0; i < dataBuffers.size(); ++i) {
 			Buffer::destroy(dataBuffers[i]);
@@ -365,7 +385,7 @@ public:
 
 		vkDestroyDevice(device.device, nullptr);
 
-		if (enableValidationLayers)
+		if constexpr (enableValidationLayers)
 			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -379,7 +399,7 @@ public:
 private:
 	// Variables
 
-	RenderSettings settings;
+	Settings settings;
 
 	GLFWwindow* window;
 
@@ -402,8 +422,9 @@ private:
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 
 	VkRenderPass renderPass;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkPipelineLayout pipelineLayout;
+	VkDescriptorSetLayout commonDescriptorSetLayout;
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
+	std::vector<VkPipelineLayout> pipelineLayouts;
 
 	std::vector<Module> modules;
 
@@ -417,14 +438,13 @@ private:
 	Image backgroundImage;
 
 	VkDescriptorPool descriptorPool;
+	std::vector<VkDescriptorSet> commonDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> descriptorSets;
 
 	std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores;
 	std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderFinishedSemaphores;
 	std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences;
 	size_t currentFrame = 0;
-
-	bool framebufferResized = false;
 
 	// Member functions
 
@@ -436,33 +456,33 @@ private:
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-		glfwWindowHint(GLFW_DECORATED, settings.windowHints.decorated ? GLFW_TRUE : GLFW_FALSE);
-		glfwWindowHint(GLFW_RESIZABLE, settings.windowHints.resizable ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_DECORATED, settings.window.hints.decorated ? GLFW_TRUE : GLFW_FALSE);
+		glfwWindowHint(GLFW_RESIZABLE, settings.window.hints.resizable ? GLFW_TRUE : GLFW_FALSE);
 
 #ifdef GLFW_TRANSPARENT_FRAMEBUFFER
 		glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER,
-		               settings.transparency == NATIVE ? GLFW_TRUE : GLFW_FALSE);
+		               settings.window.transparency == Settings::Window::Transparency::native
+		                   ? GLFW_TRUE
+		                   : GLFW_FALSE);
 #else
-		if (settings.transparency == NATIVE) {
+		if (settings.window.transparency == Settings::Window::Transparency::native) {
 			std::cerr << LOCATION "Native transaprency unsupported by current configuration!"
 			          << std::endl;
-			settings.transparency = OPAQUE;
+			settings.window.transparency = Settings::Window::Transparency::opaque;
 		}
 #endif
 
-		window = glfwCreateWindow(settings.width, settings.height, settings.windowTitle.c_str(),
-		                          nullptr, nullptr);
+		window = glfwCreateWindow(settings.window.width, settings.window.height,
+		                          settings.window.title.c_str(), nullptr, nullptr);
 #ifdef NATIVE_WINDOW_HINTS_SUPPORTED
-		if (settings.windowType == "desktop") setWindowType(window, WindowType::DESKTOP);
+		if (settings.window.type == "desktop") setWindowType(window, WindowType::DESKTOP);
 
-		if (settings.windowHints.sticky) setSticky(window);
+		if (settings.window.hints.sticky) setSticky(window);
 #endif
-		glfwSetWindowUserPointer(window, this);
-		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
-		if (settings.windowPosition)
-			glfwSetWindowPos(window, settings.windowPosition.value().first,
-			                 settings.windowPosition.value().second);
+		if (settings.window.position)
+			glfwSetWindowPos(window, settings.window.position->first,
+			                 settings.window.position->second);
 	}
 
 	void initVulkan() {
@@ -474,16 +494,15 @@ private:
 		createSwapchain();
 		createImageViews();
 		createRenderPass();
-		createDescriptorSetLayout();
-		prepareGraphicsPipelineCreation();
+		discoverModules();
+		createDescriptorSetLayouts();
+		createGraphicsPipelineLayouts();
 		createGraphicsPipelines();
 		createFramebuffers();
 		createCommandPool();
 		createAudioBuffers();
 		createModuleImages();
 		createBackgroundImage();
-		createBackgroundImageView();
-		createBackgroundImageSampler();
 		createDescriptorPool();
 		createDescriptorSets();
 		createCommandBuffers();
@@ -491,8 +510,13 @@ private:
 	}
 
 	void createInstance() {
-		if (enableValidationLayers && !checkValidationLayerSupport())
-			throw std::runtime_error(LOCATION "validation layers unavailable!");
+		const auto extensions = getRequiredExtensions();
+		if (!checkRequiredExtensionsPresent(extensions))
+			throw std::runtime_error(LOCATION "missing required vulkan extension!");
+
+		const auto layers = getRequiredLayers();
+		if (!checkRequiredLayersPresent(layers))
+			throw std::runtime_error(LOCATION "missing required vulkan layers!");
 
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -505,33 +529,23 @@ private:
 		VkInstanceCreateInfo instanceInfo = {};
 		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instanceInfo.pApplicationInfo = &appInfo;
-
-		auto extensions = getRequiredExtensions();
-		if (!checkRequiredExtensionsPresent(extensions))
-			throw std::runtime_error(LOCATION "missing required vulkan extension!");
-
 		instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		instanceInfo.ppEnabledExtensionNames = extensions.data();
-
-		if (enableValidationLayers) {
-			instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			instanceInfo.ppEnabledLayerNames = validationLayers.data();
-		} else {
-			instanceInfo.enabledLayerCount = 0;
-		}
+		instanceInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+		instanceInfo.ppEnabledLayerNames = layers.data();
 
 		if (vkCreateInstance(&instanceInfo, nullptr, &instance) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create a vulkan instance!");
 	}
 
-	std::vector<const char*> getRequiredExtensions() {
+	std::vector<const char*> getRequiredExtensions() const {
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensions;
 		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
 		std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-		if (enableValidationLayers) {
+		if constexpr (enableValidationLayers) {
 			extensions.reserve(extensions.size() + 1);
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
@@ -539,7 +553,7 @@ private:
 		return extensions;
 	}
 
-	bool checkRequiredExtensionsPresent(const std::vector<const char*>& extensions) {
+	bool checkRequiredExtensionsPresent(const std::vector<const char*>& extensions) const {
 		uint32_t availableExtensionCount = 0;
 		vkEnumerateInstanceExtensionProperties(nullptr, &availableExtensionCount, nullptr);
 		std::vector<VkExtensionProperties> availableExtensions(availableExtensionCount);
@@ -554,13 +568,19 @@ private:
 		return requiredExtensions.empty();
 	}
 
-	bool checkValidationLayerSupport() {
+	std::vector<const char*> getRequiredLayers() const {
+		if constexpr (enableValidationLayers)
+			return {"VK_LAYER_LUNARG_standard_validation"};
+		else
+			return {};
+	}
+
+	bool checkRequiredLayersPresent(const std::vector<const char*>& layers) const {
 		uint32_t availableLayerCount = 0;
 		vkEnumerateInstanceLayerProperties(&availableLayerCount, nullptr);
 		std::vector<VkLayerProperties> availableLayers(availableLayerCount);
 		vkEnumerateInstanceLayerProperties(&availableLayerCount, availableLayers.data());
-
-		std::set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
+		std::set<std::string> requiredLayers(layers.begin(), layers.end());
 
 		for (const auto& layer : availableLayers) requiredLayers.erase(layer.layerName);
 
@@ -568,7 +588,7 @@ private:
 	}
 
 	void setupDebugCallback() {
-		if (!enableValidationLayers) return;
+		if constexpr (!enableValidationLayers) return;
 
 		VkDebugUtilsMessengerCreateInfoEXT messengerInfo = {};
 		messengerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -619,7 +639,7 @@ private:
 			throw std::runtime_error(LOCATION "failed to find a suitable GPU!");
 	}
 
-	bool isDeviceSuitable(VkPhysicalDevice device) {
+	bool isDeviceSuitable(VkPhysicalDevice device) const {
 		QueueFamilyIndices indices = findQueueFamilies(device);
 
 		bool extensionsSupported = checkDeviceExtensionSupport(device);
@@ -642,7 +662,7 @@ private:
 		       uniformBufferSizeAdequate;
 	}
 
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
+	bool checkDeviceExtensionSupport(VkPhysicalDevice device) const {
 		uint32_t availableExtensionCount = 0;
 		vkEnumerateDeviceExtensionProperties(device, nullptr, &availableExtensionCount, nullptr);
 		std::vector<VkExtensionProperties> availableExtensions(availableExtensionCount);
@@ -656,7 +676,7 @@ private:
 		return requiredExtensions.empty();
 	}
 
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const {
 		QueueFamilyIndices indices;
 
 		uint32_t queueFamilyCount = 0;
@@ -702,6 +722,8 @@ private:
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 
+		const auto layers = getRequiredLayers();
+
 		VkDeviceCreateInfo deviceInfo = {};
 		deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceInfo.pQueueCreateInfos = queueInfos.data();
@@ -709,13 +731,8 @@ private:
 		deviceInfo.pEnabledFeatures = &deviceFeatures;
 		deviceInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-		if (enableValidationLayers) {
-			deviceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			deviceInfo.ppEnabledLayerNames = validationLayers.data();
-		} else {
-			deviceInfo.enabledLayerCount = 0;
-		}
+		deviceInfo.enabledLayerCount = static_cast<uint32_t>(layers.size());
+		deviceInfo.ppEnabledLayerNames = layers.data();
 
 		if (vkCreateDevice(device.physicalDevice, &deviceInfo, nullptr, &device.device) !=
 		    VK_SUCCESS)
@@ -766,28 +783,28 @@ private:
 
 		swapChainInfo.preTransform = swapChainSupport.capabilities.currentTransform;
 
-		switch (settings.transparency) {
-			case NATIVE:
+		switch (settings.window.transparency) {
+			case Settings::Window::Transparency::native:
 				if (swapChainSupport.capabilities.supportedCompositeAlpha &
 				    VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) {
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 				} else {
 					std::cerr << LOCATION "native transparency not supported!\n";
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-					settings.transparency = OPAQUE;
+					settings.window.transparency = Settings::Window::Transparency::opaque;
 				}
 				break;
-			case VULKAN:
+			case Settings::Window::Transparency::vulkan:
 				if (swapChainSupport.capabilities.supportedCompositeAlpha &
 				    VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR) {
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 				} else {
 					std::cerr << LOCATION "vulkan transparency not supported!\n";
 					swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-					settings.transparency = OPAQUE;
+					settings.window.transparency = Settings::Window::Transparency::opaque;
 				}
 				break;
-			case OPAQUE:
+			case Settings::Window::Transparency::opaque:
 				swapChainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 				break;
 		}
@@ -807,7 +824,7 @@ private:
 		swapChainExtent = extent;
 	}
 
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) const {
 		SwapChainSupportDetails details;
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
@@ -833,7 +850,7 @@ private:
 	}
 
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(
-	    const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+	    const std::vector<VkSurfaceFormatKHR>& availableFormats) const {
 		if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
 			return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
 
@@ -847,7 +864,9 @@ private:
 	}
 
 	VkPresentModeKHR chooseSwapPresentMode(
-	    const std::vector<VkPresentModeKHR>& availablePresentModes) {
+	    const std::vector<VkPresentModeKHR>& availablePresentModes) const {
+		if (settings.vsync) return VK_PRESENT_MODE_FIFO_KHR;
+
 		VkPresentModeKHR bestMode = VK_PRESENT_MODE_FIFO_KHR;
 
 		for (const auto& availablePresentMode : availablePresentModes) {
@@ -860,7 +879,7 @@ private:
 		return bestMode;
 	}
 
-	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const {
 		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 			return capabilities.currentExtent;
 		} else {
@@ -885,48 +904,72 @@ private:
 			swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat);
 	}
 
-	void prepareGraphicsPipelineCreation() {
+	void discoverModules() {
 		modules.resize(settings.modules.size());
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
 			modules[i].location = findModule(settings.modules[i]);
 
-			for (uint32_t layer = 1;
-			     std::filesystem::exists(modules[i].location / std::to_string(layer)); ++layer) {
-				modules[i].layers.resize(layer);
-				std::filesystem::path vertexShaderPath =
-				    modules[i].location / std::to_string(layer);
-				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = settings.modules[i];
+			// find number of layers
+			uint32_t layerCount = 1;
+			while (std::filesystem::exists(modules[i].location / std::to_string(layerCount + 1)))
+				++layerCount;
+			modules[i].layers.resize(layerCount);
 
+			// find fallback vertex shader
+			const auto fallbackVertShaderPath =
+			    std::filesystem::exists(modules[i].location / "vert.spv")
+			        ? modules[i].location
+			        : settings.moduleLocations.front() / "modules";
+
+			// find and create shaders for each layer
+			for (uint32_t layer = 0; layer < layerCount; ++layer) {
+				auto vertexShaderPath = modules[i].location / std::to_string(layer + 1);
 				if (!std::filesystem::exists(vertexShaderPath / "vert.spv"))
-					vertexShaderPath = settings.configLocations.front() / "modules";
+					vertexShaderPath = fallbackVertShaderPath;
 
 				auto vertShaderCode = readFile(vertexShaderPath / "vert.spv");
-				modules[i].layers[layer - 1].vertShaderModule = createShaderModule(vertShaderCode);
+				modules[i].layers[layer].vertShaderModule = createShaderModule(vertShaderCode);
 
-				std::filesystem::path fragmentShaderPath =
-				    modules[i].location / std::to_string(layer);
+				auto fragmentShaderPath = modules[i].location / std::to_string(layer + 1);
 				auto fragShaderCode = readFile(fragmentShaderPath / "frag.spv");
-				modules[i].layers[layer - 1].fragShaderModule = createShaderModule(fragShaderCode);
+				modules[i].layers[layer].fragShaderModule = createShaderModule(fragShaderCode);
 			}
 
-			std::filesystem::path configFilePath = modules[i].location / "config";
-			readConfig(configFilePath, modules[i]);
+			readConfig(modules[i].location / "config", modules[i]);
 			modules[i].specializationConstants.data[0] = static_cast<uint32_t>(settings.audioSize);
 			modules[i].specializationConstants.data[1] = settings.smoothingLevel;
 			modules[i].specializationConstants.data[4] = modules[i].vertexCount;
 		}
 	}
 
-	std::filesystem::path findModule(const std::string& moduleName) {
+	std::filesystem::path findModule(const std::string& moduleName) const {
 		if (std::filesystem::path(moduleName).is_absolute()) return moduleName;
 
-		for (auto& path : settings.configLocations)
+		for (auto& path : settings.moduleLocations)
 			if (std::filesystem::exists(path / "modules" / moduleName))
 				return path / "modules" / moduleName;
 
 		throw std::invalid_argument(LOCATION "Unable to locate module!");
+	}
+
+	void createGraphicsPipelineLayouts() {
+		pipelineLayouts.resize(modules.size());
+
+		for (uint32_t module = 0; module < modules.size(); ++module) {
+			std::array<VkDescriptorSetLayout, 2> moduleDescSetLayouts = {
+			    commonDescriptorSetLayout, descriptorSetLayouts[module]};
+			VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+			pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+			pipelineLayoutInfo.setLayoutCount = moduleDescSetLayouts.size();
+			pipelineLayoutInfo.pSetLayouts = moduleDescSetLayouts.data();
+			pipelineLayoutInfo.pushConstantRangeCount = 0;
+			pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+			if (vkCreatePipelineLayout(device.device, &pipelineLayoutInfo, nullptr,
+			                           &pipelineLayouts[module]) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to create pipeline layout!");
+		}
 	}
 
 	void createGraphicsPipelines() {
@@ -943,21 +986,21 @@ private:
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = (float)swapChainExtent.width;
-		viewport.height = (float)swapChainExtent.height;
+		viewport.width = static_cast<float>(swapChainExtent.width);
+		viewport.height = static_cast<float>(swapChainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
-		VkRect2D scissors = {};
-		scissors.offset = {0, 0};
-		scissors.extent = swapChainExtent;
+		VkRect2D scissor = {};
+		scissor.offset = {0, 0};
+		scissor.extent = swapChainExtent;
 
 		VkPipelineViewportStateCreateInfo viewportState = {};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportState.viewportCount = 1;
 		viewportState.pViewports = &viewport;
 		viewportState.scissorCount = 1;
-		viewportState.pScissors = &scissors;
+		viewportState.pScissors = &scissor;
 
 		VkPipelineRasterizationStateCreateInfo rasterizer = {};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -991,88 +1034,77 @@ private:
 		colorBlending.attachmentCount = 1;
 		colorBlending.pAttachments = &colorBlendAttachment;
 
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-		if (vkCreatePipelineLayout(device.device, &pipelineLayoutInfo, nullptr, &pipelineLayout) !=
-		    VK_SUCCESS)
-			throw std::runtime_error(LOCATION "failed to create pipeline layout!");
-
 		size_t pipelineCount = 0;
 		for (const auto& module : modules) pipelineCount += module.layers.size();
 
-		VkPipelineShaderStageCreateInfo vertShaderStageInfos[pipelineCount];
-		VkPipelineShaderStageCreateInfo fragShaderStageInfos[pipelineCount];
-		VkSpecializationInfo specializationInfos[pipelineCount];
-		VkPipelineShaderStageCreateInfo shaderStages[pipelineCount][2];
-		VkGraphicsPipelineCreateInfo pipelineInfos[pipelineCount];
-		std::vector<VkPipeline> pipelines;
+		std::vector<VkSpecializationInfo> specializationInfos;
+		specializationInfos.reserve(modules.size());
+		std::vector<std::array<VkPipelineShaderStageCreateInfo, 2>> shaderStages;
+		shaderStages.reserve(pipelineCount);
+		std::vector<VkGraphicsPipelineCreateInfo> pipelineInfos;
+		pipelineInfos.reserve(pipelineCount);
 
-		for (uint32_t i = 0, module = 0; module < modules.size(); ++module) {
-			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer, ++i) {
-				pipelines.push_back(modules[module].layers[layer].graphicsPipeline);
+		for (uint32_t module = 0; module < modules.size(); ++module) {
+			VkSpecializationInfo specializationInfo = {};
+			specializationInfo.mapEntryCount =
+			    modules[module].specializationConstants.specializationInfo.size();
+			specializationInfo.pMapEntries =
+			    modules[module].specializationConstants.specializationInfo.data();
+			specializationInfo.dataSize = modules[module].specializationConstants.data.size() *
+			                              sizeof(SpecializationConstant);
+			specializationInfo.pData = modules[module].specializationConstants.data.data();
+			specializationInfos.push_back(specializationInfo);
 
-				specializationInfos[i] = {};
-				specializationInfos[i].mapEntryCount =
-				    modules[module].specializationConstants.specializationInfo.size();
-				specializationInfos[i].pMapEntries =
-				    modules[module].specializationConstants.specializationInfo.data();
-				specializationInfos[i].dataSize =
-				    modules[module].specializationConstants.data.size() *
-				    sizeof(SpecializationConstant);
-				specializationInfos[i].pData = modules[module].specializationConstants.data.data();
-
-				vertShaderStageInfos[i] = {};
-				vertShaderStageInfos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				vertShaderStageInfos[i].stage = VK_SHADER_STAGE_VERTEX_BIT;
-				vertShaderStageInfos[i].module = modules[module].layers[layer].vertShaderModule;
-				vertShaderStageInfos[i].pName = "main";
-				vertShaderStageInfos[i].pSpecializationInfo = &specializationInfos[i];
-
-				fragShaderStageInfos[i] = {};
-				fragShaderStageInfos[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-				fragShaderStageInfos[i].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-				fragShaderStageInfos[i].module = modules[module].layers[layer].fragShaderModule;
-				fragShaderStageInfos[i].pName = modules[module].moduleName.c_str();
-				fragShaderStageInfos[i].pSpecializationInfo = &specializationInfos[i];
-
+			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer) {
 				modules[module].specializationConstants.data[2] = swapChainExtent.width;
 				modules[module].specializationConstants.data[3] = swapChainExtent.height;
 
-				shaderStages[i][0] = vertShaderStageInfos[i];
-				shaderStages[i][1] = fragShaderStageInfos[i];
+				VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
+				vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+				vertShaderStageInfo.module = modules[module].layers[layer].vertShaderModule;
+				vertShaderStageInfo.pName = "main";
+				vertShaderStageInfo.pSpecializationInfo = &specializationInfos.back();
 
-				pipelineInfos[i] = {};
-				pipelineInfos[i].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-				pipelineInfos[i].stageCount = 2;
-				pipelineInfos[i].pStages = shaderStages[i];
-				pipelineInfos[i].pVertexInputState = &vertexInputInfo;
-				pipelineInfos[i].pInputAssemblyState = &inputAssembly;
-				pipelineInfos[i].pViewportState = &viewportState;
-				pipelineInfos[i].pRasterizationState = &rasterizer;
-				pipelineInfos[i].pMultisampleState = &multisampling;
-				pipelineInfos[i].pDepthStencilState = nullptr;
-				pipelineInfos[i].pColorBlendState = &colorBlending;
-				pipelineInfos[i].pDynamicState = nullptr;
-				pipelineInfos[i].layout = pipelineLayout;
-				pipelineInfos[i].renderPass = renderPass;
-				pipelineInfos[i].subpass = 0;
-				pipelineInfos[i].basePipelineHandle = VK_NULL_HANDLE;
-				pipelineInfos[i].basePipelineIndex = 0;
+				VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
+				fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+				fragShaderStageInfo.module = modules[module].layers[layer].fragShaderModule;
+				fragShaderStageInfo.pName = modules[module].moduleName.c_str();
+				fragShaderStageInfo.pSpecializationInfo = &specializationInfos[module];
+
+				shaderStages.push_back({vertShaderStageInfo, fragShaderStageInfo});
+
+				VkGraphicsPipelineCreateInfo pipelineInfo = {};
+				pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+				pipelineInfo.stageCount = 2;
+				pipelineInfo.pStages = shaderStages.back().data();
+				pipelineInfo.pVertexInputState = &vertexInputInfo;
+				pipelineInfo.pInputAssemblyState = &inputAssembly;
+				pipelineInfo.pViewportState = &viewportState;
+				pipelineInfo.pRasterizationState = &rasterizer;
+				pipelineInfo.pMultisampleState = &multisampling;
+				pipelineInfo.pDepthStencilState = nullptr;
+				pipelineInfo.pColorBlendState = &colorBlending;
+				pipelineInfo.pDynamicState = nullptr;
+				pipelineInfo.layout = pipelineLayouts[module];
+				pipelineInfo.renderPass = renderPass;
+				pipelineInfo.subpass = 0;
+				pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+				pipelineInfo.basePipelineIndex = 0;
+
+				pipelineInfos.push_back(pipelineInfo);
 			}
 		}
 
+		std::vector<VkPipeline> pipelines(pipelineCount);
 		if (vkCreateGraphicsPipelines(device.device, VK_NULL_HANDLE, pipelines.size(),
-		                              pipelineInfos, nullptr, pipelines.data()))
+		                              pipelineInfos.data(), nullptr, pipelines.data()))
 			throw std::runtime_error(LOCATION "failed to create graphics pipeline!");
 
-		for (uint32_t i = 0, module = 0; i < pipelineCount; ++module)
-			for (uint32_t layer = 0; layer < modules[module].layers.size(); ++layer, ++i)
-				modules[module].layers[layer].graphicsPipeline = pipelines[i];
+		uint32_t i = 0;
+		for (auto& module : modules)
+			for (auto& layer : module.layers) layer.graphicsPipeline = pipelines[i++];
 	}
 
 	VkShaderModule createShaderModule(const std::vector<char>& shaderCode) {
@@ -1197,14 +1229,15 @@ private:
 
 			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+			                        pipelineLayouts[0], 0, 1, &commonDescriptorSets[i], 0, nullptr);
 			for (size_t module = 0; module < modules.size(); ++module) {
+				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+				                        pipelineLayouts[module], 1, 1, &descriptorSets[i][module],
+				                        0, nullptr);
 				for (const auto& layer : modules[module].layers) {
 					vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 					                  layer.graphicsPipeline);
-
-					vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-					                        pipelineLayout, 0, 1, &descriptorSets[i][module], 0,
-					                        nullptr);
 					vkCmdDraw(commandBuffers[i], modules[module].vertexCount, 1, 0, 0);
 				}
 			}
@@ -1241,12 +1274,9 @@ private:
 		vkFreeCommandBuffers(device.device, commandPool,
 		                     static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
-		vkDestroyPipelineLayout(device.device, pipelineLayout, nullptr);
-		for (auto& module : modules)
-			for (auto& graphicsPipeline : module.layers)
+		for (size_t i = 0; i < modules.size(); ++i)
+			for (auto& graphicsPipeline : modules[i].layers)
 				vkDestroyPipeline(device.device, graphicsPipeline.graphicsPipeline, nullptr);
-
-		vkDestroyRenderPass(device.device, renderPass, nullptr);
 
 		for (auto imageView : swapChainImageViews)
 			vkDestroyImageView(device.device, imageView, nullptr);
@@ -1263,45 +1293,28 @@ private:
 
 		createSwapchain();
 		createImageViews();
-		createRenderPass();
 		createGraphicsPipelines();
 		createFramebuffers();
 		createCommandBuffers();
 	}
 
 	void createModuleImages() {
-		VkSamplerCreateInfo samplerInfo = {};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-		samplerInfo.anisotropyEnable = VK_FALSE;
-		samplerInfo.maxAnisotropy = 1;
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
-
 		for (auto& module : modules) {
-			std::filesystem::path imagePath = module.imagePath;
-			if (!imagePath.empty() && imagePath.is_relative())
-				imagePath = module.location / imagePath;
-			createTextureImage(imagePath, module.image);
-			module.image.view = createImageView(module.image.image, VK_FORMAT_R8G8B8A8_UNORM);
-
-			if (vkCreateSampler(device.device, &samplerInfo, nullptr, &module.image.sampler) !=
-			    VK_SUCCESS)
-				throw std::runtime_error(LOCATION "failed to create image sampler!");
+			for (auto& image : module.images) {
+				std::filesystem::path path = image.path;
+				if (!path.empty() && path.is_relative()) path = module.location / path;
+				createTextureImage(path, image.rsrc);
+				image.rsrc.view = createImageView(image.rsrc.image, VK_FORMAT_R8G8B8A8_UNORM);
+				image.rsrc.sampler = createImageSampler();
+			}
 		}
 	}
 
-	void createBackgroundImage() { createTextureImage(settings.backgroundImage, backgroundImage); }
+	void createBackgroundImage() {
+		createTextureImage(settings.backgroundImage, backgroundImage);
+		backgroundImage.view = createImageView(backgroundImage.image, VK_FORMAT_R8G8B8A8_UNORM);
+		backgroundImage.sampler = createImageSampler();
+	}
 
 	void createTextureImage(const std::filesystem::path& imagePath, Image& image) {
 		ImageFile img;
@@ -1402,9 +1415,6 @@ private:
 			throw std::invalid_argument(LOCATION "unsupported layout transition!");
 		}
 
-		barrier.srcAccessMask = 0;
-		barrier.dstAccessMask = 0;
-
 		vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1,
 		                     &barrier);
 
@@ -1433,10 +1443,6 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
-	void createBackgroundImageView() {
-		backgroundImage.view = createImageView(backgroundImage.image, VK_FORMAT_R8G8B8A8_UNORM);
-	}
-
 	VkImageView createImageView(VkImage image, VkFormat format) {
 		VkImageViewCreateInfo viewInfo = {};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1456,7 +1462,7 @@ private:
 		return imageView;
 	}
 
-	void createBackgroundImageSampler() {
+	VkSampler createImageSampler() {
 		VkSamplerCreateInfo samplerInfo = {};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -1475,62 +1481,83 @@ private:
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = 0.0f;
 
-		if (vkCreateSampler(device.device, &samplerInfo, nullptr, &backgroundImage.sampler) !=
-		    VK_SUCCESS)
+		VkSampler sampler;
+		if (vkCreateSampler(device.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 			throw std::runtime_error(LOCATION "failed to create image sampler!");
+
+		return sampler;
 	}
 
-	void createDescriptorSetLayout() {
-		VkDescriptorSetLayoutBinding dataLayoutBinding = {};
-		dataLayoutBinding.binding = 0;
-		dataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		dataLayoutBinding.descriptorCount = 1;
-		dataLayoutBinding.pImmutableSamplers = nullptr;
-		dataLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+	void createDescriptorSetLayouts() {
+		{
+			VkDescriptorSetLayoutBinding dataLayoutBinding = {};
+			dataLayoutBinding.binding = 0;
+			dataLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			dataLayoutBinding.descriptorCount = 1;
+			dataLayoutBinding.pImmutableSamplers = nullptr;
+			dataLayoutBinding.stageFlags =
+			    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
-		VkDescriptorSetLayoutBinding lAudioBufferLayoutBinding = {};
-		lAudioBufferLayoutBinding.binding = 1;
-		lAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-		lAudioBufferLayoutBinding.descriptorCount = 1;
-		lAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
-		lAudioBufferLayoutBinding.stageFlags =
-		    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+			VkDescriptorSetLayoutBinding lAudioBufferLayoutBinding = {};
+			lAudioBufferLayoutBinding.binding = 1;
+			lAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+			lAudioBufferLayoutBinding.descriptorCount = 1;
+			lAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
+			lAudioBufferLayoutBinding.stageFlags =
+			    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
-		VkDescriptorSetLayoutBinding rAudioBufferLayoutBinding = {};
-		rAudioBufferLayoutBinding.binding = 2;
-		rAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-		rAudioBufferLayoutBinding.descriptorCount = 1;
-		rAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
-		rAudioBufferLayoutBinding.stageFlags =
-		    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+			VkDescriptorSetLayoutBinding rAudioBufferLayoutBinding = {};
+			rAudioBufferLayoutBinding.binding = 2;
+			rAudioBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+			rAudioBufferLayoutBinding.descriptorCount = 1;
+			rAudioBufferLayoutBinding.pImmutableSamplers = nullptr;
+			rAudioBufferLayoutBinding.stageFlags =
+			    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
-		VkDescriptorSetLayoutBinding backgroundSamplerLayoutBinding = {};
-		backgroundSamplerLayoutBinding.binding = 3;
-		backgroundSamplerLayoutBinding.descriptorCount = 1;
-		backgroundSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		backgroundSamplerLayoutBinding.pImmutableSamplers = nullptr;
-		backgroundSamplerLayoutBinding.stageFlags =
-		    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+			VkDescriptorSetLayoutBinding backgroundSamplerLayoutBinding = {};
+			backgroundSamplerLayoutBinding.binding = 3;
+			backgroundSamplerLayoutBinding.descriptorCount = 1;
+			backgroundSamplerLayoutBinding.descriptorType =
+			    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			backgroundSamplerLayoutBinding.pImmutableSamplers = nullptr;
+			backgroundSamplerLayoutBinding.stageFlags =
+			    VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		VkDescriptorSetLayoutBinding moduleImageSamplerLayoutBinding = {};
-		moduleImageSamplerLayoutBinding.binding = 4;
-		moduleImageSamplerLayoutBinding.descriptorCount = 1;
-		moduleImageSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		moduleImageSamplerLayoutBinding.pImmutableSamplers = nullptr;
-		moduleImageSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			std::array<VkDescriptorSetLayoutBinding, 4> bindings = {
+			    dataLayoutBinding, lAudioBufferLayoutBinding, rAudioBufferLayoutBinding,
+			    backgroundSamplerLayoutBinding};
 
-		std::array<VkDescriptorSetLayoutBinding, 5> bindings = {
-		    dataLayoutBinding, lAudioBufferLayoutBinding, rAudioBufferLayoutBinding,
-		    backgroundSamplerLayoutBinding, moduleImageSamplerLayoutBinding};
+			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+			layoutInfo.pBindings = bindings.data();
 
-		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-		layoutInfo.pBindings = bindings.data();
+			if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr,
+			                                &commonDescriptorSetLayout) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to create descriptor set layout!");
+		}
 
-		if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr,
-		                                &descriptorSetLayout) != VK_SUCCESS)
-			throw std::runtime_error(LOCATION "failed to create descriptor set layout!");
+		descriptorSetLayouts.resize(modules.size());
+		for (size_t module = 0; module < modules.size(); ++module) {
+			std::vector<VkDescriptorSetLayoutBinding> bindings(modules[module].images.size());
+
+			for (size_t image = 0; image < modules[module].images.size(); ++image) {
+				bindings[image].binding = modules[module].images[image].id;
+				bindings[image].descriptorCount = 1;
+				bindings[image].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				bindings[image].pImmutableSamplers = nullptr;
+				bindings[image].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+			}
+
+			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+			layoutInfo.pBindings = bindings.data();
+
+			if (vkCreateDescriptorSetLayout(device.device, &layoutInfo, nullptr,
+			                                &descriptorSetLayouts[module]) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to create descriptor set layout!");
+		}
 	}
 
 	void createAudioBuffers() {
@@ -1582,7 +1609,7 @@ private:
 	}
 
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 5> poolSizes = {};
+		std::array<VkDescriptorPoolSize, 4> poolSizes = {};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount =
 		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
@@ -1592,18 +1619,19 @@ private:
 		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		poolSizes[2].descriptorCount =
 		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
+
+		size_t resourceCount = 0;
+		for (auto& module : modules) resourceCount += module.images.size();
+
 		poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[3].descriptorCount =
-		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
-		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[4].descriptorCount =
-		    static_cast<uint32_t>(swapChainImages.size() * modules.size());
+		    static_cast<uint32_t>(swapChainImages.size() * (resourceCount + modules.size()));
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size() * modules.size());
+		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size() * 2 * modules.size());
 
 		if (vkCreateDescriptorPool(device.device, &poolInfo, nullptr, &descriptorPool) !=
 		    VK_SUCCESS)
@@ -1611,80 +1639,102 @@ private:
 	}
 
 	void createDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(modules.size(), descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(modules.size());
-		allocInfo.pSetLayouts = layouts.data();
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+		allocInfo.pSetLayouts = descriptorSetLayouts.data();
 
+		VkDescriptorSetAllocateInfo commonAllocInfo = {};
+		commonAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		commonAllocInfo.descriptorPool = descriptorPool;
+		commonAllocInfo.descriptorSetCount = 1;
+		commonAllocInfo.pSetLayouts = &commonDescriptorSetLayout;
+
+		commonDescriptorSets.resize(swapChainImages.size());
 		descriptorSets.resize(swapChainImages.size());
 
 		for (size_t i = 0; i < swapChainImages.size(); ++i) {
 			descriptorSets[i].resize(modules.size());
 
+			if (vkAllocateDescriptorSets(device.device, &commonAllocInfo,
+			                             &commonDescriptorSets[i]) != VK_SUCCESS)
+				throw std::runtime_error(LOCATION "failed to allocate descriptor sets!");
+
 			if (vkAllocateDescriptorSets(device.device, &allocInfo, descriptorSets[i].data()) !=
 			    VK_SUCCESS)
 				throw std::runtime_error(LOCATION "failed to allocate descriptor sets!");
 
-			VkDescriptorBufferInfo dataBufferInfo = {};
-			dataBufferInfo.buffer = dataBuffers[i].buffer;
-			dataBufferInfo.offset = 0;
-			dataBufferInfo.range = sizeof(UniformBufferObject);
+			{
+				VkDescriptorBufferInfo dataBufferInfo = {};
+				dataBufferInfo.buffer = dataBuffers[i].buffer;
+				dataBufferInfo.offset = 0;
+				dataBufferInfo.range = sizeof(UniformBufferObject);
 
-			VkDescriptorImageInfo backgroundImageInfo = {};
-			backgroundImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			backgroundImageInfo.imageView = backgroundImage.view;
-			backgroundImageInfo.sampler = backgroundImage.sampler;
+				VkDescriptorImageInfo backgroundImageInfo = {};
+				backgroundImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				backgroundImageInfo.imageView = backgroundImage.view;
+				backgroundImageInfo.sampler = backgroundImage.sampler;
 
-			VkDescriptorImageInfo moduleImageInfo = {};
-			moduleImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				std::array<VkWriteDescriptorSet, 4> descriptorWrites = {};
+				descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[0].dstBinding = 0;
+				descriptorWrites[0].dstArrayElement = 0;
+				descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descriptorWrites[0].descriptorCount = 1;
+				descriptorWrites[0].pBufferInfo = &dataBufferInfo;
 
-			std::array<VkWriteDescriptorSet, 5> descriptorWrites = {};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &dataBufferInfo;
+				descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[1].dstBinding = 1;
+				descriptorWrites[1].dstArrayElement = 0;
+				descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+				descriptorWrites[1].descriptorCount = 1;
+				descriptorWrites[1].pTexelBufferView = &lAudioBuffers[i].view;
 
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pTexelBufferView = &lAudioBuffers[i].view;
+				descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[2].dstBinding = 2;
+				descriptorWrites[2].dstArrayElement = 0;
+				descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+				descriptorWrites[2].descriptorCount = 1;
+				descriptorWrites[2].pTexelBufferView = &rAudioBuffers[i].view;
 
-			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstBinding = 2;
-			descriptorWrites[2].dstArrayElement = 0;
-			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-			descriptorWrites[2].descriptorCount = 1;
-			descriptorWrites[2].pTexelBufferView = &rAudioBuffers[i].view;
+				descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[3].dstBinding = 3;
+				descriptorWrites[3].dstArrayElement = 0;
+				descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorWrites[3].descriptorCount = 1;
+				descriptorWrites[3].pImageInfo = &backgroundImageInfo;
 
-			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[3].dstBinding = 3;
-			descriptorWrites[3].dstArrayElement = 0;
-			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[3].descriptorCount = 1;
-			descriptorWrites[3].pImageInfo = &backgroundImageInfo;
+				descriptorWrites[0].dstSet = commonDescriptorSets[i];
+				descriptorWrites[1].dstSet = commonDescriptorSets[i];
+				descriptorWrites[2].dstSet = commonDescriptorSets[i];
+				descriptorWrites[3].dstSet = commonDescriptorSets[i];
 
-			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[4].dstBinding = 4;
-			descriptorWrites[4].dstArrayElement = 0;
-			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[4].descriptorCount = 1;
-			descriptorWrites[4].pImageInfo = &moduleImageInfo;
+				vkUpdateDescriptorSets(device.device,
+				                       static_cast<uint32_t>(descriptorWrites.size()),
+				                       descriptorWrites.data(), 0, nullptr);
+			}
 
 			for (size_t module = 0; module < modules.size(); ++module) {
-				moduleImageInfo.imageView = modules[module].image.view;
-				moduleImageInfo.sampler = modules[module].image.sampler;
+				const size_t resourceCount = modules[module].images.size();
 
-				descriptorWrites[0].dstSet = descriptorSets[i][module];
-				descriptorWrites[1].dstSet = descriptorSets[i][module];
-				descriptorWrites[2].dstSet = descriptorSets[i][module];
-				descriptorWrites[3].dstSet = descriptorSets[i][module];
-				descriptorWrites[4].dstSet = descriptorSets[i][module];
+				std::vector<VkDescriptorImageInfo> moduleImageInfos{resourceCount};
+				std::vector<VkWriteDescriptorSet> descriptorWrites{resourceCount};
+
+				for (size_t image = 0; image < modules[module].images.size(); ++image) {
+					moduleImageInfos[image].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					moduleImageInfos[image].imageView = modules[module].images[image].rsrc.view;
+					moduleImageInfos[image].sampler = modules[module].images[image].rsrc.sampler;
+
+					descriptorWrites[image].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					descriptorWrites[image].dstBinding = modules[module].images[image].id;
+					descriptorWrites[image].dstArrayElement = 0;
+					descriptorWrites[image].descriptorType =
+					    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					descriptorWrites[image].descriptorCount = 1;
+					descriptorWrites[image].pImageInfo = &moduleImageInfos[image];
+					descriptorWrites[image].dstSet = descriptorSets[i][module];
+				}
 
 				vkUpdateDescriptorSets(device.device,
 				                       static_cast<uint32_t>(descriptorWrites.size()),
@@ -1696,10 +1746,8 @@ private:
 	// Static member functions
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL
-	debugCallback([[maybe_unused]] VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	              [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
-	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	              [[maybe_unused]] void* userData) {
+	debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
+	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
 		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 		return VK_FALSE;
 	}
@@ -1721,93 +1769,67 @@ private:
 	}
 
 	static void readConfig(const std::filesystem::path& configFilePath, Module& module) {
-		module.specializationConstants.data.resize(5);
-
-		for (uint32_t offset = 0; offset < 5; ++offset) {
-			VkSpecializationMapEntry mapEntry = {};
-			mapEntry.constantID = offset;
-			mapEntry.offset = offset * sizeof(SpecializationConstant);
-			mapEntry.size = sizeof(SpecializationConstant);
-
-			module.specializationConstants.specializationInfo.push_back(mapEntry);
-		}
-
 		std::ifstream file(configFilePath);
 		if (!file.is_open()) {
 			std::cerr << "shader configuration file not found!" << std::endl;
 			return;
 		}
 
-		std::string line;
+		ModuleConfig config;
+		try {
+			config = parseConfig(file);
+		} catch (const ParseException& e) {
+			throw std::runtime_error(std::string(LOCATION) + "Failed to parse module config '" +
+			                         configFilePath.native() + "':\n\tline " +
+			                         std::to_string(e.line()) + ":" + e.what());
+		} catch (const std::exception& e) {
+			throw std::runtime_error(std::string(LOCATION) + "Failed to parse module config '" +
+			                         configFilePath.native() + "':\n\t" + e.what());
+		}
 
-		while (std::getline(file, line).good()) {
-			size_t position;
+		if (config.moduleName) module.moduleName = config.moduleName.value();
+		if (config.vertexCount) module.vertexCount = config.vertexCount.value();
 
-			// Remove comments
-			if ((position = line.find("//")) != std::string::npos) line.resize(position);
-
-			// Remove whitespaces
-			line.resize(std::remove_if(line.begin(), line.end(), isspace) - line.begin());
-
-			if (line.substr(0, 6) == "module") {
-				module.moduleName = line.substr(8, line.size() - 8 - 1);
-				continue;
-			}
-
-			if (line.substr(0, 5) == "image") {
-				module.imagePath = line.substr(7, line.size() - 7 - 1);
-				continue;
-			}
-
-			if (line.substr(0, 11) == "vertexCount") {
-				module.vertexCount = calculate<size_t>(line.substr(12));
-				continue;
-			}
-
-			position = line.find(')');
-
-			if (position == std::string::npos) continue;
-
-			uint32_t id = calculate<int>(line.substr(4, position - 4));
-
-			size_t equalSignPos = line.find('=', position);
-
-			SpecializationConstant value;
-			if (line.substr(position + 1, 3) == "int")
-				value = calculate<int>(line.substr(equalSignPos + 1));
-			else if (line.substr(position + 1, 5) == "float")
-				value = calculate<float>(line.substr(equalSignPos + 1));
-			else
-				throw std::invalid_argument(LOCATION
-				                            "invalid variable type in shader configuration file!");
-
+		module.specializationConstants.data.reserve(5 + config.params.size());
+		module.specializationConstants.data.resize(5);
+		module.specializationConstants.specializationInfo.reserve(5 + config.params.size());
+		for (uint32_t offset = 0; offset < 5; ++offset) {
 			VkSpecializationMapEntry mapEntry = {};
-			mapEntry.constantID = id;
-			mapEntry.offset =
-			    module.specializationConstants.data.size() * sizeof(SpecializationConstant);
-			mapEntry.size = sizeof(SpecializationConstant);
+			mapEntry.constantID = offset;
+			mapEntry.offset = offset * sizeof(SpecializationConstant);
+			mapEntry.size = sizeof(uint32_t);
 
-			module.specializationConstants.data.push_back(value);
 			module.specializationConstants.specializationInfo.push_back(mapEntry);
 		}
 
-		file.close();
+		for (auto& param : config.params) {
+			VkSpecializationMapEntry mapEntry = {};
+			mapEntry.constantID = param.id;
+			mapEntry.offset =
+			    module.specializationConstants.data.size() * sizeof(SpecializationConstant);
+			mapEntry.size = sizeof(uint32_t);
 
-		module.specializationConstants.data.shrink_to_fit();
-		module.specializationConstants.specializationInfo.shrink_to_fit();
-	}
+			module.specializationConstants.data.push_back(param.value);
+			module.specializationConstants.specializationInfo.push_back(mapEntry);
+		}
 
-	static void framebufferResizeCallback(GLFWwindow* window, [[maybe_unused]] int width,
-	                                      [[maybe_unused]] int height) {
-		auto renderer = reinterpret_cast<RendererImpl*>(glfwGetWindowUserPointer(window));
-		renderer->framebufferResized = true;
+		module.images.reserve(config.images.size());
+		for (auto& image : config.images) {
+			Resource<Image> resource = {};
+			resource.id = image.id;
+			resource.path = image.path;
+			module.images.push_back(resource);
+		}
 	}
 };
 
-void Renderer::init(const RenderSettings& renderSettings) {
-	rendererImpl = new RendererImpl(renderSettings);
+Renderer::Renderer(const Settings& settings) { rendererImpl = new RendererImpl(settings); }
+
+Renderer& Renderer::operator=(Renderer&& other) noexcept {
+	std::swap(rendererImpl, other.rendererImpl);
+	return *this;
 }
 
 bool Renderer::drawFrame(const AudioData& audioData) { return rendererImpl->drawFrame(audioData); }
 
-void Renderer::cleanup() { delete rendererImpl; }
+Renderer::~Renderer() { delete rendererImpl; }

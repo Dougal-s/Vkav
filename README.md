@@ -57,7 +57,7 @@ To install the config files to a user accessible location, run:
 ```
 $ vkav --install-config
 ```
-This will copy the config files from "/etc/Vkav" to "~/.config/Vkav".
+This will copy the config files from "/etc/vkav" to "~/.config/vkav".
 
 
 #### MacOS (>= 10.15):
@@ -86,7 +86,7 @@ To run Vkav simply execute:
 $ vkav
 ```
 
-Config files can be located in "~/.config/vkav" on Linux and in ~/Library/Preferences/vkav on MacOS
+Config files can be located in "~/.config/vkav" on Linux and "~/Library/Preferences/vkav" on MacOS
 once the user has executed `Vkav --install-config`.
 
 ## License

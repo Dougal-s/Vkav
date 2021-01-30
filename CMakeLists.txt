@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(Vkav VERSION 0.5.0 LANGUAGES CXX)
+project(Vkav VERSION 0.6.0 LANGUAGES CXX)
 
 configure_file(include/Version.hpp.in Version.hpp)
 
@@ -12,13 +12,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_compile_options(
-  "$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra>"
-  "$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
-  "$<$<CONFIG:RELEASE>:-O3;-march=native;-DNDEBUG>"
+	"$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra;-Wpedantic>"
+	"$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
+	"$<$<CONFIG:RELEASE>:-O3;-DNDEBUG>"
 )
 
 add_link_options(
-  "$<$<CONFIG:ASAN>:-fno-omit-frame-pointer;-fsanitize=address>"
+	"$<$<CONFIG:ASAN>:-fno-omit-frame-pointer;-fsanitize=address>"
 )
 
 # Platform specific flags
@@ -44,17 +44,11 @@ if (NOT DEFINED AUDIO_BACKEND)
 endif()
 
 
-add_library(audioModule
-	src/CoreAudio.cpp
-	src/PulseAudio.cpp
-	src/PulseAudioAsync.cpp
-	src/WASAPI.cpp
-	src/libsoundio.cpp
-)
+add_library(audioModule)
 target_include_directories(audioModule PRIVATE include)
 
 if (${AUDIO_BACKEND} MATCHES COREAUDIO)
-	target_compile_definitions(audioModule PRIVATE -DCOREAUDIO)
+	target_sources(audioModule PRIVATE src/CoreAudio.cpp)
 	find_library(coreAudio CoreAudio)
 	if (NOT coreAudio)
 		message(FATAL_ERROR "Unable to locate CoreAudio!")
@@ -67,21 +61,21 @@ elseif (${AUDIO_BACKEND} MATCHES PULSEAUDIO)
 	endif()
 	find_library(pulseAudioSimple pulse-simple)
 	if (pulseAudioSimple)
-		target_compile_definitions(audioModule PRIVATE -DPULSEAUDIO)
+		target_sources(audioModule PRIVATE src/PulseAudio.cpp)
 		target_link_libraries(audioModule PRIVATE ${pulseAudioSimple} -lpthread)
 	else()
-		target_compile_definitions(audioModule PRIVATE -DPULSEAUDIO_ASYNC)
+		target_sources(audioModule PRIVATE src/PulseAudioAsync.cpp)
 	endif()
 	target_link_libraries(audioModule PRIVATE ${pulseAudio})
 elseif (${AUDIO_BACKEND} MATCHES WASAPI)
-	target_compile_definitions(audioModule PRIVATE -DWASAPI)
+	target_sources(audioModule PRIVATE src/WASAPI.cpp)
 	find_library(WASAPI wasapi)
 	if (NOT WASAPI)
 		message(FATAL_ERROR "Unable to locate WASAPI!")
 	endif()
 	target_link_libraries(audioModule PRIVATE ${WASAPI})
 elseif (${AUDIO_BACKEND} MATCHES LIBSOUNDIO)
-	target_compile_definitions(audioModule PRIVATE -DLIBSOUNDIO)
+	target_sources(audioModule PRIVATE src/libsoundio.cpp)
 	find_library(libsoundio soundio)
 	find_path(libsoundioIncludeDir NAMES soundio/soundio.h)
 	if (NOT libsoundio)
@@ -94,8 +88,8 @@ endif()
 add_library(graphicsModule
 	src/Render.cpp
 	src/Image.cpp
-	src/X11.cpp
 	src/Calculate.cpp
+	src/ModuleConfig.cpp
 )
 target_include_directories(graphicsModule
 	PRIVATE
@@ -116,23 +110,27 @@ else()
 	target_link_libraries(graphicsModule PRIVATE ${GLFW})
 endif()
 
-set(VULKAN_SDK_LIB_PATH "/usr/lib/x86_64-linux-gnu")
-set(VULKAN_SDK_LAYER_PATH "/usr/share/vulkan/explicit_layer.d")
-
 if (DEFINED VULKAN_SDK_PATH)
 	if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
 		target_include_directories(graphicsModule PRIVATE ${VULKAN_SDK_PATH}/x86_64/include)
 		target_link_libraries(graphicsModule PRIVATE -L${VULKAN_SDK_PATH}/x86_64/lib)
 		target_link_libraries(graphicsModule PRIVATE vulkan)
-		set(VULKAN_SDK_LIB_PATH ${VULKAN_SDK_PATH}/x86_64/lib)
-		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/x86_64/etc/vulkan/explicit_layer.d)
+
+		set(VULKAN_SDK_LIB_PATH "${VULKAN_SDK_PATH}/x86_64/lib")
+		set(VULKAN_SDK_LAYER_PATH "${VULKAN_SDK_PATH}/x86_64/etc/vulkan/explicit_layer.d")
+
+		set(ENV_VARS LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH})
 	elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 	elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 		target_include_directories(graphicsModule PRIVATE ${VULKAN_SDK_PATH}/macOS/include)
 		target_link_libraries(graphicsModule PRIVATE -L${VULKAN_SDK_PATH}/macOS/lib)
 		target_link_libraries(graphicsModule PRIVATE vulkan)
-		set(VULKAN_ICD_FILENAMES ${VULKAN_SDK_PATH}/macOS/etc/vulkan/icd.d/MoltenVK_icd.json)
-		set(VULKAN_SDK_LAYER_PATH ${VULKAN_SDK_PATH}/macOS/etc/vulkan/explicit_layer.d)
+
+		set(VULKAN_ICD_FILENAMES "${VULKAN_SDK_PATH}/macOS/etc/vulkan/icd.d/MoltenVK_icd.json")
+		set(VULKAN_SDK_DYLIB_PATH "${VULKAN_SDK_PATH}/macOS/lib:$DYLD_LIBRARY_PATH")
+		set(VULKAN_SDK_LAYER_PATH "${VULKAN_SDK_PATH}/macOS/etc/vulkan/explicit_layer.d")
+
+		set(ENV_VARS VK_ICD_FILENAMES=${VULKAN_ICD_FILENAMES} DYLD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH})
 	endif()
 else()
 	find_package(Vulkan REQUIRED)
@@ -143,7 +141,8 @@ option(INCLUDE_X11 "Include X11 for extra functionality on X11 systems" ON)
 if (INCLUDE_X11)
 	find_package(X11)
 	if (${X11_FOUND})
-		target_compile_definitions(graphicsModule PRIVATE -DNATIVE_WINDOW_HINTS_SUPPORTED -DX11)
+		target_compile_definitions(graphicsModule PRIVATE -DNATIVE_WINDOW_HINTS_SUPPORTED)
+		target_sources(graphicsModule PRIVATE src/X11.cpp)
 		target_include_directories(graphicsModule PRIVATE ${X11_INCLUDE_DIR})
 		target_link_libraries(graphicsModule PRIVATE ${X11_LIBRARIES})
 	endif()
@@ -168,7 +167,7 @@ endif()
 
 add_executable(vkav
 	src/Vkav.cpp
-	src/Proccess.cpp
+	src/Process.cpp
 	src/Settings.cpp
 	src/Data.cpp
 	src/Calculate.cpp
@@ -183,8 +182,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES 
 	target_link_libraries(vkav -lstdc++fs)
 endif()
 
-if (NOT ${CMAKE_SYSTEM_NAME} MATCHES Windows AND ${CMAKE_BUILD_TYPE} MATCHES release)
-	add_custom_command(TARGET vkav POST_BUILD COMMAND strip --strip-all vkav)
+if (${CMAKE_BUILD_TYPE} MATCHES Release)
+	add_custom_command(TARGET vkav POST_BUILD COMMAND ${CMAKE_STRIP} vkav)
 endif()
 
 # Installer
@@ -213,12 +212,62 @@ elseif (${CMAKE_SYSTEM_NAME} MATCHES Windows)
 elseif (${CMAKE_SYSTEM_NAME} MATCHES Darwin)
 endif()
 
-# For formatting source code
+# compile modules
+if (NOT DEFINED GLSLC_PATH)
+	if (DEFINED VULKAN_SDK_PATH)
+		set(GLSLC_PATH ${VULKAN_SDK_PATH}/x86_64/bin/glslc)
+	else()
+		set(GLSLC_PATH glslc)
+	endif()
+endif()
+
+add_custom_target(shaders)
+function(add_module MODULE STAGES)
+	string(REPLACE " " "_" MODULE_NAME "${MODULE}")
+	add_custom_target(${MODULE_NAME})
+	foreach(STAGE RANGE 1 ${STAGES})
+		if (EXISTS "${CMAKE_SOURCE_DIR}/src/modules/${MODULE}/${STAGE}/shader.vert")
+			set(VERT_COMMAND ${GLSLC_PATH} -O shader.vert -o vert.spv)
+		else()
+			set(VERT_COMMAND "")
+		endif()
+
+		add_custom_target(
+			${MODULE_NAME}_STAGE_${STAGE}
+			COMMAND ${GLSLC_PATH} -O shader.frag -o frag.spv
+			COMMAND ${VERT_COMMAND}
+			BYPRODUCTS frag.spv vert.spv
+			WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/modules/${MODULE}/${STAGE}"
+		)
+		add_dependencies(${MODULE_NAME} ${MODULE_NAME}_STAGE_${STAGE})
+	endforeach()
+	add_dependencies(shaders ${MODULE_NAME})
+endfunction()
+
+add_module(background 1)
+add_module(bars 1)
+add_module(eclipse 2)
+add_module(fragment 1)
+add_module(logo 1)
+add_module(mist 1)
+add_module(octahedron 1)
+add_module("octahedron 2" 3)
+add_module(orbital 1)
+add_module(radial 1)
+add_module(rings 1)
+
+# Formatting source code
 file(GLOB src
 	"include/*.h"
 	"src/*.cpp"
 )
-
 add_custom_target(format clang-format -style=file -i ${src})
 
-add_custom_target(run VK_ICD_FILENAMES=${VULKAN_ICD_FILENAMES} LD_LIBRARY_PATH=${VULKAN_SDK_LIB_PATH} VK_LAYER_PATH=${VULKAN_SDK_LAYER_PATH} ./vkav)
+add_custom_target(run ${ENV_VARS} ./vkav)
+
+# Unit Tests
+option(BUILD_TESTS "Build unit tests" OFF)
+if (BUILD_TESTS)
+	enable_testing()
+	add_subdirectory(tests)
+endif()

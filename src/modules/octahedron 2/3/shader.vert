@@ -52,7 +52,7 @@ layout(location = 1) out vec3 position;
 layout(location = 2) out vec3 normal;
 layout(location = 3) out vec3 camera;
 
-layout(binding = 0) uniform data {
+layout(set = 0, binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
 	uint time;

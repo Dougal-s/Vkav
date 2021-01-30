@@ -47,15 +47,15 @@ vec3 barColor1 = vec3(barRed1, barGreen1, barBlue1);
 vec3 barColor2 = vec3(barRed2, barGreen2, barBlue2);
 vec3 octahedronColor = vec3(octahedronRed, octahedronGreen, octahedronBlue);
 
-layout(binding = 0) uniform data {
+layout(set = 0, binding = 0) uniform data {
 	float lVolume;
 	float rVolume;
 };
 
-layout(binding = 1) uniform samplerBuffer lBuffer;
-layout(binding = 2) uniform samplerBuffer rBuffer;
+layout(set = 0, binding = 1) uniform samplerBuffer lBuffer;
+layout(set = 0, binding = 2) uniform samplerBuffer rBuffer;
 
-layout(binding = 4) uniform sampler2D normalMap;
+layout(set = 1, binding = 0) uniform sampler2D normalMap;
 
 layout(location = 0) in vec2 surfacePos; // x: [-1, 1], y: [0, 1]
 layout(location = 1) in vec3 position;

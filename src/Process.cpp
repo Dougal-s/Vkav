@@ -4,11 +4,11 @@
 #include <utility>
 
 #include "Data.hpp"
-#include "Proccess.hpp"
+#include "Process.hpp"
 
-class Proccess::ProccessImpl {
+class Process::ProcessImpl {
 public:
-	ProccessImpl(const ProccessSettings& settings) {
+	ProcessImpl(const Settings& settings) {
 		channels = settings.channels;
 		inputSize = settings.size;
 		amplitude = settings.amplitude;
@@ -59,7 +59,7 @@ public:
 		wfCoeff = M_PI / (settings.size - 1);
 	}
 
-	void proccessSignal(AudioData& audioData) {
+	void processSignal(AudioData& audioData) {
 		windowFunction(audioData);
 		magnitudes(audioData);
 		equalise(audioData);
@@ -67,7 +67,7 @@ public:
 		if (smooth) smoothBuffer(audioData);
 	}
 
-	~ProccessImpl() {
+	~ProcessImpl() {
 		if (smooth) delete[] convolutionVec;
 	}
 
@@ -96,7 +96,10 @@ private:
 
 	template <class T>
 	void windowFunction(T* audio) const {
-		for (size_t n = 0; n < inputSize; ++n) audio[n] *= pow(sinf(wfCoeff * n), 2);
+		for (size_t n = 0; n < inputSize; ++n) {
+			float tmp = std::sin(wfCoeff * n);
+			audio[n] *= tmp * tmp;
+		}
 	}
 
 	void magnitudes(AudioData& audioData) {
@@ -137,7 +140,7 @@ private:
 
 	void equalise(AudioData& audioData) const {
 		for (size_t n = 0; n < inputSize / 2; ++n) {
-			float weight = 0.08f * amplitude * log10f(2.f * n / inputSize + 1.05f);
+			float weight = 170.f * amplitude * std::log10(2.f * n / inputSize + 1.05f) / inputSize;
 			audioData.lBuffer[n] *= weight;
 			audioData.rBuffer[n] *= weight;
 		}
@@ -233,20 +236,24 @@ private:
 	/**
 	 * Reverses the first n bits in val
 	 */
-	static size_t reverseBits(size_t val, uint8_t n) {
+	constexpr static size_t reverseBits(size_t val, uint8_t n) {
 		size_t reversed = 0;
 		for (uint8_t i = 0; i < n; ++i) {
 			reversed <<= 1;
-			reversed += (val & (1 << i)) != 0;
+			reversed |= val & 1;
+			val >>= 1;
 		}
 		return reversed;
 	}
 };
 
-void Proccess::init(const ProccessSettings& proccessSettings) {
-	impl = new ProccessImpl(proccessSettings);
+Process::Process(const Settings& processSettings) { impl = new ProcessImpl(processSettings); }
+
+Process& Process::operator=(Process&& other) noexcept {
+	std::swap(impl, other.impl);
+	return *this;
 }
 
-void Proccess::proccessSignal(AudioData& audioData) { impl->proccessSignal(audioData); }
+void Process::processSignal(AudioData& audioData) { impl->processSignal(audioData); }
 
-void Proccess::cleanup() { delete impl; }
+Process::~Process() { delete impl; }

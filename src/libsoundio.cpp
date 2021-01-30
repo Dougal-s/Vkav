@@ -1,4 +1,3 @@
-#ifdef LIBSOUNDIO
 // C++ standard libraries
 #include <atomic>
 #include <chrono>
@@ -16,9 +15,13 @@
 #include "Audio.hpp"
 #include "Data.hpp"
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#ifdef NDEBUG
+	#define LOCATION
+#else
+	#define STR_HELPER(x) #x
+	#define STR(x) STR_HELPER(x)
+	#define LOCATION __FILE__ ":" STR(__LINE__) ": "
+#endif
 
 class AudioSampler::AudioSamplerImpl {
 public:
@@ -26,7 +29,7 @@ public:
 	std::atomic<bool> modified;
 	std::atomic<int> ups;
 
-	AudioSamplerImpl(const AudioSettings& audioSettings) {
+	AudioSamplerImpl(const Settings& audioSettings) {
 		settings.channels = audioSettings.channels;
 		settings.sampleSize = audioSettings.sampleSize * audioSettings.channels;
 		settings.bufferSize = audioSettings.bufferSize * audioSettings.channels;
@@ -83,7 +86,7 @@ private:
 	std::exception_ptr exceptionPtr = nullptr;
 
 	// settings
-	AudioSettings settings;
+	Settings settings;
 
 	// libsoundio
 	SoundIo* soundio = nullptr;
@@ -178,8 +181,7 @@ private:
 		soundio_flush_events(soundio);
 	}
 
-	static void readCallback(SoundIoInStream* instream, [[maybe_unused]] int frameCountMin,
-	                         int frameCountMax) {
+	static void readCallback(SoundIoInStream* instream, int, int frameCountMax) {
 		auto audio = reinterpret_cast<AudioSamplerImpl*>(instream->userdata);
 		SoundIoChannelArea* areas;
 
@@ -241,20 +243,23 @@ private:
 	}
 };
 
+AudioSampler::AudioSampler(const Settings& audioSettings) {
+	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
+}
+
+AudioSampler::~AudioSampler() { delete audioSamplerImpl; }
+
+AudioSampler& AudioSampler::operator=(AudioSampler&& other) noexcept {
+	std::swap(audioSamplerImpl, other.audioSamplerImpl);
+	return *this;
+}
+
 bool AudioSampler::running() const { return audioSamplerImpl->running; }
 
 bool AudioSampler::modified() const { return audioSamplerImpl->modified; }
 
 int AudioSampler::ups() const { return audioSamplerImpl->ups; }
 
-void AudioSampler::start(const AudioSettings& audioSettings) {
-	audioSamplerImpl = new AudioSamplerImpl(audioSettings);
-}
-
-void AudioSampler::stop() { delete audioSamplerImpl; }
-
 void AudioSampler::copyData(AudioData& audioData) { audioSamplerImpl->copyData(audioData); }
 
 void AudioSampler::rethrowExceptions() { return audioSamplerImpl->rethrowExceptions(); }
-
-#endif
