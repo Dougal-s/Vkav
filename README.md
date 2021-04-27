@@ -86,7 +86,7 @@ To run Vkav simply execute:
 $ vkav
 ```
 
-Config files can be located in "~/.config/vkav" on Linux and "~/Library/Preferences/vkav" on MacOS
+Config files can be located in "\~/.config/vkav" on Linux and "\~/Library/Preferences/vkav" on MacOS
 once the user has executed `Vkav --install-config`.
 
 ## License
