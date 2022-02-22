@@ -89,6 +89,9 @@ start build/Vkav.sln
 ```
 Select the vkav project, activate Debug|x64 config, press F5 and it should come up.
 
+If you use ASIO, I recommend to use ASIO4ALL driver under the debugger. A lot of 
+the other drivers detect and refuse the debugger.
+
 ### Usage
 To run Vkav simply execute:
 ```
