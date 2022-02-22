@@ -51,6 +51,12 @@ sampleRate = 5625
 channels = 2
 
 /**
+ * Normalize input signal? 0|1, default 0.
+ * Currently only works for PortAudio (Windows).
+ */ 
+normalize = 1
+
+/**
  * Framerate limiter. Set to 0 to enable VSync and -1 to disable the fps limiter.
  */
 fpsLimit = 0

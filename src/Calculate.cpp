@@ -91,7 +91,7 @@ namespace {
 		    std::find_if_not(str.begin(), str.end(), [](char c) { return std::isalpha(c); });
 		if (auto it = constants.find(std::string(str.begin(), constEnd)); it != constants.end()) {
 			Token rtrn(Token::Type::eNumber, it->second);
-			str.remove_prefix(constEnd - str.data());
+			str.remove_prefix(constEnd - str.begin());
 			return rtrn;
 		}
 

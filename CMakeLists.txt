@@ -4,22 +4,33 @@ project(Vkav VERSION 0.6.0 LANGUAGES CXX)
 
 configure_file(include/Version.hpp.in Version.hpp)
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+if(MSVC)
+	set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
+else()
+	if(NOT CMAKE_BUILD_TYPE)
+		set(CMAKE_BUILD_TYPE Release)
+	endif()
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_compile_options(
-	"$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra;-Wpedantic>"
-	"$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
-	"$<$<CONFIG:RELEASE>:-O3;-DNDEBUG>"
-)
+if($ENV{VULKAN_SDK})
+	set(VULKAN_SDK_PATH $ENV{VULKAN_SDK} CACHE STRING "")
+endif()
 
-add_link_options(
-	"$<$<CONFIG:ASAN>:-fno-omit-frame-pointer;-fsanitize=address>"
-)
+if(MSVC)
+	add_compile_options("-D_USE_MATH_DEFINES")
+else()
+	add_compile_options(
+		"$<$<CONFIG:DEBUG>:-O0;-g3;-ggdb;-Wall;-Wextra;-Wpedantic>"
+		"$<$<CONFIG:ASAN>:-O0;-g3;-ggdb;-Wall;-Wextra;-fno-omit-frame-pointer;-fsanitize=address>"
+		"$<$<CONFIG:RELEASE>:-O3;-DNDEBUG>"
+	)
+	add_link_options(
+		"$<$<CONFIG:ASAN>:-fno-omit-frame-pointer;-fsanitize=address>"
+	)
+endif()
 
 # Platform specific flags
 if (${CMAKE_SYSTEM_NAME} MATCHES Linux)
@@ -68,12 +79,10 @@ elseif (${AUDIO_BACKEND} MATCHES PULSEAUDIO)
 	endif()
 	target_link_libraries(audioModule PRIVATE ${pulseAudio})
 elseif (${AUDIO_BACKEND} MATCHES WASAPI)
-	target_sources(audioModule PRIVATE src/WASAPI.cpp)
-	find_library(WASAPI wasapi)
-	if (NOT WASAPI)
-		message(FATAL_ERROR "Unable to locate WASAPI!")
-	endif()
-	target_link_libraries(audioModule PRIVATE ${WASAPI})
+	set(PA_BUILD_EXAMPLES OFF CACHE STRING "")
+    add_subdirectory(portaudio)
+    target_sources(audioModule PRIVATE src/PortAudio.cpp)
+    target_link_libraries(audioModule PRIVATE PortAudio)
 elseif (${AUDIO_BACKEND} MATCHES LIBSOUNDIO)
 	target_sources(audioModule PRIVATE src/libsoundio.cpp)
 	find_library(libsoundio soundio)
@@ -97,6 +106,10 @@ target_include_directories(graphicsModule
 		"${PROJECT_BINARY_DIR}"
 )
 
+if (NOT DEFINED GLFW_PATH)
+	set(GLFW_PATH glfw CACHE STRING "" FORCE)
+endif()
+
 if (DEFINED GLFW_PATH)
 	set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 	set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -104,10 +117,6 @@ if (DEFINED GLFW_PATH)
 	add_subdirectory(${GLFW_PATH})
 	target_include_directories(graphicsModule PRIVATE ${GLFW_PATH}/include)
 	target_link_libraries(graphicsModule PRIVATE glfw ${GLFW_LIBRARIES})
-else()
-	find_library(GLFW glfw REQUIRED)
-	target_include_directories(graphicsModule PRIVATE ${GLFW_INCLUDE_DIRS})
-	target_link_libraries(graphicsModule PRIVATE ${GLFW})
 endif()
 
 if (DEFINED VULKAN_SDK_PATH)
@@ -135,6 +144,9 @@ if (DEFINED VULKAN_SDK_PATH)
 else()
 	find_package(Vulkan REQUIRED)
 	target_link_libraries(graphicsModule PRIVATE Vulkan::Vulkan)
+	if(NOT DEFINED GLSLC_PATH)
+		set(GLSLC_PATH "${Vulkan_GLSLC_EXECUTABLE}" CACHE STRING "")
+	endif()
 endif()
 
 option(INCLUDE_X11 "Include X11 for extra functionality on X11 systems" ON)
@@ -165,7 +177,13 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES 
 	target_link_libraries(graphicsModule PUBLIC -lstdc++fs)
 endif()
 
-add_executable(vkav
+if(WIN32) 
+	add_executable(vkav WIN32)
+else()
+	add_executable(vkav)
+endif()
+
+target_sources(vkav PRIVATE
 	src/Vkav.cpp
 	src/Process.cpp
 	src/Settings.cpp
@@ -181,6 +199,12 @@ target_link_libraries(vkav audioModule graphicsModule)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION MATCHES "8..*")
 	target_link_libraries(vkav -lstdc++fs)
 endif()
+
+# copy portaudio.dll to exe output dir
+add_custom_command(TARGET vkav
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:PortAudio> $<TARGET_FILE_DIR:vkav>
+)
 
 if (${CMAKE_BUILD_TYPE} MATCHES Release)
 	add_custom_command(TARGET vkav POST_BUILD COMMAND ${CMAKE_STRIP} vkav)

@@ -1,0 +1,6 @@
+[submodule "portaudio"]
+	path = portaudio
+	url = https://github.com/PortAudio/portaudio.git
+[submodule "glfw"]
+	path = glfw
+	url = https://github.com/glfw/glfw.git

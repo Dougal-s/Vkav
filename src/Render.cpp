@@ -42,7 +42,8 @@ namespace {
 #ifdef NDEBUG
 	constexpr bool enableValidationLayers = false;
 #else
-	constexpr bool enableValidationLayers = true;
+	// needs updating, recent SDKs don't seem to provide VK_LAYER_LUNARG_standard_validation
+	constexpr bool enableValidationLayers = false;
 #endif
 
 	VkResult createDebugUtilsMessengerEXT(VkInstance instance,
@@ -908,7 +909,7 @@ private:
 		modules.resize(settings.modules.size());
 
 		for (uint32_t i = 0; i < modules.size(); ++i) {
-			modules[i].location = findModule(settings.modules[i]);
+			modules[i].location = findModule(settings.modules[i].string());
 
 			// find number of layers
 			uint32_t layerCount = 1;
@@ -1780,11 +1781,11 @@ private:
 			config = parseConfig(file);
 		} catch (const ParseException& e) {
 			throw std::runtime_error(std::string(LOCATION) + "Failed to parse module config '" +
-			                         configFilePath.native() + "':\n\tline " +
+			                         configFilePath.string() + "':\n\tline " +
 			                         std::to_string(e.line()) + ":" + e.what());
 		} catch (const std::exception& e) {
 			throw std::runtime_error(std::string(LOCATION) + "Failed to parse module config '" +
-			                         configFilePath.native() + "':\n\t" + e.what());
+			                         configFilePath.string() + "':\n\t" + e.what());
 		}
 
 		if (config.moduleName) module.moduleName = config.moduleName.value();

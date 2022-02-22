@@ -6,7 +6,7 @@
 
 Vkav is an audio visualizer written in C++ using Vulkan as its rendering backend.<br/>
 Shown on the left is the eclipse shader.<br/>
-*Windows support has not been implemented*
+*Windows works to some extent.*
 <br/>
 <br/>
 <br/>
@@ -16,20 +16,18 @@ Shown on the left is the eclipse shader.<br/>
 Binaries can be found under [releases](https://github.com/Dougal-s/Vkav/releases) or on the Vkav [website](https://dougal-s.github.io/Vkav/).
 
 ### Prerequisites
-* GLFW
+* GLFW (optional, default included)
 * Vulkan
 * libpng (optional)
 * libjpeg (optional)
 * Pulseaudio (Linux only)
-* WASAPI (Windows only)\*
+* PortAudio (Windows only atm, included)
 * Libsoundio (optional)
 * X11 (optional)
 
 ### Compilation Tools:
 * g++ >= 8 or clang++ >= 7
 * cmake >= 3.12
-
-\*Windows support has not been implemented.
 
 
 #### Debian/Ubuntu:
@@ -79,6 +77,17 @@ $ make
 ```
 
 Once that is finished, head over to the [MacOS](./MacOS/README.md) directory for instructions on building a .app bundle.
+
+#### Windows 11 (older may work):
+
+Requires Visual Studio 2019+ and KitWare cmake.
+
+```
+# add -DPA_USE_ASIO to enable ASIO support (beware Steinberg license agreement!)
+cmake -S . -B build -DBUILD_SHARED_LIBS=OFF
+start build/Vkav.sln
+```
+Select the vkav project, activate Debug|x64 config, press F5 and it should come up.
 
 ### Usage
 To run Vkav simply execute:

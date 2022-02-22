@@ -21,7 +21,7 @@
 	#include <unistd.h>
 #elif defined(WINDOWS)
 	#include <Combaseapi.h>
-	#include <Shlobj_api.h>
+	#include <shlobj_core.h>
 #else
 #endif
 
@@ -163,14 +163,14 @@ std::vector<std::filesystem::path> getConfigLocations() {
 	configLocations[1] = "../Resources/vkav";
 #elif defined(WINDOWS)
 	configLocations.resize(2);
-	const char* path;
-	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
-	configLocations[0] = path;
+	PWSTR path;
+	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, &path);
+	configLocations[0] = std::filesystem::path(std::wstring(path));
 	configLocations[0] /= "vkav";
 	CoTaskMemFree(path);
 
-	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, path);
-	configLocations[1] = path;
+	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, &path);
+	configLocations[1] = std::filesystem::path(std::wstring(path));
 	configLocations[1] /= "vkav";
 	CoTaskMemFree(path);
 #else
@@ -193,7 +193,7 @@ std::unordered_map<std::string, std::vector<std::filesystem::path>> getModules()
 		for (auto& module : std::filesystem::directory_iterator(configLocation / "modules")) {
 			if (std::filesystem::exists(module.path() / "config") &&
 			    std::filesystem::exists(module.path() / "1"))
-				modules[module.path().filename()].push_back(module.path());
+				modules[module.path().filename().string()].push_back(module.path());
 		}
 	}
 	return modules;
@@ -212,14 +212,14 @@ void installConfig() {
 	if (dst.empty()) dst = getpwuid(geteuid())->pw_dir;
 	dst /= "Library/Preferences/vkav";
 #elif defined(WINDOWS)
-	const char* path;
-	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, path);
-	dst = path;
+	PWSTR path = NULL;
+	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, NULL, &path);
+	dst = std::filesystem::path(path);
 	dst /= "vkav";
 	CoTaskMemFree(path);
 
-	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, path);
-	src = path;
+	SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT, NULL, &path);
+	src = std::filesystem::path(path);
 	src /= "vkav";
 	CoTaskMemFree(path);
 #else
@@ -227,7 +227,7 @@ void installConfig() {
 #endif
 
 	if (!std::filesystem::exists(src))
-		throw std::runtime_error(LOCATION "Source directory: " + std::string(src) +
+		throw std::runtime_error(LOCATION "Source directory: " + src.string() +
 		                         " does not exist!");
 
 	std::filesystem::copy(src, dst,

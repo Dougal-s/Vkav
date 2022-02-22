@@ -1,3 +1,9 @@
+#ifdef _MSC_VER
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+	#include <regex>
+#endif
+
 // C++ standard libraries
 #include <algorithm>
 #include <chrono>
@@ -109,9 +115,14 @@ namespace {
 #else
 			std::vector<std::filesystem::path> configLocations = {argv[0]};
 			configLocations.front().remove_filename();
+#ifndef _MSC_VER
 			configLocations.front() =
 			    std::filesystem::canonical(configLocations.front()).parent_path() / "src";
-#endif
+#else
+			configLocations.front() =
+			    std::filesystem::canonical(configLocations.front()).parent_path().parent_path() / "src";
+#endif // !_MSC_VER else
+#endif // NDEBUG else
 			for (auto& path : configLocations) {
 				if (std::filesystem::exists(path / "config")) {
 					configFilePath = path / "config";
@@ -138,11 +149,13 @@ namespace {
 				WARN_UNDEFINED(fpsLimit);
 			renderSettings.vsync = (fpsLimit == 0);
 
-			std::clog << "Initialising audio" << std::endl;
-			audioSampler = AudioSampler(audioSettings);
 			std::clog << "Initialising renderer" << std::endl;
 			renderer = Renderer(renderSettings);
 			process = Process(processSettings);
+			// construct AudioSampler after the Renderer in order to avoid
+			// PortAudio/ASIO throwing a bunch of CoInit warnings:
+			std::clog << "Initialising audio" << std::endl;
+			audioSampler = AudioSampler(audioSettings);
 
 			audioData.allocate(audioSettings.channels, audioSettings.bufferSize);
 
@@ -243,6 +256,9 @@ namespace {
 			} else {
 				WARN_UNDEFINED(sinkName);
 			}
+
+			if (const auto setting = settings.find("normalize"); setting != settings.end())
+				audioSettings.normalize = calculate<int>(setting->second);
 
 			if (const auto setting = settings.find("modules"); setting != settings.end()) {
 				auto modules = parseAsArray(setting->second);
@@ -360,8 +376,34 @@ namespace {
 	};
 }  // namespace
 
+#ifdef _MSC_VER
+std::vector<std::string> split(const std::string str, const std::string regex_str) {
+	std::regex regexz(regex_str);
+	std::vector<std::string> list(std::sregex_token_iterator(str.begin(), str.end(), regexz, -1),
+	                              std::sregex_token_iterator());
+	return list;
+}
+int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow) {
+	std::vector<std::string> vs = split(cmdline, " +");
+	int argc = vs.size() + 1;
+	char const** argv = new char const*[argc];
+	TCHAR szFileName[MAX_PATH];
+	GetModuleFileName(NULL, szFileName, MAX_PATH);
+	argv[0] = szFileName;
+	for (int i = 1; i < argc;  i++) {
+		argv[i] = vs[i-1].c_str();
+	}
+	if (!strlen(cmdline)) argc = 1;
+#else
 int main(int argc, const char* argv[]) {
+#endif
 	std::ios_base::sync_with_stdio(false);
+
+#ifdef _DEBUG && _MSC_VER
+	// preserve exception for debugger
+	Vkav app(argc, argv);
+	app.run();
+#else
 	try {
 		Vkav app(argc, argv);
 		app.run();
@@ -369,6 +411,6 @@ int main(int argc, const char* argv[]) {
 		std::cerr << e.what() << std::endl;
 		return EXIT_FAILURE;
 	}
-
+#endif
 	return EXIT_SUCCESS;
 }

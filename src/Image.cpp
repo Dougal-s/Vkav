@@ -333,7 +333,11 @@ namespace {
 					throw std::runtime_error(LOCATION
 					                         "Compressed BMP file are unsupported as of now!");
 			}
-		} __attribute__((packed)) header;
+		}
+#ifndef _MSC_VER
+		__attribute__((packed))
+#endif
+		header;
 
 		unsigned char** image;
 	};
